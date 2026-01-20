@@ -1,6 +1,6 @@
 # Scenario Space Exploration for Robust Energy Planning
 
-![Workflow Diagram](Workflow%20diagram.png)
+![Workflow Diagram](Workflow_diagram.png)
 
 This folder contains all the data related to the paper "Scenario Space Exploration for Robust Energy Planning".
 
