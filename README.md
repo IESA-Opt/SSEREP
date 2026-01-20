@@ -48,3 +48,7 @@ The IESA-Opt energy system model used for scenario generation and analysis.
 - **LHS (Latin Hypercube Sampling)**: Used with the Delta sensitivity analysis method for variance-based sensitivity analysis
 - **Morris Sampling**: Used with Morris Elementary Effects method for screening-level sensitivity analysis
 - The CSV files contain the energy system model outputs and sensitivity analysis results for both sampling approaches
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
