@@ -1,0 +1,38 @@
+## ams_version=1.0
+
+Section Auxiliar_Elements {
+    StringParameter AIMMSWavDLL {
+        Definition: {
+            if AimmsStringConstants('Architecture') = 'x86' then
+                    "Aimmswav.dll"
+            else
+                    "Aimmswav64.dll"
+            endif
+        }
+    }
+    ExternalProcedure AIMMSWav {
+        Arguments: (AWWavFile,AWAsync);
+        DllName: "Alarm\\AimmsWav64.dll";
+        ReturnType: integer;
+        BodyCall: PlayWavFile( string scalar: AWWavFile, integer scalar: AWAsync );
+        Comment: "This procedure will play the specified \'AWWavFile\' asynchronized (\'AWAsync\'=0) or synchronized (\'AWAsync\'=1)";
+        StringParameter AWWavFile {
+            Property: Input;
+        }
+        Parameter AWAsync {
+            Range: binary;
+            Default: 1;
+            Property: Optional;
+        }
+    }
+    DeclarationSection Sound_Declarations {
+        StringParameter WavFile {
+            Default: "Alarm\\signal.wav";
+        }
+    }
+    Procedure PlayWavFile {
+        Body: {
+            AIMMSWav(WavFile);
+        }
+    }
+}

@@ -1,0 +1,8 @@
+<AimmsCSVMapping>
+    <RowMapping name="table1">
+        <ColumnMapping name="variant" binds-to="ifsb"/>
+		<ColumnMapping name="commodity" binds-to="as"/>
+		<ColumnMapping name="period" binds-to="p"/>
+        <ColumnMapping name="comPrices" maps-to="BatchSolve_yearly_prices(ifsb,as,p)"/>
+    </RowMapping>
+</AimmsCSVMapping>

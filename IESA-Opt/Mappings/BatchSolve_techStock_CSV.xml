@@ -1,0 +1,8 @@
+<AimmsCSVMapping>
+    <RowMapping name="table1">
+        <ColumnMapping name="variant" binds-to="ifsb"/>
+		<ColumnMapping name="technology" binds-to="t"/>
+		<ColumnMapping name="period" binds-to="p"/>
+        <ColumnMapping name="techStocks" maps-to="BatchSolve_techStock(ifsb,t,p)" />
+    </RowMapping>
+</AimmsCSVMapping>

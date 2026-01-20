@@ -1,0 +1,231 @@
+<?xml version="1.0"?>
+<Page Version="4000" TimeStamp="2025-05-11 07:53:00">
+	<PageEditSize Type="Inherited" />
+	<ProjectUUID>956F6330-FAE1-4841-A634-37A60C1052C8</ProjectUUID>
+	<DockAtStartup>true</DockAtStartup>
+	<Positioning>Save Last Position</Positioning>
+	<TemplatesTabOrderPosition>1</TemplatesTabOrderPosition>
+	<Background RGB="#ffffff" />
+	<Action>
+		<EntryProcedure>ApplyProjectName</EntryProcedure>
+	</Action>
+	<PageObject Type="Picture">
+		<Location top="6" left="882" bottom="90" right="942" />
+		<FileName LiteralFileName="true">"Images\favicon4.png"</FileName>
+		<Display>StretchOrShrink</Display>
+		<Center>true</Center>
+		<KeepRatio>true</KeepRatio>
+	</PageObject>
+	<PageObject Type="Picture">
+		<Location top="456" left="90" bottom="516" right="882" />
+		<FileName LiteralFileName="true">"Images\Banner of partner institutions.jpg"</FileName>
+		<Display>StretchOrShrink</Display>
+		<Center>true</Center>
+		<KeepRatio>true</KeepRatio>
+	</PageObject>
+	<PageObject Type="Text">
+		<Location top="30" left="66" bottom="78" right="366" />
+		<StaticText>Main page</StaticText>
+		<Font GUID="F5E9E1A8-AE27-4B0F-B679-CEC3E775FD37" Name="Subtitle" />
+		<TextColor RGB="#004080" />
+	</PageObject>
+	<PageObject Type="Text">
+		<Location top="96" left="24" bottom="180" right="960" />
+		<StaticText>	Welcome to the IESA-Opt model interface. Here you can define the settings under which you want to obtain a cost optimal decarbonization transtition for the integrated energy system of the Netherlands. Let's start by selecting which action you want to perform:</StaticText>
+		<Font GUID="FC37E4F7-5732-42BD-B488-C708466030F3" Name="Content" />
+		<TextColor RGB="#57606f" />
+	</PageObject>
+	<PageObject Type="Button">
+		<Location top="216" left="90" bottom="264" right="432" />
+		<TabOrder>1</TabOrder>
+		<LeaveOnEnter>false</LeaveOnEnter>
+		<ButtonType>Text</ButtonType>
+		<Title>"Solve the transition"</Title>
+		<BackgroundColor RGB="#dbdbdb" />
+		<ForegroundColor>
+			<UserColor GUID="9043B6BC-F2E6-4015-A940-74CD05E6AD57">black</UserColor>
+		</ForegroundColor>
+		<Font GUID="F29DA1E4-64E8-4E46-8391-D2F15E4EC150" Name="Button content" />
+		<ActionSequence>
+			<Action Type="Run">
+				<RunWhat>SpecificProcecure</RunWhat>
+				<Procedure>RetreiveExistingOutputFolders</Procedure>
+				<AbortOnError>true</AbortOnError>
+			</Action>
+			<Action Type="Run">
+				<RunWhat>SpecificProcecure</RunWhat>
+				<Procedure>RetreiveExistingInputFiles</Procedure>
+				<AbortOnError>true</AbortOnError>
+			</Action>
+			<Action Type="ClosePage" />
+			<Action Type="LinkedPage">
+				<Page PageGUID="0CD4B8EC-6D7F-401C-9B58-DDFEE71A6C56" Name="Transition solving" />
+			</Action>
+			<Action Type="Assignment">
+				<Identifier>RunButton_Hide</Identifier>
+				<AssignedValue>1</AssignedValue>
+			</Action>
+			<Action Type="Assignment">
+				<Identifier>ReadButton_Hide</Identifier>
+				<AssignedValue>1</AssignedValue>
+			</Action>
+			<Action Type="Run">
+				<RunWhat>SpecificProcecure</RunWhat>
+				<Procedure>DefaultInputLocation</Procedure>
+				<AbortOnError>true</AbortOnError>
+			</Action>
+		</ActionSequence>
+	</PageObject>
+	<PageObject Type="Button">
+		<Location top="288" left="90" bottom="336" right="432" />
+		<TabOrder>5</TabOrder>
+		<LeaveOnEnter>false</LeaveOnEnter>
+		<ButtonType>Text</ButtonType>
+		<Title>"Load case / Post-process results"</Title>
+		<BackgroundColor RGB="#dbdbdb" />
+		<Font GUID="F29DA1E4-64E8-4E46-8391-D2F15E4EC150" Name="Button content" />
+		<ActionSequence>
+			<Action Type="Run">
+				<RunWhat>SpecificProcecure</RunWhat>
+				<Procedure>RetreiveExistingOutputFolders</Procedure>
+				<AbortOnError>true</AbortOnError>
+			</Action>
+			<Action Type="Assignment">
+				<Identifier>RunButton_Hide</Identifier>
+				<AssignedValue>1</AssignedValue>
+			</Action>
+			<Action Type="ClosePage" />
+			<Action Type="LinkedPage">
+				<Page PageGUID="726CB277-5DEE-42CE-8125-5EC4B0228CE7" Name="Update output files" />
+			</Action>
+			<Action Type="Assignment">
+				<Identifier>ReadButton_Hide</Identifier>
+				<AssignedValue>0</AssignedValue>
+			</Action>
+		</ActionSequence>
+	</PageObject>
+	<PageObject Type="Button">
+		<Location top="288" left="546" bottom="336" right="888" />
+		<TabOrder>3</TabOrder>
+		<LeaveOnEnter>false</LeaveOnEnter>
+		<ButtonType>Text</ButtonType>
+		<Title>"Parallel Batch Solve"</Title>
+		<BackgroundColor RGB="#dbdbdb" />
+		<ForegroundColor>
+			<UserColor GUID="9043B6BC-F2E6-4015-A940-74CD05E6AD57">black</UserColor>
+		</ForegroundColor>
+		<Font GUID="F29DA1E4-64E8-4E46-8391-D2F15E4EC150" Name="Button content" />
+		<ActionSequence>
+			<Action Type="Run">
+				<RunWhat>SpecificProcecure</RunWhat>
+				<Procedure>RetreiveExistingOutputFolders</Procedure>
+				<AbortOnError>true</AbortOnError>
+			</Action>
+			<Action Type="Run">
+				<RunWhat>SpecificProcecure</RunWhat>
+				<Procedure>RetreiveExistingInputFilesBatch</Procedure>
+				<AbortOnError>true</AbortOnError>
+			</Action>
+			<Action Type="ClosePage" />
+			<Action Type="LinkedPage">
+				<Page PageGUID="84761FE8-9D49-4F3F-A6E6-8F7F00491C68" Name="Parallel Batch solving" />
+			</Action>
+			<Action Type="UpdateIdentifier">
+				<Identifier>InputFilesSelectionBatch</Identifier>
+			</Action>
+		</ActionSequence>
+	</PageObject>
+	<PageObject Type="Text">
+		<Location top="18" left="636" bottom="72" right="876" />
+		<SourceType>StringParameter</SourceType>
+		<StringParameter>project_name</StringParameter>
+		<Font GUID="694E7D6A-A810-46B3-8812-A36514F14155" Name="Content names" />
+		<TextColor RGB="#000080" />
+	</PageObject>
+	<PageObject Type="Button">
+		<Location top="210" left="546" bottom="258" right="888" />
+		<TabOrder>4</TabOrder>
+		<LeaveOnEnter>false</LeaveOnEnter>
+		<ButtonType>Text</ButtonType>
+		<Title>"Sequential Batch Solve"</Title>
+		<BackgroundColor RGB="#dbdbdb" />
+		<ForegroundColor>
+			<UserColor GUID="9043B6BC-F2E6-4015-A940-74CD05E6AD57">black</UserColor>
+		</ForegroundColor>
+		<Font GUID="F29DA1E4-64E8-4E46-8391-D2F15E4EC150" Name="Button content" />
+		<ActionSequence>
+			<Action Type="Run">
+				<RunWhat>SpecificProcecure</RunWhat>
+				<Procedure>RetreiveExistingOutputFolders</Procedure>
+				<AbortOnError>true</AbortOnError>
+			</Action>
+			<Action Type="Run">
+				<RunWhat>SpecificProcecure</RunWhat>
+				<Procedure>RetreiveExistingInputFiles</Procedure>
+				<AbortOnError>true</AbortOnError>
+			</Action>
+			<Action Type="ClosePage" />
+			<Action Type="LinkedPage">
+				<Page PageGUID="9480DBF6-553C-4C9D-B06A-2236B8913D9F" Name="Sequential Batch solving" />
+			</Action>
+			<Action Type="UpdateIdentifier">
+				<Identifier>InputFilesSelection</Identifier>
+			</Action>
+		</ActionSequence>
+	</PageObject>
+	<PageObject Type="Button">
+		<Location top="366" left="90" bottom="414" right="432" />
+		<TabOrder>2</TabOrder>
+		<LeaveOnEnter>false</LeaveOnEnter>
+		<ButtonType>Text</ButtonType>
+		<Title>"Tuning"</Title>
+		<BackgroundColor RGB="#dbdbdb" />
+		<ForegroundColor>
+			<UserColor GUID="9043B6BC-F2E6-4015-A940-74CD05E6AD57">black</UserColor>
+		</ForegroundColor>
+		<Font GUID="F29DA1E4-64E8-4E46-8391-D2F15E4EC150" Name="Button content" />
+		<ActionSequence>
+			<Action Type="Run">
+				<RunWhat>SpecificProcecure</RunWhat>
+				<Procedure>RetreiveExistingOutputFolders</Procedure>
+				<AbortOnError>true</AbortOnError>
+			</Action>
+			<Action Type="Run">
+				<RunWhat>SpecificProcecure</RunWhat>
+				<Procedure>RetreiveExistingInputFiles</Procedure>
+				<AbortOnError>true</AbortOnError>
+			</Action>
+			<Action Type="ClosePage" />
+			<Action Type="LinkedPage">
+				<Page PageGUID="E15FCCD1-6B6F-42AD-8E49-461582B407E9" Name="Tuning" />
+			</Action>
+			<Action Type="Assignment">
+				<Identifier>RunButton_Hide</Identifier>
+				<AssignedValue>1</AssignedValue>
+			</Action>
+			<Action Type="Assignment">
+				<Identifier>ReadButton_Hide</Identifier>
+				<AssignedValue>1</AssignedValue>
+			</Action>
+			<Action Type="Run">
+				<RunWhat>SpecificProcecure</RunWhat>
+				<Procedure>DefaultInputLocation</Procedure>
+				<AbortOnError>true</AbortOnError>
+			</Action>
+		</ActionSequence>
+	</PageObject>
+	<UsedReferences>
+		<Model>
+			<Symbol>project_name</Symbol>
+			<Symbol>InputFilesSelection</Symbol>
+			<Symbol>InputFilesSelectionBatch</Symbol>
+			<Symbol>ReadButton_Hide</Symbol>
+			<Symbol>RunButton_Hide</Symbol>
+			<Symbol>RetreiveExistingInputFiles</Symbol>
+			<Symbol>RetreiveExistingInputFilesBatch</Symbol>
+			<Symbol>RetreiveExistingOutputFolders</Symbol>
+			<Symbol>ApplyProjectName</Symbol>
+			<Symbol>DefaultInputLocation</Symbol>
+		</Model>
+	</UsedReferences>
+</Page>

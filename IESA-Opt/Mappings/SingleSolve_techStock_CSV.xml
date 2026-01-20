@@ -1,0 +1,7 @@
+<AimmsCSVMapping>
+    <RowMapping name="table1">
+		<ColumnMapping name="technology" binds-to="t"/>
+		<ColumnMapping name="period" binds-to="p"/>
+        <ColumnMapping name="techStocks" maps-to="PtechStock(t,p)" />
+    </RowMapping>
+</AimmsCSVMapping>

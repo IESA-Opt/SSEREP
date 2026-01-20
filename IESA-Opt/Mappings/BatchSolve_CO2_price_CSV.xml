@@ -1,0 +1,7 @@
+<AimmsCSVMapping>
+    <RowMapping name="table1">
+        <ColumnMapping name="variant" binds-to="ifsb"/>
+		<ColumnMapping name="period" binds-to="p"/>
+        <ColumnMapping name="CO2_Price" maps-to="BatchSolve_CO2_price(ifsb,p)"/>
+    </RowMapping>
+</AimmsCSVMapping>

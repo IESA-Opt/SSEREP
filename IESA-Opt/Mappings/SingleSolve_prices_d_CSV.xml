@@ -1,0 +1,8 @@
+<AimmsCSVMapping>
+    <RowMapping name="table1">
+        <ColumnMapping name="Day" binds-to="d"/>
+		<ColumnMapping name="Activity" binds-to="ad"/>
+		<ColumnMapping name="Period" binds-to="p"/>
+        <ColumnMapping name="DailyShadowPrices" maps-to="daily_prices(d,ad,p)"/>
+    </RowMapping>
+</AimmsCSVMapping>

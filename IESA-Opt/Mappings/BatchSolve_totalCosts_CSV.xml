@@ -1,0 +1,6 @@
+<AimmsCSVMapping>
+    <RowMapping name="table1">
+        <ColumnMapping name="variant" binds-to="ifsb"/>
+        <ColumnMapping name="totalCosts" maps-to="BatchSolve_totalCosts(ifsb)"/>
+    </RowMapping>
+</AimmsCSVMapping>

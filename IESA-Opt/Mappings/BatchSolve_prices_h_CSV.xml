@@ -1,0 +1,9 @@
+<AimmsCSVMapping>
+    <RowMapping name="table1">
+        <ColumnMapping name="variant" binds-to="ifsb"/>
+		<ColumnMapping name="hour" binds-to="h"/>
+		<ColumnMapping name="activity" binds-to="ah"/>
+		<ColumnMapping name="period" binds-to="p"/>
+        <ColumnMapping name="prices_h" maps-to="BatchSolve_prices_h(ifsb,h,ah,p)"/>
+    </RowMapping>
+</AimmsCSVMapping>

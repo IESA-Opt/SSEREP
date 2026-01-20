@@ -1,0 +1,418 @@
+<?xml version="1.0"?>
+<Page Version="4000" TimeStamp="2025-10-17 06:36:27">
+	<PageEditSize Type="Inherited" />
+	<ProjectUUID>956F6330-FAE1-4841-A634-37A60C1052C8</ProjectUUID>
+	<DockAtStartup>true</DockAtStartup>
+	<TemplatesTabOrderPosition>1</TemplatesTabOrderPosition>
+	<Background RGB="#ffffff" />
+	<PageObject Type="Picture">
+		<Location top="6" left="900" bottom="84" right="960" />
+		<FileName LiteralFileName="true">"Images\favicon4.png"</FileName>
+		<Display>StretchOrShrink</Display>
+		<Center>true</Center>
+		<KeepRatio>true</KeepRatio>
+	</PageObject>
+	<PageObject Type="Text">
+		<Location top="24" left="60" bottom="72" right="360" />
+		<StaticText>Transition solving</StaticText>
+		<Font GUID="F5E9E1A8-AE27-4B0F-B679-CEC3E775FD37" Name="Subtitle" />
+		<TextColor RGB="#004080" />
+	</PageObject>
+	<PageObject Type="Text">
+		<Location top="90" left="66" bottom="150" right="966" />
+		<StaticText>	In this page you can solve the transiton problem for the scenario datafile selected and the years selected, as well as to select desired solver options.</StaticText>
+		<Font GUID="FC37E4F7-5732-42BD-B488-C708466030F3" Name="Content" />
+		<TextColor RGB="#57606f" />
+	</PageObject>
+	<PageObject Type="Text">
+		<Location top="150" left="72" bottom="174" right="258" />
+		<StaticText>¤ Scenario database:</StaticText>
+		<Font GUID="694E7D6A-A810-46B3-8812-A36514F14155" Name="Content names" />
+		<TextColor RGB="#000000" />
+	</PageObject>
+	<PageObject Type="Text">
+		<Location top="198" left="72" bottom="222" right="258" />
+		<StaticText>¤ Years selection:</StaticText>
+		<Font GUID="694E7D6A-A810-46B3-8812-A36514F14155" Name="Content names" />
+		<TextColor RGB="#000000" />
+	</PageObject>
+	<PageObject Type="Selection Object">
+		<SelectionType>CheckBoxes</SelectionType>
+		<Location top="192" left="246" bottom="222" right="960" />
+		<TabOrder>3</TabOrder>
+		<Font GUID="62856B5B-F49A-45D1-8E48-0B86711BC7F1" Name="Content parameters small" />
+		<TextShown>ElementName</TextShown>
+		<Border Style="InShadow" Width="1" MarginTop="1" MarginRight="1" MarginBottom="1" MarginLeft="30" />
+		<BackgroundColor RGB="#ffffff" />
+		<InactiveData>true</InactiveData>
+		<ExplicitIdentifier>
+			<Identifier>periods_selection( periods )</Identifier>
+		</ExplicitIdentifier>
+	</PageObject>
+	<PageObject Type="Button">
+		<Location top="144" left="840" bottom="173" right="960" />
+		<TabOrder>2</TabOrder>
+		<LeaveOnEnter>false</LeaveOnEnter>
+		<ButtonType>Text</ButtonType>
+		<Title>"Upload data"</Title>
+		<BackgroundColor RGB="#dbdbdb" />
+		<ForegroundColor>
+			<UserColor GUID="9043B6BC-F2E6-4015-A940-74CD05E6AD57">black</UserColor>
+		</ForegroundColor>
+		<Font GUID="694E7D6A-A810-46B3-8812-A36514F14155" Name="Content names" />
+		<ActionSequence>
+			<Action Type="Run">
+				<RunWhat>SpecificProcecure</RunWhat>
+				<Procedure>runDataReading</Procedure>
+				<AbortOnError>true</AbortOnError>
+			</Action>
+			<Action Type="Assignment">
+				<Identifier>RunButton_Hide</Identifier>
+				<AssignedValue>0</AssignedValue>
+			</Action>
+		</ActionSequence>
+	</PageObject>
+	<PageObject Type="Text">
+		<Location top="414" left="72" bottom="438" right="216" />
+		<StaticText>¤ Output name:</StaticText>
+		<Font GUID="694E7D6A-A810-46B3-8812-A36514F14155" Name="Content names" />
+		<TextColor RGB="#000000" />
+	</PageObject>
+	<PageObject Type="Selection Object">
+		<SelectionType>RadioButtons</SelectionType>
+		<Location top="408" left="246" bottom="456" right="324" />
+		<TabOrder>6</TabOrder>
+		<Font GUID="62856B5B-F49A-45D1-8E48-0B86711BC7F1" Name="Content parameters small" />
+		<TextShown>ElementName</TextShown>
+		<Border Style="None" MarginTop="1" MarginRight="1" MarginBottom="1" MarginLeft="1" />
+		<BackgroundColor RGB="#ffffff" />
+		<ExplicitIdentifier>
+			<Identifier>OutputFolderValue</Identifier>
+		</ExplicitIdentifier>
+	</PageObject>
+	<PageObject Type="Scalar">
+		<Location top="408" left="330" bottom="438" right="558" />
+		<Hidden>OutputName_Hide</Hidden>
+		<TabOrder>11</TabOrder>
+		<Font GUID="62856B5B-F49A-45D1-8E48-0B86711BC7F1" Name="Content parameters small" />
+		<Border Style="Line" Width="1" MarginTop="1" MarginRight="1" MarginBottom="1" MarginLeft="1" />
+		<BackgroundColor RGB="#ffffff" />
+		<Layout>Value</Layout>
+		<SeparatorSign>=</SeparatorSign>
+		<ExplicitIdentifier>
+			<Identifier>OutputFolderName</Identifier>
+			<NumberFormat Width="15" Decimals="0" Alignment="Left" ShowDefaults="true" />
+		</ExplicitIdentifier>
+	</PageObject>
+	<PageObject Type="Button">
+		<Location top="540" left="240" bottom="588" right="390" />
+		<TabOrder>13</TabOrder>
+		<LeaveOnEnter>false</LeaveOnEnter>
+		<ButtonType>Text</ButtonType>
+		<Title>"Back"</Title>
+		<Font GUID="F29DA1E4-64E8-4E46-8391-D2F15E4EC150" Name="Button content" />
+		<ActionSequence>
+			<Action Type="LinkedPage">
+				<Page PageGUID="33378451-8F41-413B-9351-0B8ED3C1C9BE" Name="MainPage" />
+			</Action>
+		</ActionSequence>
+	</PageObject>
+	<PageObject Type="Selection Object">
+		<SelectionType>DropDownList</SelectionType>
+		<Location top="147" left="246" bottom="171" right="834" />
+		<TabOrder>14</TabOrder>
+		<Font GUID="62856B5B-F49A-45D1-8E48-0B86711BC7F1" Name="Content parameters small" />
+		<TextShown>ElementName</TextShown>
+		<Border Style="None" />
+		<BackgroundColor RGB="#ffffff" />
+		<ExplicitIdentifier>
+			<Identifier>DataReadingLocation</Identifier>
+		</ExplicitIdentifier>
+	</PageObject>
+	<PageObject Type="Text">
+		<Location top="390" left="72" bottom="414" right="216" />
+		<StaticText>¤ Hourly reports:</StaticText>
+		<Font GUID="4464C7B0-E4FE-4E0E-A45D-3F71F5EFBEB0" Name="Content small" />
+		<TextColor RGB="#000000" />
+	</PageObject>
+	<PageObject Type="Selection Object">
+		<SelectionType>RadioButtons</SelectionType>
+		<Location top="384" left="246" bottom="408" right="366" />
+		<TabOrder>10</TabOrder>
+		<Font GUID="00000000-0000-0000-0000-000000000001" Name="text" />
+		<TextShown>ElementName</TextShown>
+		<Border Style="None" MarginTop="1" MarginRight="1" MarginBottom="1" MarginLeft="1" />
+		<BackgroundColor RGB="#ffffff" />
+		<ExplicitIdentifier>
+			<Identifier>HourlyReportValue</Identifier>
+		</ExplicitIdentifier>
+	</PageObject>
+	<PageObject Type="Text">
+		<Location top="234" left="438" bottom="261" right="582" />
+		<StaticText>¤ Hours in a day:</StaticText>
+		<Font GUID="4464C7B0-E4FE-4E0E-A45D-3F71F5EFBEB0" Name="Content small" />
+		<TextColor RGB="#000000" />
+	</PageObject>
+	<PageObject Type="Selection Object">
+		<SelectionType>RadioButtons</SelectionType>
+		<Location top="228" left="588" bottom="252" right="960" />
+		<TabOrder>7</TabOrder>
+		<Font GUID="62856B5B-F49A-45D1-8E48-0B86711BC7F1" Name="Content parameters small" />
+		<TextShown>ElementName</TextShown>
+		<Border Style="InShadow" Width="1" MarginTop="2" MarginRight="5" MarginBottom="2" MarginLeft="30" />
+		<BackgroundColor RGB="#ffffff" />
+		<SpreadVertically>false</SpreadVertically>
+		<ExplicitIdentifier>
+			<Identifier>hoursPer_day</Identifier>
+		</ExplicitIdentifier>
+	</PageObject>
+	<PageObject Type="Text">
+		<Location top="324" left="438" bottom="348" right="582" />
+		<StaticText>¤ Energy Prices:</StaticText>
+		<Font GUID="4464C7B0-E4FE-4E0E-A45D-3F71F5EFBEB0" Name="Content small" />
+		<TextColor RGB="#000000" />
+	</PageObject>
+	<PageObject Type="Selection Object">
+		<SelectionType>RadioButtons</SelectionType>
+		<Location top="318" left="588" bottom="342" right="960" />
+		<TabOrder>5</TabOrder>
+		<Font GUID="62856B5B-F49A-45D1-8E48-0B86711BC7F1" Name="Content parameters small" />
+		<TextShown>ElementName</TextShown>
+		<Border Style="Line" Width="1" MarginTop="2" MarginRight="2" MarginBottom="2" MarginLeft="2" />
+		<BackgroundColor RGB="#ffffff" />
+		<ExplicitIdentifier>
+			<Identifier>EnergyPricesChoice</Identifier>
+		</ExplicitIdentifier>
+	</PageObject>
+	<PageObject Type="Text">
+		<Location top="234" left="72" bottom="264" right="246" />
+		<StaticText>¤ Solver:</StaticText>
+		<Font GUID="4464C7B0-E4FE-4E0E-A45D-3F71F5EFBEB0" Name="Content small" />
+		<TextColor RGB="#000000" />
+	</PageObject>
+	<PageObject Type="Selection Object">
+		<SelectionType>DropDownList</SelectionType>
+		<Location top="228" left="246" bottom="252" right="378" />
+		<TabOrder>15</TabOrder>
+		<Font GUID="F93179F1-B38A-4175-A80A-C5F1495320AF" Name="Content tiny" />
+		<TextShown>ElementName</TextShown>
+		<Border Style="None" />
+		<BackgroundColor RGB="#ffffff" />
+		<ExplicitIdentifier>
+			<Identifier>SolverChoice</Identifier>
+		</ExplicitIdentifier>
+	</PageObject>
+	<PageObject Type="Button">
+		<Location top="540" left="690" bottom="588" right="960" />
+		<Hidden>RunButton_Hide</Hidden>
+		<TabOrder>1</TabOrder>
+		<LeaveOnEnter>false</LeaveOnEnter>
+		<ButtonType>Text</ButtonType>
+		<Title>"Solve !"</Title>
+		<BackgroundColor RGB="#c0c0c0" />
+		<ForegroundColor>
+			<UserColor GUID="9043B6BC-F2E6-4015-A940-74CD05E6AD57">black</UserColor>
+		</ForegroundColor>
+		<Font GUID="F29DA1E4-64E8-4E46-8391-D2F15E4EC150" Name="Button content" />
+		<ActionSequence>
+			<Action Type="UpdateIdentifier">
+				<Identifier>periods_selection</Identifier>
+			</Action>
+			<Action Type="Run">
+				<RunWhat>SpecificProcecure</RunWhat>
+				<Procedure>SolveTransition</Procedure>
+				<AbortOnError>true</AbortOnError>
+			</Action>
+		</ActionSequence>
+	</PageObject>
+	<PageObject Type="Text">
+		<Location top="546" left="732" bottom="576" right="912" />
+		<StaticText>First upload the data!</StaticText>
+		<Font GUID="694E7D6A-A810-46B3-8812-A36514F14155" Name="Content names" />
+		<TextColor RGB="#000000" />
+	</PageObject>
+	<PageObject Type="Text">
+		<Location top="272" left="438" bottom="296" right="582" />
+		<StaticText>¤ CPU Cores:</StaticText>
+		<Font GUID="4464C7B0-E4FE-4E0E-A45D-3F71F5EFBEB0" Name="Content small" />
+		<TextColor RGB="#000000" />
+	</PageObject>
+	<PageObject Type="Scalar">
+		<Location top="266" left="588" bottom="288" right="636" />
+		<TabOrder>12</TabOrder>
+		<Font GUID="62856B5B-F49A-45D1-8E48-0B86711BC7F1" Name="Content parameters small" />
+		<Border Style="InShadow" Width="1" MarginTop="2" MarginRight="2" MarginBottom="2" MarginLeft="2" />
+		<BackgroundColor RGB="#ffffff" />
+		<Layout>Value</Layout>
+		<SeparatorSign>=</SeparatorSign>
+		<ExplicitIdentifier>
+			<Identifier>CPUCores</Identifier>
+			<NumberFormat Width="15" Decimals="0" Alignment="Left" ShowDefaults="true" />
+		</ExplicitIdentifier>
+	</PageObject>
+	<PageObject Type="Slider">
+		<Location top="264" left="636" bottom="294" right="966" />
+		<TabOrder>16</TabOrder>
+		<Contents>
+			<Minimum_value ID="2001">0</Minimum_value>
+			<Maximum_value ID="2002">NumCPU</Maximum_value>
+			<Identifier ID="2003">CPUCores</Identifier>
+		</Contents>
+	</PageObject>
+	<PageObject Type="Text">
+		<Location top="296" left="648" bottom="320" right="762" />
+		<StaticText>0 = All CPU Cores</StaticText>
+		<Font GUID="4464C7B0-E4FE-4E0E-A45D-3F71F5EFBEB0" Name="Content small" />
+		<TextColor RGB="#000000" />
+	</PageObject>
+	<PageObject Type="Text">
+		<Location top="296" left="942" bottom="320" right="978" />
+		<SourceType>StringParameter</SourceType>
+		<StringParameter>StringCPU</StringParameter>
+		<Font GUID="4464C7B0-E4FE-4E0E-A45D-3F71F5EFBEB0" Name="Content small" />
+		<TextColor RGB="#000000" />
+	</PageObject>
+	<PageObject Type="Text">
+		<Location top="18" left="654" bottom="72" right="894" />
+		<SourceType>StringParameter</SourceType>
+		<StringParameter>project_name</StringParameter>
+		<Font GUID="694E7D6A-A810-46B3-8812-A36514F14155" Name="Content names" />
+		<TextColor RGB="#000080" />
+	</PageObject>
+	<PageObject Type="Text">
+		<Location top="264" left="72" bottom="294" right="246" />
+		<StaticText>¤ Solve Method:</StaticText>
+		<Font GUID="4464C7B0-E4FE-4E0E-A45D-3F71F5EFBEB0" Name="Content small" />
+		<TextColor RGB="#000000" />
+	</PageObject>
+	<PageObject Type="Selection Object">
+		<SelectionType>RadioButtons</SelectionType>
+		<Location top="258" left="246" bottom="330" right="384" />
+		<TabOrder>4</TabOrder>
+		<Font GUID="62856B5B-F49A-45D1-8E48-0B86711BC7F1" Name="Content parameters small" />
+		<TextShown>ElementName</TextShown>
+		<Border Style="InShadow" Width="1" MarginTop="2" MarginRight="2" MarginBottom="2" MarginLeft="5" />
+		<BackgroundColor RGB="#ffffff" />
+		<ExplicitIdentifier>
+			<Identifier>SolveMethodChoice</Identifier>
+		</ExplicitIdentifier>
+	</PageObject>
+	<PageObject Type="Text">
+		<Location top="324" left="72" bottom="354" right="198" />
+		<StaticText>Reporting</StaticText>
+		<Font GUID="D1759B0B-140B-4A59-9B7C-C6DDC9098CC3" Name="Title" />
+		<TextColor RGB="#000000" />
+	</PageObject>
+	<PageObject Type="Text">
+		<Location top="366" left="72" bottom="390" right="216" />
+		<StaticText>¤ Save Case:</StaticText>
+		<Font GUID="4464C7B0-E4FE-4E0E-A45D-3F71F5EFBEB0" Name="Content small" />
+		<TextColor RGB="#000000" />
+	</PageObject>
+	<PageObject Type="Selection Object">
+		<SelectionType>RadioButtons</SelectionType>
+		<Location top="360" left="246" bottom="384" right="366" />
+		<TabOrder>9</TabOrder>
+		<Font GUID="62856B5B-F49A-45D1-8E48-0B86711BC7F1" Name="Content parameters small" />
+		<TextShown>ElementName</TextShown>
+		<Border Style="None" Width="1" MarginTop="1" MarginRight="1" MarginBottom="1" MarginLeft="1" />
+		<BackgroundColor RGB="#ffffff" />
+		<ExplicitIdentifier>
+			<Identifier>SaveCaseValue</Identifier>
+		</ExplicitIdentifier>
+	</PageObject>
+	<PageObject Type="Text">
+		<Location top="450" left="72" bottom="486" right="252" />
+		<StaticText>Project Specific</StaticText>
+		<Font GUID="D1759B0B-140B-4A59-9B7C-C6DDC9098CC3" Name="Title" />
+		<TextColor RGB="#000000" />
+	</PageObject>
+	<PageObject Type="Text">
+		<Location top="492" left="72" bottom="516" right="216" />
+		<StaticText>¤ Activate constraint goup:</StaticText>
+		<Font GUID="4464C7B0-E4FE-4E0E-A45D-3F71F5EFBEB0" Name="Content small" />
+		<TextColor RGB="#000000" />
+	</PageObject>
+	<PageObject Type="Selection Object">
+		<SelectionType>DropDownList</SelectionType>
+		<Location top="492" left="246" bottom="516" right="390" />
+		<TabOrder>17</TabOrder>
+		<Font GUID="00000000-0000-0000-0000-000000000001" Name="text" />
+		<TextShown>ElementName</TextShown>
+		<Border Style="None" />
+		<BackgroundColor RGB="#ffffff" />
+		<UpdateOnChange>activeConstraints</UpdateOnChange>
+		<ExplicitIdentifier>
+			<Identifier>ActiveConstraintGroup</Identifier>
+		</ExplicitIdentifier>
+	</PageObject>
+	<PageObject Type="Text">
+		<Location top="360" left="438" bottom="384" right="582" />
+		<StaticText>¤ Show Violations:</StaticText>
+		<Font GUID="4464C7B0-E4FE-4E0E-A45D-3F71F5EFBEB0" Name="Content small" />
+		<TextColor RGB="#000000" />
+	</PageObject>
+	<PageObject Type="Selection Object">
+		<SelectionType>RadioButtons</SelectionType>
+		<Location top="354" left="588" bottom="378" right="696" />
+		<TabOrder>8</TabOrder>
+		<Font GUID="62856B5B-F49A-45D1-8E48-0B86711BC7F1" Name="Content parameters small" />
+		<TextShown>ElementName</TextShown>
+		<Border Style="None" Width="1" MarginTop="1" MarginRight="1" MarginBottom="1" MarginLeft="1" />
+		<BackgroundColor RGB="#ffffff" />
+		<UpdateOnChange>Violation_Hide</UpdateOnChange>
+		<ExplicitIdentifier>
+			<Identifier>ShowViolations</Identifier>
+		</ExplicitIdentifier>
+	</PageObject>
+	<PageObject Type="Selection Object">
+		<SelectionType>ReadOnlyText</SelectionType>
+		<Location top="354" left="702" bottom="444" right="960" />
+		<Hidden>Violation_Hide</Hidden>
+		<TabOrder>18</TabOrder>
+		<Font GUID="28E2D5DD-9489-40BE-AB70-C4C4A80A1A9C" Name="Violation" />
+		<TextShown>ElementName</TextShown>
+		<Border Style="None" Width="2" MarginRight="5" MarginLeft="5" />
+		<BackgroundColor RGB="#ffffff" />
+		<TextColor RGB="#ff0000" />
+		<ExplicitIdentifier>
+			<Identifier>AllViolations( AllVariablesConstraints )</Identifier>
+		</ExplicitIdentifier>
+	</PageObject>
+	<UsedReferences>
+		<Model>
+			<Symbol>YesNo</Symbol>
+			<Symbol>AllVariablesConstraints</Symbol>
+			<Symbol>AllSolvers</Symbol>
+			<Symbol>hoursPer_dayOptions</Symbol>
+			<Symbol>periods</Symbol>
+			<Symbol>hoursPer_day</Symbol>
+			<Symbol>periods_selection</Symbol>
+			<Symbol>StringCPU</Symbol>
+			<Symbol>NumCPU</Symbol>
+			<Symbol>SolveTransition</Symbol>
+			<Symbol>AllViolations</Symbol>
+			<Symbol>project_name</Symbol>
+			<Symbol>OutputFolderOptions</Symbol>
+			<Symbol>EnergyPricesOptions</Symbol>
+			<Symbol>SolveMethods</Symbol>
+			<Symbol>InputFilesSet</Symbol>
+			<Symbol>ConstraintGroups</Symbol>
+			<Symbol>OutputFolderValue</Symbol>
+			<Symbol>DataReadingLocation</Symbol>
+			<Symbol>HourlyReportValue</Symbol>
+			<Symbol>SaveCaseValue</Symbol>
+			<Symbol>OutputFolderName</Symbol>
+			<Symbol>EnergyPricesChoice</Symbol>
+			<Symbol>SolveMethodChoice</Symbol>
+			<Symbol>SolverChoice</Symbol>
+			<Symbol>ActiveConstraintGroup</Symbol>
+			<Symbol>ShowViolations</Symbol>
+			<Symbol>Violation_Hide</Symbol>
+			<Symbol>CPUCores</Symbol>
+			<Symbol>OutputName_Hide</Symbol>
+			<Symbol>RunButton_Hide</Symbol>
+			<Symbol>runDataReading</Symbol>
+		</Model>
+	</UsedReferences>
+</Page>

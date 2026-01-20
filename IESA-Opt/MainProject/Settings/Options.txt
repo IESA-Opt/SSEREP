@@ -1,0 +1,100 @@
+﻿* AIMMS
+accept_basis 1
+always_store_marginals 1
+constraint_listing 2
+display_infeasibility_analysis 1
+infeasibility_finder on
+listing_number_precision 20
+presolve_feasibility_tolerance 1e-06
+progress_time_interval 10
+remove_doubletons always
+rounding_compatibility Aimms_3_7
+solver_listing_messages 4
+* CBC 2.9
+* COPT 7.2
+* CPLEX 22.1
+"CPLEX 22.1".display_solution_statistics 2
+"CPLEX 22.1".LP_method 4
+"CPLEX 22.1".solution_type 2
+"CPLEX 22.1".barrier_start_algorithm 4
+"CPLEX 22.1".parallel_mode -1
+"CPLEX 22.1".presolve_pass_dual -1
+"CPLEX 22.1".feasibility 1e-07
+"CPLEX 22.1".optimality 1e-07
+"CPLEX 22.1".barrier_convergence_tolerance 1e-07
+"CPLEX 22.1".barrier_objective_range 100000000
+* CPOptimizer 22.1
+* GUROBI 12.0
+"GUROBI 12.0".Method 2
+"GUROBI 12.0".Presolve_aggregation_fill 5
+"GUROBI 12.0".Log_to_console 1
+"GUROBI 12.0".Output_file 1
+"GUROBI 12.0".Output_file_display_interval 2
+"GUROBI 12.0".Tune_time_limit 18000
+* IPOPT 3.11
+* MINOS
+* ODH-CPLEX 5.3
+* PATH 4.7
+* SNOPT 7.2
+* CPLEX 20.1
+"CPLEX 20.1".check_solution 1
+"CPLEX 20.1".data_check_and_modeling_assistance 2
+"CPLEX 20.1".display_solution_statistics 2
+"CPLEX 20.1".LP_method 4
+"CPLEX 20.1".scale -1
+"CPLEX 20.1".solution_type 1
+"CPLEX 20.1".barrier_progress_solution 1
+"CPLEX 20.1".parallel_mode -1
+"CPLEX 20.1".presolve_pass_dual 1
+"CPLEX 20.1".barrier_display 2
+* GUROBI 11.0
+"GUROBI 11.0".Method 2
+"GUROBI 11.0".Scale 2
+"GUROBI 11.0".Barrier_crossover_basis 1
+"GUROBI 11.0".Barrier_progress_solution 1
+"GUROBI 11.0".Presolve_dual 2
+* GUROBI 9.5
+"GUROBI 9.5".Method 2
+"GUROBI 9.5".Barrier_crossover_basis 1
+* GUROBI 9.0
+"GUROBI 9.0".Farkas_infeasibility_proof 1
+"GUROBI 9.0".Method 2
+"GUROBI 9.0".Scale 0
+"GUROBI 9.0".Barrier_crossover 0
+"GUROBI 9.0".Presolve_dual 0
+"GUROBI 9.0".Log_to_console 1
+"GUROBI 9.0".Output_file 1
+"GUROBI 9.0".Output_file_display_interval 10
+"GUROBI 9.0".Feasibility 1e-07
+"GUROBI 9.0".Optimality 1e-07
+* GUROBI 8.1
+"GUROBI 8.1".Method 2
+"GUROBI 8.1".Barrier_crossover 0
+"GUROBI 8.1".Presolve_dual 0
+"GUROBI 8.1".Feasibility 1e-07
+"GUROBI 8.1".Optimality 1e-07
+* CPLEX 12.10
+"CPLEX 12.10".LP_method 4
+"CPLEX 12.10".solution_type 2
+"CPLEX 12.10".barrier_progress_solution 1
+"CPLEX 12.10".Benders_feasibility_cut_tolerance 1e-07
+"CPLEX 12.10".Benders_optimality_cut_tolerance 1e-07
+* GUROBI 9.1
+"GUROBI 9.1".Method 2
+"GUROBI 9.1".Read_parameter_file 1
+"GUROBI 9.1".Barrier_crossover 0
+"GUROBI 9.1".Barrier_iteration_limit 5000
+"GUROBI 9.1".Presolve_dual 0
+"GUROBI 9.1".Log_to_console 1
+"GUROBI 9.1".Output_file 1
+* GUROBI 10.0
+"GUROBI 10.0".Method 2
+"GUROBI 10.0".Barrier_crossover_basis 1
+"GUROBI 10.0".Thread_limit 8
+"GUROBI 10.0".Presolve_dual 2
+* NETSOL
+* Environment
+Project_Title "20251014_IESA SSP 1029"
+Startup_Page "MainPage"
+Enhanced_Long_Run_Responsiveness 1
+Startup_Layout 1

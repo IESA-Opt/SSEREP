@@ -1,0 +1,8 @@
+<AimmsCSVMapping>
+    <RowMapping name="table1">
+		<ColumnMapping name="hour" binds-to="h"/>
+		<ColumnMapping name="technology" binds-to="t"/>
+		<ColumnMapping name="period" binds-to="p"/>
+        <ColumnMapping name="techUseNet_h" maps-to="Ptech_useHourlyNet(h,t,p)"/>
+    </RowMapping>
+</AimmsCSVMapping>

@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<UserFonts>
+	<UserFont Name="text" FaceName="Arial Narrow" PointSize="100" UUID="00000000-0000-0000-0000-000000000001" />
+	<UserFont Name="Subtitle" FaceName="Arial" PointSize="240" UUID="F5E9E1A8-AE27-4B0F-B679-CEC3E775FD37" InternalID="1" />
+	<UserFont Name="Content" FaceName="Arial" PointSize="110" UUID="FC37E4F7-5732-42BD-B488-C708466030F3" InternalID="2" />
+	<UserFont Name="Button content" FaceName="Arial" PointSize="160" UUID="F29DA1E4-64E8-4E46-8391-D2F15E4EC150" InternalID="3" />
+	<UserFont Name="Content names" FaceName="Arial" PointSize="100" UUID="694E7D6A-A810-46B3-8812-A36514F14155" InternalID="4" />
+	<UserFont Name="Content parametes value" FaceName="Arial Black" PointSize="110" Bold="true" UUID="30F15A75-BFF2-46B2-A61D-407B865B1122" InternalID="5" />
+	<UserFont Name="Title" FaceName="Calibri" PointSize="180" UUID="D1759B0B-140B-4A59-9B7C-C6DDC9098CC3" InternalID="6" />
+	<UserFont Name="Content small" FaceName="Arial" PointSize="90" UUID="4464C7B0-E4FE-4E0E-A45D-3F71F5EFBEB0" InternalID="7" />
+	<UserFont Name="Content parameters small" FaceName="Arial" PointSize="90" UUID="62856B5B-F49A-45D1-8E48-0B86711BC7F1" InternalID="8" />
+	<UserFont Name="Content tiny" FaceName="Arial" PointSize="90" UUID="F93179F1-B38A-4175-A80A-C5F1495320AF" InternalID="9" />
+	<UserFont Name="Violation" FaceName="Calibri" PointSize="110" Bold="true" UUID="28E2D5DD-9489-40BE-AB70-C4C4A80A1A9C" InternalID="10" />
+</UserFonts>

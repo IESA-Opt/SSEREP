@@ -1,0 +1,9 @@
+<AimmsCSVMapping>
+    <RowMapping name="table1">
+        <ColumnMapping name="variant" binds-to="ifsb"/>
+		<ColumnMapping name="day" binds-to="d"/>
+		<ColumnMapping name="technology" binds-to="td"/>
+		<ColumnMapping name="period" binds-to="p"/>
+        <ColumnMapping name="techUse_d" maps-to="BatchSolve_tech_use_d(ifsb,d,td,p)"/>
+    </RowMapping>
+</AimmsCSVMapping>

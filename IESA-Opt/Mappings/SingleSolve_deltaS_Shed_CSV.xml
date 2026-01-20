@@ -1,0 +1,8 @@
+<AimmsCSVMapping>
+    <RowMapping name="table1">
+		<ColumnMapping name="hour" binds-to="h"/>
+		<ColumnMapping name="technology" binds-to="ts"/>
+		<ColumnMapping name="period" binds-to="p"/>
+        <ColumnMapping name="deltaS_Shed" maps-to="PdeltaS_shed(h,ts,p)"/>
+    </RowMapping>
+</AimmsCSVMapping>

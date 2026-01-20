@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DockingPaneLayouts CompactMode="1">
+	<DeveloperLayout>
+		<Summary Panes="38" TopContainer="25" Client="35"/>
+		<Pane-1 Type="0" DockingCX="250" DockingCY="250" Title="Model Explorer: IESA-Opt.ams\nModel\n" ID="12" IconID="12" DockingHolder="26" LastHolder="26"/>
+		<Pane-2 Type="0" DockingCX="250" DockingCY="250" Title="Model Explorer\nModel\n" ID="112" IconID="12" DockingHolder="36" LastHolder="36"/>
+		<Pane-3 Type="0" DockingCX="250" DockingCY="250" Title="Identifier Selector\nIdentifiers\n" ID="13" IconID="13" DockingHolder="32" LastHolder="32"/>
+		<Pane-4 Type="0" DockingCX="250" DockingCY="250" Title="Identifier Selector\nIdentifiers\n" ID="113" IconID="13" DockingHolder="36" LastHolder="36"/>
+		<Pane-5 Type="0" DockingCX="250" DockingCY="250" Title="Page Manager\nPages\n" ID="14" IconID="14" DockingHolder="26" LastHolder="26"/>
+		<Pane-6 Type="0" DockingCX="250" DockingCY="250" Title="Page Manager\nPages\n" ID="114" IconID="14" DockingHolder="36" LastHolder="36"/>
+		<Pane-7 Type="0" DockingCX="250" DockingCY="250" Title="Template Manager\nTemplates\n" ID="15" IconID="15" DockingHolder="32" LastHolder="32"/>
+		<Pane-8 Type="0" DockingCX="250" DockingCY="250" Title="Template Manager\nTemplates\n" ID="115" IconID="15" DockingHolder="36" LastHolder="36"/>
+		<Pane-9 Type="0" DockingCX="250" DockingCY="250" Title="Menu Builder\nMenus\n" ID="16" IconID="16" DockingHolder="32" LastHolder="32"/>
+		<Pane-10 Type="0" DockingCX="250" DockingCY="250" Title="Menu Builder\nMenus\n" ID="116" IconID="16" DockingHolder="36" LastHolder="36"/>
+		<Pane-11 Type="0" DockingCX="250" DockingCY="250" Title="Data Manager\nData\n" ID="17" IconID="17" DockingHolder="32" LastHolder="32"/>
+		<Pane-12 Type="0" DockingCX="250" DockingCY="250" Title="Data Manager\nData\n" ID="117" IconID="17" DockingHolder="36" LastHolder="36"/>
+		<Pane-13 Type="0" DockingCX="250" DockingCY="250" Title="Data Management Setup\nData Setup\n" ID="18" IconID="18" DockingHolder="32" LastHolder="32"/>
+		<Pane-14 Type="0" DockingCX="250" DockingCY="250" Title="Data Management Setup\nData Setup\n" ID="118" IconID="18" DockingHolder="36" LastHolder="36"/>
+		<Pane-15 Type="0" DockingCX="250" DockingCY="250" Title="Project Window\nProject\n" ID="11" IconID="11" DockingHolder="32" LastHolder="32"/>
+		<Pane-16 Type="0" DockingCX="250" DockingCY="250" Title="Messages\nMessages\n" ID="20" IconID="20" DockingHolder="37" LastHolder="37"/>
+		<Pane-17 Type="0" DockingCX="250" DockingCY="250" Title="Errors/Warnings\nErrors/Warnings\n" ID="21" IconID="21" DockingHolder="37" LastHolder="37"/>
+		<Pane-18 Type="0" DockingCX="250" DockingCY="250" Title="Find Results 1\n\n" ID="25" IconID="25" DockingHolder="37" LastHolder="37"/>
+		<Pane-19 Type="0" DockingCX="250" DockingCY="250" Title="Find Results 2\n\n" ID="26" IconID="26" DockingHolder="37" LastHolder="37"/>
+		<Pane-20 Type="0" DockingCX="250" DockingCY="250" Title="Bookmarks\nBookmarks\n" ID="27" IconID="27" DockingHolder="37" LastHolder="37"/>
+		<Pane-21 Type="0" DockingCX="250" DockingCY="250" Title="Progress\nProgress\n" ID="19" IconID="19" DockingHolder="38" LastHolder="38"/>
+		<Pane-22 Type="0" DockingCX="200" DockingCY="628" Title="MainPage\n\n" ID="1000" IconID="1000" DockingHolder="34" LastHolder="34"/>
+		<Pane-23 Type="5" Direction="3" Panes="0"/>
+		<Pane-24 Type="5" Direction="2" Panes="0"/>
+		<Pane-25 Type="2" DockingCX="1920" Horiz="1" Panes="2" Pane-1="26" Pane-2="27"/>
+		<Pane-26 Type="1" DockingCX="321" DockingCY="250" Panes="2" Selected="1" Pane-1="1" Pane-2="5"/>
+		<Pane-27 Type="2" DockingCX="1595" Panes="1" Pane-1="28"/>
+		<Pane-28 Type="2" DockingCX="1920" DockingCY="742" Horiz="1" Panes="2" Pane-1="29" Pane-2="38"/>
+		<Pane-29 Type="2" DockingCX="1200" Panes="2" Pane-1="30" Pane-2="37"/>
+		<Pane-30 Type="2" DockingCY="627" Horiz="1" Panes="3" Pane-1="31" Pane-2="33" Pane-3="36"/>
+		<Pane-31 Type="2" DockingCX="320" DockingCY="250" Panes="1" Pane-1="32"/>
+		<Pane-32 Type="1" DockingCX="250" DockingCY="250" Panes="0"/>
+		<Pane-33 Type="2" DockingCX="1201" Panes="2" Pane-1="34" Pane-2="35"/>
+		<Pane-34 Type="1" DockingCX="200" DockingCY="628" Panes="0"/>
+		<Pane-35 Type="4" DockingCY="60"/>
+		<Pane-36 Type="1" DockingCX="250" DockingCY="250" Panes="0"/>
+		<Pane-37 Type="1" DockingCX="250" DockingCY="315" Panes="2" Selected="17" Pane-1="17" Pane-2="16"/>
+		<Pane-38 Type="1" DockingCX="391" DockingCY="250" Panes="1" Selected="21" Pane-1="21"/>
+	</DeveloperLayout>
+</DockingPaneLayouts>

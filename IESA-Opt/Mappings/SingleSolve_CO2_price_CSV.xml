@@ -1,0 +1,7 @@
+<AimmsCSVMapping>
+    <RowMapping name="table1">
+        <ColumnMapping name="Node" binds-to="n"/>
+		<ColumnMapping name="period" binds-to="p"/>
+        <ColumnMapping name="CO2_Price" maps-to="CO2_price_single(n,p)"/>
+    </RowMapping>
+</AimmsCSVMapping>

@@ -1,0 +1,8 @@
+<AimmsCSVMapping>
+    <RowMapping name="table1">
+        <ColumnMapping name="Node" binds-to="nn"/>
+		<ColumnMapping name="commodity" binds-to="ae"/>
+		<ColumnMapping name="period" binds-to="p"/>
+        <ColumnMapping name="YearlyShadowPrices" maps-to="shadow_energyPrices(nn,ae,p)"/>
+    </RowMapping>
+</AimmsCSVMapping>

@@ -1,0 +1,1578 @@
+
+Gurobi 12.0.1 (win64) logging started Sun May 11 23:24:56 2025
+
+Set parameter LogFile to value "C:\Users\Amir\Desktop\IESA-Opt-Dev_20250511 Improved BatchSolve\log/gurobi.log"
+Passing model from AIMMS to GUROBI 12.0 required 2.66 seconds.
+Set parameter IterationLimit to value 1e+100
+Set parameter MIPGap to value 1e-13
+Set parameter MIPGapAbs to value 0
+Set parameter Crossover to value 0
+Set parameter ConcurrentMethod to value 1
+Set parameter LogToConsole to value 1
+Set parameter Method to value 2
+Set parameter OutputFlag to value 1
+Set parameter DisplayInterval to value 2
+Set parameter PreDepRow to value 1
+Set parameter TuneTimeLimit to value 18000
+Gurobi Optimizer version 12.0.1 build v12.0.1rc0 (win64 - Windows 11.0 (26100.2))
+
+CPU model: AMD Ryzen Threadripper PRO 3995WX 64-Cores, instruction set [SSE2|AVX|AVX2]
+Thread count: 64 physical cores, 128 logical processors, using up to 32 threads
+
+Non-default parameters:
+MIPGap  1e-13
+MIPGapAbs  0
+Method  2
+ConcurrentMethod  1
+Crossover  0
+DisplayInterval  2
+PreDepRow  1
+TuneTimeLimit  18000
+
+Start tuning.
+Tune 10 parameters.
+
+Solving model using baseline parameter set with TimeLimit=1800s
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 1...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+
+Solving LeastCostPlanning with random seed #1 ... runtime 355.76s
+
+Summary candidate parameter set 1 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   355.76s  355.76s     0.00  355.76s
+
+-------------------------------------------------------------------------------
+Begin tuning (baseline runtime 355.76s)...
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 2...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	PreSparsify 0
+
+Solving LeastCostPlanning with random seed #1 ... runtime 347.89s
+
+Summary candidate parameter set 2 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   347.89s  347.89s     0.00  347.89s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 355.76s (parameter set 1, 0 non-defaults)
+Total elapsed tuning time 704s (17296s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 3...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	PrePasses 2
+
+Solving LeastCostPlanning with random seed #1 ... runtime 380.08s
+
+Summary candidate parameter set 3 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   380.08s  380.08s     0.00  380.08s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 355.76s (parameter set 1, 0 non-defaults)
+Total elapsed tuning time 1084s (16916s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 4...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	Presolve 1
+
+Solving LeastCostPlanning with random seed #1 ... runtime 346.67s
+
+Summary candidate parameter set 4 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   346.67s  346.67s     0.00  346.67s
+
+Improvement found:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  improved: runtime 346.67s (parameter set 4, 1 non-defaults)
+Total elapsed tuning time 1431s (16569s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 5...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	PrePasses 8
+
+Solving LeastCostPlanning with random seed #1 ... runtime 388.57s
+
+Summary candidate parameter set 5 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   388.57s  388.57s     0.00  388.57s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 346.67s (parameter set 4, 1 non-defaults)
+Total elapsed tuning time 1819s (16181s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 6...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	NumericFocus 3
+	Presolve 1
+
+Solving LeastCostPlanning with random seed #1 ... runtime 440.13s (limit)
+
+Summary candidate parameter set 6 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  440.13s*  440.13s     0.00  440.13s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 346.67s (parameter set 4, 1 non-defaults)
+Total elapsed tuning time 2259s (15741s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 7...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	PrePasses 3
+	Presolve 1
+
+Solving LeastCostPlanning with random seed #1 ... runtime 389.90s
+
+Summary candidate parameter set 7 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   389.90s  389.90s     0.00  389.90s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 346.67s (parameter set 4, 1 non-defaults)
+Total elapsed tuning time 2649s (15351s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 8...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	PrePasses 2
+	Presolve 1
+
+Solving LeastCostPlanning with random seed #1 ... runtime 378.67s
+
+Summary candidate parameter set 8 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   378.67s  378.67s     0.00  378.67s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 346.67s (parameter set 4, 1 non-defaults)
+Total elapsed tuning time 3028s (14972s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 9...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	PrePasses 3
+
+Solving LeastCostPlanning with random seed #1 ... runtime 388.24s
+
+Summary candidate parameter set 9 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   388.24s  388.24s     0.00  388.24s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 346.67s (parameter set 4, 1 non-defaults)
+Total elapsed tuning time 3416s (14584s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 10...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	PrePasses 5
+	Presolve 1
+
+Solving LeastCostPlanning with random seed #1 ... runtime 388.29s
+
+Summary candidate parameter set 10 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   388.29s  388.29s     0.00  388.29s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 346.67s (parameter set 4, 1 non-defaults)
+Total elapsed tuning time 3805s (14195s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 11...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	PrePasses 8
+	Presolve 1
+
+Solving LeastCostPlanning with random seed #1 ... runtime 388.95s
+
+Summary candidate parameter set 11 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   388.95s  388.95s     0.00  388.95s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 346.67s (parameter set 4, 1 non-defaults)
+Total elapsed tuning time 4194s (13806s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 12...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	NumericFocus 3
+	PreSparsify 0
+
+Solving LeastCostPlanning with random seed #1 ... runtime 441.64s (limit)
+
+Summary candidate parameter set 12 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  441.64s*  441.64s     0.00  441.64s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 346.67s (parameter set 4, 1 non-defaults)
+Total elapsed tuning time 4635s (13365s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 13...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	Presolve 2
+
+Solving LeastCostPlanning with random seed #1 ... runtime 410.66s
+
+Summary candidate parameter set 13 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   410.66s  410.66s     0.00  410.66s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 346.67s (parameter set 4, 1 non-defaults)
+Total elapsed tuning time 5046s (12954s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 14...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	Aggregate 2
+	PrePasses 5
+	Presolve 1
+
+Solving LeastCostPlanning with random seed #1 ... runtime 353.91s
+
+Summary candidate parameter set 14 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   353.91s  353.91s     0.00  353.91s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 346.67s (parameter set 4, 1 non-defaults)
+Total elapsed tuning time 5400s (12600s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 15...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	PrePasses 5
+
+Solving LeastCostPlanning with random seed #1 ... runtime 389.78s
+
+Summary candidate parameter set 15 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   389.78s  389.78s     0.00  389.78s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 346.67s (parameter set 4, 1 non-defaults)
+Total elapsed tuning time 5790s (12210s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 16...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	Aggregate 0
+
+Solving LeastCostPlanning with random seed #1 ... runtime 274.14s
+
+Summary candidate parameter set 16 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   274.14s  274.14s     0.00  274.14s
+
+Improvement found:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  improved: runtime 274.14s (parameter set 16, 1 non-defaults)
+Total elapsed tuning time 6064s (11936s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 17...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	Aggregate 0
+	NumericFocus 3
+
+Solving LeastCostPlanning with random seed #1 ... runtime 351.46s (limit)
+
+Summary candidate parameter set 17 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  351.46s*  351.46s     0.00  351.46s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 274.14s (parameter set 16, 1 non-defaults)
+Total elapsed tuning time 6415s (11585s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 18...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	NumericFocus 3
+	PrePasses 3
+
+Solving LeastCostPlanning with random seed #1 ... runtime 347.19s (limit)
+
+Summary candidate parameter set 18 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  347.19s*  347.19s     0.00  347.19s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 274.14s (parameter set 16, 1 non-defaults)
+Total elapsed tuning time 6762s (11238s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 19...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	Aggregate 0
+
+Solving LeastCostPlanning with random seed #1 ... runtime 244.96s
+
+Summary candidate parameter set 19 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   244.96s  244.96s     0.00  244.96s
+
+Improvement found:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  improved: runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 7007s (10993s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 20...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	Aggregate 0
+	Presolve 2
+
+Solving LeastCostPlanning with random seed #1 ... runtime 311.57s (limit)
+
+Summary candidate parameter set 20 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  311.57s*  311.57s     0.00  311.57s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 7319s (10681s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 21...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+
+Solving LeastCostPlanning with random seed #1 ... runtime 312.10s (limit)
+
+Summary candidate parameter set 21 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  312.10s*  312.10s     0.00  312.10s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 7631s (10369s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 22...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 2
+	Aggregate 0
+
+Solving LeastCostPlanning with random seed #1 ... runtime 274.45s
+
+Summary candidate parameter set 22 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   274.45s  274.45s     0.00  274.45s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 7906s (10094s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 23...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	Aggregate 0
+	Presolve 2
+
+Solving LeastCostPlanning with random seed #1 ... runtime 311.25s (limit)
+
+Summary candidate parameter set 23 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  311.25s*  311.25s     0.00  311.25s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 8217s (9783s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 24...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	AggFill 5
+
+Solving LeastCostPlanning with random seed #1 ... runtime 245.34s
+
+Summary candidate parameter set 24 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   245.34s  245.34s     0.00  245.34s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 8462s (9538s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 25...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	Aggregate 0
+	PrePasses 2
+
+Solving LeastCostPlanning with random seed #1 ... runtime 244.32s
+
+Summary candidate parameter set 25 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   244.32s  244.32s     0.00  244.32s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 8706s (9294s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 26...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 2
+
+Solving LeastCostPlanning with random seed #1 ... runtime 311.29s (limit)
+
+Summary candidate parameter set 26 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  311.29s*  311.29s     0.00  311.29s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 9018s (8982s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 27...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	Aggregate 0
+	Presolve 1
+
+Solving LeastCostPlanning with random seed #1 ... runtime 270.39s
+
+Summary candidate parameter set 27 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   270.39s  270.39s     0.00  270.39s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 9288s (8712s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 28...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	Aggregate 0
+	PrePasses 3
+
+Solving LeastCostPlanning with random seed #1 ... runtime 243.53s
+
+Summary candidate parameter set 28 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   243.53s  243.53s     0.00  243.53s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 9532s (8468s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 29...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	Aggregate 0
+	PrePasses 5
+
+Solving LeastCostPlanning with random seed #1 ... runtime 244.05s
+
+Summary candidate parameter set 29 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   244.05s  244.05s     0.00  244.05s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 9776s (8224s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 30...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	Aggregate 0
+	PrePasses 3
+	Presolve 1
+
+Solving LeastCostPlanning with random seed #1 ... runtime 244.17s
+
+Summary candidate parameter set 30 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   244.17s  244.17s     0.00  244.17s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 10020s (7980s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 31...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	Presolve 2
+
+Solving LeastCostPlanning with random seed #1 ... runtime 311.48s (limit)
+
+Summary candidate parameter set 31 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  311.48s*  311.48s     0.00  311.48s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 10331s (7669s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 32...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	Presolve 1
+
+Solving LeastCostPlanning with random seed #1 ... runtime 312.41s (limit)
+
+Summary candidate parameter set 32 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  312.41s*  312.41s     0.00  312.41s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 10644s (7356s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 33...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	Aggregate 0
+	PreDual 0
+
+Solving LeastCostPlanning with random seed #1 ... runtime 275.27s
+
+Summary candidate parameter set 33 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   275.27s  275.27s     0.00  275.27s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 10919s (7081s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 34...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	PrePasses 5
+	Presolve 2
+
+Solving LeastCostPlanning with random seed #1 ... runtime 311.27s (limit)
+
+Summary candidate parameter set 34 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  311.27s*  311.27s     0.00  311.27s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 11230s (6770s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 35...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	Aggregate 0
+	PrePasses 2
+	Presolve 1
+
+Solving LeastCostPlanning with random seed #1 ... runtime 244.33s
+
+Summary candidate parameter set 35 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   244.33s  244.33s     0.00  244.33s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 11475s (6525s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 36...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	NumericFocus 3
+
+Solving LeastCostPlanning with random seed #1 ... runtime 315.70s (limit)
+
+Summary candidate parameter set 36 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  315.70s*  315.70s     0.00  315.70s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 11790s (6210s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 37...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	Aggregate 0
+	PrePasses 2
+	Presolve 2
+
+Solving LeastCostPlanning with random seed #1 ... runtime 311.98s (limit)
+
+Summary candidate parameter set 37 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  311.98s*  311.98s     0.00  311.98s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 12102s (5898s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 38...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	Aggregate 0
+	PrePasses 8
+
+Solving LeastCostPlanning with random seed #1 ... runtime 244.70s
+
+Summary candidate parameter set 38 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   244.70s  244.70s     0.00  244.70s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 12347s (5653s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 39...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 0
+	Aggregate 0
+
+Solving LeastCostPlanning with random seed #1 ... runtime 311.35s (limit)
+
+Summary candidate parameter set 39 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  311.35s*  311.35s     0.00  311.35s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 12659s (5341s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 40...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	Aggregate 0
+	PrePasses 5
+	Presolve 1
+
+Solving LeastCostPlanning with random seed #1 ... runtime 244.25s
+
+Summary candidate parameter set 40 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   244.25s  244.25s     0.00  244.25s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 12903s (5097s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 41...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	PrePasses 1
+
+Solving LeastCostPlanning with random seed #1 ... runtime 312.12s (limit)
+
+Summary candidate parameter set 41 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  312.12s*  312.12s     0.00  312.12s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 13215s (4785s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 42...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	Aggregate 0
+	PreDual 1
+
+Solving LeastCostPlanning with random seed #1 ... runtime 311.33s (limit)
+
+Summary candidate parameter set 42 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  311.33s*  311.33s     0.00  311.33s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 13526s (4474s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 43...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	Aggregate 0
+	PrePasses 3
+	Presolve 1
+
+Solving LeastCostPlanning with random seed #1 ... runtime 274.38s
+
+Summary candidate parameter set 43 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   274.38s  274.38s     0.00  274.38s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 13801s (4199s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 44...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 2
+	PrePasses 8
+
+Solving LeastCostPlanning with random seed #1 ... runtime 311.29s (limit)
+
+Summary candidate parameter set 44 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  311.29s*  311.29s     0.00  311.29s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 14112s (3888s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 45...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	PrePasses 5
+
+Solving LeastCostPlanning with random seed #1 ... runtime 311.21s (limit)
+
+Summary candidate parameter set 45 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  311.21s*  311.21s     0.00  311.21s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 14423s (3577s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 46...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	Aggregate 2
+	PrePasses 5
+
+Solving LeastCostPlanning with random seed #1 ... runtime 312.04s (limit)
+
+Summary candidate parameter set 46 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  312.04s*  312.04s     0.00  312.04s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 14735s (3265s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 47...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	Aggregate 0
+	PrePasses 5
+	Presolve 2
+
+Solving LeastCostPlanning with random seed #1 ... runtime 311.19s (limit)
+
+Summary candidate parameter set 47 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  311.19s*  311.19s     0.00  311.19s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 15046s (2954s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 48...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	Aggregate 0
+	PrePasses 1
+
+Solving LeastCostPlanning with random seed #1 ... runtime 271.64s
+
+Summary candidate parameter set 48 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   271.64s  271.64s     0.00  271.64s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 15318s (2682s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 49...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	PrePasses 5
+	Presolve 2
+
+Solving LeastCostPlanning with random seed #1 ... runtime 311.36s (limit)
+
+Summary candidate parameter set 49 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  311.36s*  311.36s     0.00  311.36s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 15629s (2371s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 50...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	Aggregate 0
+	PrePasses 8
+	Presolve 2
+
+Solving LeastCostPlanning with random seed #1 ... runtime 312.52s (limit)
+
+Summary candidate parameter set 50 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  312.52s*  312.52s     0.00  312.52s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 15942s (2058s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 51...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	Aggregate 0
+	NumericFocus 1
+	Presolve 2
+
+Solving LeastCostPlanning with random seed #1 ... runtime 312.44s (limit)
+
+Summary candidate parameter set 51 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  312.44s*  312.44s     0.00  312.44s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 16254s (1746s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 52...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 0
+	Aggregate 0
+	PrePasses 2
+	Presolve 2
+
+Solving LeastCostPlanning with random seed #1 ... runtime 312.06s (limit)
+
+Summary candidate parameter set 52 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  312.06s*  312.06s     0.00  312.06s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 16567s (1433s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 53...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	Aggregate 2
+
+Solving LeastCostPlanning with random seed #1 ... runtime 311.94s (limit)
+
+Summary candidate parameter set 53 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  311.94s*  311.94s     0.00  311.94s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 16878s (1122s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 54...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	PrePasses 1
+	Presolve 2
+
+Solving LeastCostPlanning with random seed #1 ... runtime 311.15s (limit)
+
+Summary candidate parameter set 54 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost  311.15s*  311.15s     0.00  311.15s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 17190s (810s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 55...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	NumericFocus 1
+
+Solving LeastCostPlanning with random seed #1 ... runtime 299.05s
+
+Summary candidate parameter set 55 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   299.05s  299.05s     0.00  299.05s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 17489s (511s remaining, 1 running jobs)
+
+-------------------------------------------------------------------------------
+
+Testing candidate parameter set 56...
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	Aggregate 0
+	PrePasses 8
+
+Solving LeastCostPlanning with random seed #1 ... runtime 274.17s
+
+Summary candidate parameter set 56 
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   274.17s  274.17s     0.00  274.17s
+
+Progress so far:
+  baseline: runtime 355.76s (parameter set 1, 0 non-defaults)
+  best:     runtime 244.96s (parameter set 19, 2 non-defaults)
+Total elapsed tuning time 17763s (237s remaining, 1 running jobs)
+
+
+
+Tune time limit reached
+
+-------------------------------------------------------------------------------
+
+Tested 56 parameter sets in 17762.91s
+Total optimization run time for up to 1 concurrent runs: 17762.00s
+
+Baseline parameter set: runtime 355.76s
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   355.76s  355.76s     0.00  355.76s
+
+
+Improved parameter set 1 (runtime 243.53s):
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	Aggregate 0
+	PrePasses 3
+
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   243.53s  243.53s     0.00  243.53s
+
+
+Improved parameter set 2 (runtime 244.96s):
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	ScaleFlag 1
+	Aggregate 0
+
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   244.96s  244.96s     0.00  244.96s
+
+
+Improved parameter set 3 (runtime 274.14s):
+
+	IterationLimit 1e+100 (fixed)
+	MIPGap 1e-13 (fixed)
+	MIPGapAbs 0 (fixed)
+	Method 2 (fixed)
+	ConcurrentMethod 1 (fixed)
+	Crossover 0 (fixed)
+	DisplayInterval 2 (fixed)
+	PreDepRow 1 (fixed)
+	Aggregate 0
+
+ # Name              0      Avg  Std Dev      Max
+ 0 LeastCost   274.14s  274.14s     0.00  274.14s
+
+Set parameter TuneTimeLimit to value 18000

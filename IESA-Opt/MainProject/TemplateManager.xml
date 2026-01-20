@@ -1,0 +1,273 @@
+<?xml version="1.0"?>
+<TemplateManager>
+	<Page Name="All Data Pages" PageGUID="D8B269C8-38FF-4DA9-98C9-6319C7B93BEE" />
+	<Page Name="[Data Page] tech_use" PageGUID="BFD7AA0D-AE9F-4725-9988-A4BDCBB9497D" />
+	<Page Name="[Data Page] tech_useHourly" PageGUID="002D3229-A7CC-4EF1-A6AB-2B653CF718B4" />
+	<Page Name="[Data Page] retrofitting" PageGUID="81AA9C2D-8A7A-48FE-A128-C18A989B1483" />
+	<Page Name="[Data Page] deltaQ_UP" PageGUID="EFE92BD0-0B86-4621-B94D-BEFF7CF43243" />
+	<Page Name="[Data Page] dQtfs_UPConstr" PageGUID="B86E8B3D-3D50-4D0D-AED3-45C1AD86C4D7" Marked="true" />
+	<Page Name="[Data Page] cap_investments" PageGUID="673BD2B3-EBCD-4AF6-9B7F-1E3CC6B9A5CC" />
+	<Page Name="[Data Page] deltaQ_DW" PageGUID="DCBF3BB5-1F62-4B9D-8763-A842C309886F" />
+	<Page Name="[Data Page] balanceM_deltaQm" PageGUID="DEE28E5F-6596-4B46-9707-06FD2BD61F3B" Marked="true" />
+	<Page Name="[Data Page] balanceMdQmB_tfb" PageGUID="C2CAB3F2-201C-4BD1-A840-FFFF1AB3498B" Marked="true" />
+	<Page Name="[Data Page] balanceD_deltaQtfb" PageGUID="73A287E1-8FC5-4307-9999-7F37A7FA7AB0" Marked="true" />
+	<Page Name="[Data Page] dQmBalancer_tfb" PageGUID="02D5B9F2-EA1B-47C3-95DF-E8917845962E" />
+	<Page Name="[Data Page] deltaQm_DW" PageGUID="BAFAA28C-0F15-4D0A-8253-DF1921669E8B" Marked="true" />
+	<Page Name="[Data Page] deltaQmU_tfe" PageGUID="6588F4D2-21C8-4985-9CBF-B7D1049AB325" Marked="true" />
+	<Page Name="[Data Page] deltaQmU_tfb" PageGUID="176A612F-3F0D-42DB-A5DB-6B7515527BDC" Marked="true" />
+	<Page Name="[Data Page] deltaQm" PageGUID="84B74055-7989-4AFA-A301-71A9F7447DB0" Marked="true" />
+	<Page Name="[Data Page] deltaQu_DWtfe" PageGUID="C858ECE3-3DA8-45F5-8BC8-4A7302FBB0A5" Marked="true" />
+	<Page Name="[Data Page] deltaQu_UPtfe" PageGUID="8857EB91-19F6-48BC-A6EB-E1D1709FF05A" Marked="true" />
+	<Page Name="[Data Page] emission_constraint" PageGUID="C49AAB35-BBB5-428A-BFB8-745D7A49A094" Marked="true" />
+	<Page Name="[Data Page] electricity_prices" PageGUID="3729ECE7-837E-44CC-813B-46EC5E98E0C4" />
+	<Page Name="[Data Page] yearly_prices" PageGUID="96541DCC-F20D-4EB7-B526-0D00203197E1" />
+	<Page Name="[Data Page] hourly_prices" PageGUID="39FB3657-B094-48B1-ABFD-0A683D7F5285" />
+	<Page Name="[Data Page] deltaQd_DW" PageGUID="1D4FAB47-7F84-4FEF-B4D5-15667030F7BA" />
+	<Page Name="[Data Page] deltaQd_UP" PageGUID="7E176E80-7460-4D5E-8CD7-ED70D4666953" Marked="true" />
+	<Page Name="[Data Page] balanceM_deltaQd" PageGUID="994BBD62-501E-4CF0-8BDC-2BC71B0AF3E8" />
+	<Page Name="[Data Page] flex_impact" PageGUID="BDE64E43-560B-4ED5-B945-6A3B9C97FA7B" Marked="true" />
+	<Page Name="[Data Page] deltaU_CHP" PageGUID="F79C6B98-6F9F-48FB-8B66-EFA956F311D4" />
+	<Page Name="[Data Page] deltaP_CHP" PageGUID="B32E54A7-19A9-49F2-9ACD-01FCC5F530C4" />
+	<Page Name="[Data Page] ref_profiles" PageGUID="6B24FDA1-3240-4378-B2CB-6E77DD9B01AC" />
+	<Page Name="[Data Page] pCHP" PageGUID="91AB30CB-386D-4522-860C-D269EFBBDECE" />
+	<Page Name="[Data Page] balanceH_deltaHchp" PageGUID="E9A65B02-93FE-4972-9C11-B3A682B1D970" />
+	<Page Name="[Data Page] deltaQ_S" PageGUID="045426E6-455E-4666-A9B7-D75DF353C0DA" />
+	<Page Name="[Data Page] deltaQd" PageGUID="F7DAE6B9-E9E8-4C88-8A3A-42D41F2A2EE8" />
+	<Page Name="[Data Page] cummulativeS_dQtfb" PageGUID="C60B6772-E76B-4C77-BBBE-421CAC579F46" />
+	<Page Name="[Data Page] capacityUP_dQtfb" PageGUID="701A11AB-E4EE-4063-A689-96D39BABE74F" />
+	<Page Name="[Data Page] capacityDW_dQtfb" PageGUID="3213CAB0-9B5F-4ED2-A5BF-BADE53C16D49" />
+	<Page Name="[Data Page] capacityUP_dQtfe" PageGUID="F0CFE1F4-1C74-4CEA-8CE6-0EF3BE5ABF92" />
+	<Page Name="[Data Page] deltaS_shed" PageGUID="F8A8EAF8-CB6A-4387-AD4F-AD4DEA7C184B" />
+	<Page Name="[Data Page] capacity_deltaS" PageGUID="D370C110-9145-43D7-BDD4-F30FBDCCC0AA" />
+	<Page Name="[Data Page] balanceW_deltaS" PageGUID="8EB2AD8F-5552-4914-A8E7-37760FA34EB8" />
+	<Page Name="[Data Page] deltaS_shedPar" PageGUID="E67832C6-A9F7-422A-AF37-B89433F66218" Marked="true" />
+	<Page Name="[Data Page] retrofittingPar" PageGUID="459F5C52-35D2-4A35-9268-8F86564E48F4" Marked="true" />
+	<Page Name="[Data Page] techStock_existPar" PageGUID="C2564678-B691-4CAC-92BA-2A5B5B80402E" Marked="true" />
+	<Page Name="[Data Page] System_Costs" PageGUID="ED0634E1-17CC-4F98-841A-13B7EC73DB77" Marked="true" />
+	<Page Name="[Data Page] eco_decommisioning" PageGUID="967E7A41-8348-4B54-964B-695B0361D95F" />
+	<Page Name="[Data Page] decomStock" PageGUID="2932966E-3F78-4569-BCC8-7D5BDD68C8FE" />
+	<Page Name="[Data Page] PSystem_Costs" PageGUID="0DFFF2C4-BB66-4D50-B692-E8D9EDD4E6A5" Marked="true" />
+	<Page Name="[Data Page] groupOf_activities" PageGUID="4FE2B8C3-70DD-43EF-9DB8-52BB327F70BD" />
+	<Page Name="[Data Page] activity_balances" PageGUID="4F16EEC7-B2C1-4B16-BE2E-0FA7956A028C" />
+	<Page Name="[Data Page] actSolvePer_actOrig" PageGUID="8EA04B05-9DF1-4C53-AA8F-0E0ED83A6375" />
+	<Page Name="[Data Page] techStock" PageGUID="66D21935-9A3B-42D1-ADF7-DCEF1A60EEB5" />
+	<Page Name="[Data Page] infraVol_H" PageGUID="3A82F0C5-BDC3-4082-8E9C-87FDC4D8FCE4" />
+	<Page Name="[Data Page] feedstock_use" PageGUID="413A9A7B-13F5-4216-8E1B-0686D591707A" Marked="true" />
+	<Page Name="[Data Page] primaryHeat_sectors" PageGUID="A1E22603-CD66-408B-8891-B124C597B17E" Marked="true" />
+	<Page Name="[Data Page] feedstock_sectors" PageGUID="A181CBD6-6020-41A6-9B9A-9A400E9C7283" Marked="true" />
+	<Page Name="[Data Page] finalEnergy_sectors" PageGUID="BD79435F-E812-4B50-98AB-78E173089511" Marked="true" />
+	<Page Name="[Data Page] PdeltaS_shed" PageGUID="C0798445-E6BC-4645-B51A-74C6502747D7" />
+	<Page Name="[Data Page] finalEnergy_tech" PageGUID="11D2926B-EF75-4F20-A642-F9054739B74C" Marked="true" />
+	<Page Name="[Data Page] finalEnergy_matrix" PageGUID="50B0A3F9-498D-41A0-B8A0-CEC8FAF6CCA8" />
+	<Page Name="[Data Page] tech_useDaily" PageGUID="EAF58CB7-A816-4B4A-ABA9-6A90A968AE4A" />
+	<Page Name="[Data Page] daily_prices" PageGUID="AC7E2351-D8F0-4C4D-B997-21C979FCDB72" />
+	<Page Name="[Data Page] activity_balancesRef" PageGUID="3233491A-EB5A-4DB9-8D8A-2C10081D552B" />
+	<Page Name="MainPage" PageGUID="33378451-8F41-413B-9351-0B8ED3C1C9BE" />
+	<Page Name="Transition solving" PageGUID="0CD4B8EC-6D7F-401C-9B58-DDFEE71A6C56" />
+	<Page Name="Tuning" PageGUID="E15FCCD1-6B6F-42AD-8E49-461582B407E9" />
+	<Page Name="Sequential Batch solving" PageGUID="9480DBF6-553C-4C9D-B06A-2236B8913D9F" />
+	<Page Name="Parallel Batch solving" PageGUID="84761FE8-9D49-4F3F-A6E6-8F7F00491C68" />
+	<Page Name="Update output files" PageGUID="726CB277-5DEE-42CE-8125-5EC4B0228CE7" />
+	<Page Name="[Data Page] finalEnergy_activities" PageGUID="650472C8-E4CC-44CB-8E01-1368FF333E66" Marked="true" />
+	<Page Name="[Data Page] load3D" PageGUID="90AFAB00-0E53-4559-82F2-355A1AEBECB0" Marked="true" />
+	<Page Name="[Data Page] solar3D" PageGUID="D66347B4-B5D8-4E2B-9AF0-5B49E01F9416" Marked="true" />
+	<Page Name="[Data Page] wind3D" PageGUID="2B9AA440-D277-46B2-9007-E4E6DA6C1FFE" Marked="true" />
+	<Page Name="[Data Page] profiles_3Dactivities" PageGUID="5532A5CA-FB5D-472C-871D-DD4F3C658C2A" Marked="true" />
+	<Page Name="[Data Page] Rprofiles_3Dactivities" PageGUID="EEF071C9-33A1-4042-AA13-47C21EC1F8C3" Marked="true" />
+	<Page Name="[Data Page] supplyAct_tech" PageGUID="9A03E45E-9D00-4EC3-BD1D-88B8A48336CE" />
+	<Page Name="[Data Page] demandAct_tech" PageGUID="438A4C10-FA68-4794-86EE-9E8BE9306651" />
+	<Page Name="[Data Page] supdemAct_tech" PageGUID="B0DEAB53-2014-422E-8B3F-081BBE4526DD" />
+	<Page Name="[Data Page] RsupdemAct_tech" PageGUID="E5DB9827-26F2-475B-812E-B7DC7C785365" Marked="true" />
+	<Page Name="[Data Page] energyUse_tech" PageGUID="94D56CF8-770A-4170-9923-CF72E0F942D5" />
+	<Page Name="[Data Page] sankey_flows" PageGUID="56950EA6-1E9D-4744-A97A-9C6323D75594" />
+	<Page Name="[Data Page] Rsankey_flows" PageGUID="BE79864F-9955-4923-8656-C53BB23D6256" Marked="true" />
+	<Page Name="[Data Page] finProfiles_flex" PageGUID="DFDF6BEF-E5D9-44FE-9E70-4D5056441513" Marked="true" />
+	<Page Name="[Data Page] finProfiles_shed" PageGUID="86881B83-ACF6-4270-9A38-F1FD99E2668E" Marked="true" />
+	<Page Name="[Data Page] refProfiles_flex" PageGUID="0E06B290-365A-4A41-8D28-A5A7A182F15A" Marked="true" />
+	<Page Name="[Data Page] hourly_variability" PageGUID="93FAFD70-5E10-422A-8C70-E5091942BD5A" Marked="true" />
+	<Page Name="[Data Page] electricity_parameters" PageGUID="CBAD65A6-8A9A-4FAB-919A-4D41813B3142" />
+	<Page Name="[Data Page] flexibility_volumes" PageGUID="083B7636-1924-4EB6-9806-1E7629A91110" />
+	<Page Name="[Data Page] european_stocks" PageGUID="950206EE-8766-4C6A-82F5-8B717A824402" Marked="true" />
+	<Page Name="[Data Page] total_shedding" PageGUID="9F8F34AE-89AC-4F7A-B468-7B7CA71369D8" Marked="true" />
+	<Page Name="[Data Page] decomMat_NewInv" PageGUID="F5FA3406-CC7D-4D0C-A036-06C60B43CDF5" />
+	<Page Name="[Data Page] InvMat_lifeTime" PageGUID="56AB23AF-B41A-41CA-9AD7-507312BFDBC4" Marked="true" />
+	<Page Name="[Data Page] Pretrofitting" PageGUID="D85C8AC6-7A8D-4D99-BD00-620DE2913EE6" />
+	<Page Name="[Data Page] activity_balancesOrig" PageGUID="4C3AE6AF-26C4-4491-8FF0-B6BF5813987D" />
+	<Page Name="[Data Page] supplyEnergy_sectors" PageGUID="A5D68783-A6BB-4ED3-95ED-D005E46A126F" Marked="true" />
+	<Page Name="[Data Page] demandEnergy_sectors" PageGUID="5AC77177-9AFE-4879-9599-7821B4C7EC6C" Marked="true" />
+	<Page Name="[Data Page] primary_balances" PageGUID="F3081EAB-7967-4AFA-B15F-C2CF888AF7E7" Marked="true" />
+	<Page Name="[Data Page] sectoral_emissions" PageGUID="B7F198CC-A47E-4C76-A59C-8B1FCE47395C" Marked="true" />
+	<Page Name="[Data Page] energyH_pricesIter" PageGUID="6B42B189-C910-461E-BB06-71ABED78A693" Marked="true" />
+	<Page Name="[Data Page] energyD_pricesIter" PageGUID="3A290BA6-D219-4D6E-A3A6-5B93E1C1B64A" Marked="true" />
+	<Page Name="[Data Page] energyH_prices" PageGUID="249DEE91-547F-4D0E-8A74-F22203AFA344" Marked="true" />
+	<Page Name="[Data Page] marginalH_prices" PageGUID="5DED2A0D-4BE4-4C73-8E86-B6954180FCBB" Marked="true" />
+	<Page Name="[Data Page] marginalD_prices" PageGUID="6F26F264-3A6E-496A-91B1-FAD0B977E1C1" Marked="true" />
+	<Page Name="[Data Page] energyD_prices" PageGUID="7D231A3F-0C35-4D40-89AB-B1A2394F5A01" Marked="true" />
+	<Page Name="[Data Page] Ptech_useHourly" PageGUID="2E3EF3FF-3FE5-4D32-A4A6-911C73681FAB" />
+	<Page Name="[Data Page] energyTech_costH" PageGUID="178AE256-3F12-4FF3-AC22-8F66F8824D6F" Marked="true" />
+	<Page Name="[Data Page] energyTech_costD" PageGUID="B8A593EC-292D-444E-85E5-3E9E4DD9E5A7" Marked="true" />
+	<Page Name="[Data Page] energyTech_unitcostD" PageGUID="ACC511F5-CAF5-4215-99C4-C0A9C940199E" Marked="true" />
+	<Page Name="[Data Page] energyTech_unitcostH" PageGUID="142E4178-9DF1-491C-9C7C-BA4F054C3AF6" Marked="true" />
+	<Page Name="[Data Page] RfinProfiles_flex" PageGUID="B3E4AD66-EF2B-4A91-ABF3-8757404A658C" Marked="true" />
+	<Page Name="[Data Page] PdeltaQ_UP" PageGUID="B3529E0B-5C8A-45D7-A6B6-BA768E085155" />
+	<Page Name="[Data Page] PdeltaB_UP" PageGUID="4BD34419-07B3-4C54-855D-B604E5053DD0" />
+	<Page Name="[Data Page] sectoral_configuration" PageGUID="03A4A85C-8469-4CAD-A2A3-E3C842950F91" Marked="true" />
+	<Page Name="[Data Page] RrefProfiles_flex" PageGUID="5E91834F-C9A5-4A84-8B92-BDE63B0382A0" Marked="true" />
+	<Page Name="[Data Page] Capital_Costs_Bal" PageGUID="54B1EC8A-0FD8-4C42-8B1A-22D9D8779513" />
+	<Page Name="[Data Page] decPayments" PageGUID="FAC2BEFE-96BB-41DC-A981-2AE57F91F2DB" />
+	<Page Name="[Data Page] decission_payments" PageGUID="0286CC67-5B77-4FD4-BCA0-70CA5E8EBDB2" />
+	<Page Name="[Data Page] capitalCosts_techBal" PageGUID="373DAA1C-E80A-4451-B39A-7A24CD45B291" />
+	<Page Name="[Data Page] SystemCosts" PageGUID="C025E8ED-5275-417F-9A17-13E22EEF3379" />
+	<Page Name="[Data Page] SystemCosts_toc_n" PageGUID="84346642-4BFD-4C52-BCA0-7A379C8AD4B5" />
+	<Page Name="[Data Page] RSystemCosts_toc_n" PageGUID="35D1BA83-474C-46E0-88DB-BA4C9D6E57FD" />
+	<Page Name="[Data Page] SectoralConfiguration_stock" PageGUID="6186467B-D4A1-4E10-BA64-57DAF9DC084A" />
+	<Page Name="[Data Page] SectoralConfiguration_use" PageGUID="00697EA2-A1D3-450E-B017-CB56C412AA96" />
+	<Page Name="[Data Page] Power_IC" PageGUID="F1B6C1E6-907A-4D00-842F-96D0DA538B31" />
+	<Page Name="[Data Page] Power_Supply" PageGUID="BF6A3951-9F83-44BA-BC36-A1452724BE0F" />
+	<Page Name="[Data Page] EnergyCosts_hourly" PageGUID="F677AA96-8D91-49BC-A1BC-A721D722845E" />
+	<Page Name="[Data Page] EnergyCosts_daily" PageGUID="96F137FB-1C38-4ADF-92CD-B15ABEF80C5D" />
+	<Page Name="[Data Page] techCosts_fuel" PageGUID="2078B76F-0495-46AD-B5D8-C4F2D6531414" />
+	<Page Name="[Data Page] techCosts_voc" PageGUID="3BB3D07F-C4EF-43DD-96A7-53FC4FF434DB" />
+	<Page Name="[Data Page] Ptech_useDailyNet" PageGUID="D4BD15D1-18A1-4174-9490-23C8CB948D83" />
+	<Page Name="[Data Page] fuelCosts_tech" PageGUID="0C2DDC01-C50C-4769-820F-D329FA998166" />
+	<Page Name="[Data Page] XC_stock" PageGUID="8A60CCC8-23F4-4232-8C15-CFA382E0E2B7" />
+	<Page Name="[Data Page] Power_stock" PageGUID="D7A7C1D8-B6EA-4E4C-8EE9-4E28FB0589A7" />
+	<Page Name="[Data Page] emissionCosts_tech" PageGUID="70D3DA88-37AD-4FAE-93EF-3B53EC4DC2B7" />
+	<Page Name="[Data Page] SystemCosts_sec" PageGUID="4D752227-763D-46FB-8D0F-E1370CA95227" />
+	<Page Name="[Data Page] SystemCosts_sec_n" PageGUID="7535E938-5142-4AE0-BB1E-8C4C0780DFF8" />
+	<Page Name="[Data Page] Power_dispatch" PageGUID="32252FF2-98BC-400D-91CE-1F209CE42B43" />
+	<Page Name="[Data Page] XC_use" PageGUID="D92880D9-BD3E-4EDC-B4EA-4349BD3C2AB7" />
+	<Page Name="[Data Page] Ptech_useDaily" PageGUID="57770E00-19AF-4C31-BC00-865727A6370A" />
+	<Page Name="[Data Page] PdeltaB_DW" PageGUID="C683EC2C-DA94-455E-AA46-394E062BCFDB" />
+	<Page Name="[Data Page] PdeltaQ_DW" PageGUID="0979A81A-0DA8-4D40-B449-C323305C518F" />
+	<Page Name="[Data Page] tech_info" PageGUID="31D3E000-B5C6-428F-8A5F-870B7412C3AF" />
+	<Page Name="[Data Page] all_emissions" PageGUID="2BEFCC3A-FD67-4BC7-995B-A00D2B0064C0" />
+	<Page Name="[Data Page] emissions_all" PageGUID="4F467980-D7A6-49FB-930C-DF3D52A0D4F8" />
+	<Page Name="[Data Page] emissions_sec" PageGUID="54631A43-11BF-4260-91D0-C8E9BE70F3BE" />
+	<Page Name="[Data Page] finalEnergy_sec" PageGUID="16131225-E7D1-40A5-BCF6-D8305BAA4E87" />
+	<Page Name="[Data Page] feedstockUse_sec" PageGUID="42683E89-BF7F-451B-B496-C6EE5A22A4CD" />
+	<Page Name="[Data Page] finalEnergy_act" PageGUID="8D6B5FCD-999D-4DD1-AB5F-06197CFCED96" />
+	<Page Name="[Data Page] primaryEnergy" PageGUID="79B00E02-8A25-4F99-BE44-BF483ED6E49B" />
+	<Page Name="[Data Page] exportsEnergy" PageGUID="3CCA10A0-DFEF-4B9D-A53A-F23E655D73AD" />
+	<Page Name="[Data Page] primaryBalance" PageGUID="66698AA9-7BC2-4F21-9165-D7B48C214B29" />
+	<Page Name="[Data Page] loadProfiles_H" PageGUID="1C816B04-AE5E-4E76-8ECB-257AF04AE28C" />
+	<Page Name="[Data Page] refProfiles_H" PageGUID="E1C5454C-7016-45AA-AC66-43C9F9009060" />
+	<Page Name="[Data Page] refProfiles_D" PageGUID="6369AFC6-8B7C-411F-844A-1CF39374EAB2" />
+	<Page Name="[Data Page] finProfiles_D" PageGUID="186BCDB7-64F2-4ECA-B98F-24F71DFE19A5" />
+	<Page Name="[Data Page] curtailmentRES" PageGUID="15CC7EC1-0CCF-4C67-B2D7-46C2D0F708C1" />
+	<Page Name="[Data Page] EnergyCosts" PageGUID="863BB28F-049C-4778-BBD6-913892832081" />
+	<Page Name="[Data Page] final_decomposition" PageGUID="4D36B02A-F8FB-458F-88F0-6F627EC3F198" />
+	<Page Name="[Data Page] key_indicators" PageGUID="5A842A4E-1145-47AC-B89C-168D768F9FD4" />
+	<Page Name="[Data Page] dispatch3D" PageGUID="50D62FA1-2017-49E1-BB4D-B4F8E809A240" Marked="true" />
+	<Page Name="[Data Page] profiles3D" PageGUID="7A19E1A6-5859-4F65-A527-E6CCAB8BFC51" />
+	<Page Name="[Data Page] LCOE_tech" PageGUID="97F95FD9-C251-459D-BDE6-0BA03FC71D60" />
+	<Page Name="[Data Page] FuelCosts" PageGUID="95C63958-2048-4B08-A3D8-AD920677D728" />
+	<Page Name="[Data Page] SectoralCosts_cascade" PageGUID="CA769073-027D-477D-8A8F-D92DF0A3A651" />
+	<Page Name="[Data Page] Ptech_useHourlyNet" PageGUID="2304E096-89CF-4325-9D75-A26A21671534" />
+	<Page Name="[Data Page] final_activities" PageGUID="63DCCF14-54F1-4534-99B0-D12720EC86B7" />
+	<Page Name="[Data Page] exportCosts" PageGUID="5F54DF20-ED03-4CC0-97A0-B39911532A30" />
+	<Page Name="[Data Page] importCosts" PageGUID="A13B61DE-D7B2-49D6-9B25-0B71B10DEFB4" />
+	<Page Name="[Data Page] exportCosts_tech" PageGUID="EC95B05C-DDCC-454F-8A92-ED9017D4D259" />
+	<Page Name="[Data Page] EnergyShare_tech" PageGUID="0E034DB1-9924-4976-BE8C-6998632A992C" />
+	<Page Name="[Data Page] exportCosts_act" PageGUID="1951BA93-65C7-4928-96B7-D11C7630A2C3" />
+	<Page Name="[Data Page] importCosts_tech" PageGUID="372FE7CD-C677-4687-8D7E-CACAB7D09350" />
+	<Page Name="[Data Page] SystemCosts_techBal" PageGUID="E5206521-52B2-4733-9C34-3B90AE37C4B2" />
+	<Page Name="[Data Page] SystemCosts_n" PageGUID="CB1FFCD0-3B00-4D87-AD5D-2E6276A27724" />
+	<Page Name="[Data Page] SystemCosts_sec_tot" PageGUID="3F7C84F9-97AC-43C8-BD13-D1044A4BB299" />
+	<Page Name="[Data Page] primary_renewable" PageGUID="54DD8AE1-9C07-4EE5-AAAC-9EA1983E101B" />
+	<Page Name="[Data Page] EnergyCosts_node_D" PageGUID="619AB712-D4B4-492E-9732-D2AB7C08A50B" />
+	<Page Name="[Data Page] EnergyCosts_nodeH" PageGUID="E518F403-001F-4BEB-AF21-75B7EBA3C3F5" />
+	<Page Name="[Data Page] testPar" PageGUID="AD346909-0AFC-4693-AA12-F722DB973107" Marked="true" />
+	<Page Name="[Data Page] LCOE_real" PageGUID="E83BB73B-DAB1-4A8F-B5BB-8FA65613E686" />
+	<Page Name="[Data Page] LCOE" PageGUID="6FE3F73B-D9EB-42C3-B414-8534EDD1AA1B" />
+	<Page Name="[Data Page] PlanningDecissions_tech" PageGUID="515BF736-E48A-4B94-B352-426D3B12154D" />
+	<Page Name="[Data Page] EnergyExclussiveness" PageGUID="2EC54B34-F5F8-4566-AD39-8E9EE41212CD" />
+	<Page Name="[Data Page] PowerInfo_act" PageGUID="229D4CD3-FB00-41E2-BFD6-0498222E0F56" />
+	<Page Name="[Data Page] deltaW_UP" PageGUID="82DF3E70-F076-446C-A749-A3BC73D00E6E" />
+	<Page Name="[Data Page] deltaW_S" PageGUID="BFD5509F-2426-4A93-8AA6-1055EE07A8B7" />
+	<Page Name="[Data Page] flex_info" PageGUID="525DBCB4-4CB4-4028-B529-20CEAE906DCD" />
+	<Page Name="[Data Page] SystemCosts_act" PageGUID="2B449A82-3B22-4452-BD25-D7D90F6D6BB9" />
+	<Page Name="[Data Page] SystemCosts_act_n" PageGUID="0AEFE48E-7AFB-4683-9D35-210E57769EC2" />
+	<Page Name="[Data Page] decomposition_resLoadY" PageGUID="674EA677-BD14-4759-B240-12B69C09496A" />
+	<Page Name="[Data Page] decomposition_resLoad" PageGUID="12A3A85D-1F83-4AD9-B39F-453C2559974B" />
+	<Page Name="[Data Page] Rdecomposition_resLoadY" PageGUID="18DB7B65-2401-4960-B238-02273BD50B42" />
+	<Page Name="[Data Page] NucPotential" PageGUID="C8ACAD36-76BD-42BE-BF9A-4FD8C184466F" Marked="true" />
+	<Page Name="[Data Page] flexibility_volumesTech" PageGUID="5AE06D94-AA94-43F7-916B-F5207B4F0AA8" />
+	<Page Name="[Data Page] finalEnergy_matrixAct" PageGUID="3D053165-BE5B-4998-BF54-309A87A5B10E" />
+	<Page Name="[Data Page] energyUse_act" PageGUID="26F9A02B-9344-45B3-B1BE-47151025378D" />
+	<Page Name="[Data Page] emissions_tech" PageGUID="B56BF9DB-1333-4D82-940E-9B95963E5ACE" />
+	<Page Name="[Data Page] output_act" PageGUID="B4A8A031-96E1-432B-AD7F-C6AA10FE4041" />
+	<Page Name="[Data Page] output_actMain" PageGUID="74695564-ECF4-4D63-9320-1ADAD75DF266" />
+	<Page Name="[Data Page] LCOP_sec" PageGUID="860DF59D-22C8-40AD-AE89-A82AF439A52D" />
+	<Page Name="[Data Page] LCOP_Esec" PageGUID="0CEC92E8-B661-4910-BEEC-CE621643D922" />
+	<Page Name="[Data Page] LCOP_secE" PageGUID="C2BBAC78-99E3-4610-98E8-70ACD7664E7E" />
+	<Page Name="[Data Page] LCOP_act" PageGUID="86243917-99FD-4386-AF2A-FF853877F7E6" />
+	<Page Name="[Data Page] CHP_output" PageGUID="1228E019-7D9C-4EB4-B04A-51ABAE6CCC5D" />
+	<Page Name="[Data Page] interconnected_prices" PageGUID="BB9C7DAD-56CC-4A04-AC22-F69976CA4090" />
+	<Page Name="[Data Page] vom_hourly" PageGUID="DD59072B-3D8C-420E-BC4E-C3049EFA502A" Marked="true" />
+	<Page Name="[Data Page] interconnected_pricesOrig" PageGUID="D7E3EF0C-96E1-43DF-BF5D-547BDFEC8247" />
+	<Page Name="[Data Page] activities_netVolumes" PageGUID="725F2943-5FDD-4782-B48A-D0252470D5AD" />
+	<Page Name="[Data Page] dummy" PageGUID="DFFC7B96-DB25-4027-B131-D166DEF7191F" Marked="true" />
+	<Page Name="[Data Page] balance_activities_Emissions" PageGUID="9C858079-CE8B-471B-9796-4FF5ED294813" />
+	<Page Name="[Data Page] emission_target" PageGUID="E810F0DC-DAF4-44B1-A777-F49D27C9A1D8" />
+	<Page Name="[Data Page] aasd" PageGUID="200BA73C-9514-49A2-BC03-B4BE1012A940" Marked="true" />
+	<Page Name="[Data Page] zzz" PageGUID="2EAD54BA-EBA0-4235-8135-240032157E78" Marked="true" />
+	<Page Name="[Data Page] feedstockUse_act" PageGUID="09E26857-5018-4D26-8663-3BEDD3916257" />
+	<Page Name="[Data Page] Remissions_tech" PageGUID="AB71A907-4C22-4153-BEA2-3DFF61BCA48B" />
+	<Page Name="[Data Page] energyUse_tech_mat" PageGUID="506CE28D-FC64-4629-8C47-ACBCD69CDC62" />
+	<Page Name="[Data Page] energyUse_sec" PageGUID="790FA25D-5E02-4961-850E-E9D2C53964CF" />
+	<Page Name="[Data Page] emissions_sec_kev" PageGUID="CA32EBA1-46FA-4014-A003-02388D1FAE82" />
+	<Page Name="[Data Page] MinLoad" PageGUID="2D0D35F1-D426-4BFC-BAAC-B367A513A2EB" />
+	<Page Name="[Data Page] capacity_techHourly" PageGUID="DA61324C-4568-4950-BD44-7CE4E5E1A98C" />
+	<Page Name="[Data Page] finalEnergy_matrix_kev" PageGUID="507A5A29-9235-464D-88F5-7245960A39FC" />
+	<Page Name="[Data Page] emissions_tech_kev" PageGUID="1806464F-446E-4951-9D52-D1AD1AE53BCB" />
+	<Page Name="[Data Page] finalEnergy_sec_kev" PageGUID="B3480B66-27C4-4A35-BD5D-C7B6C32DFD25" />
+	<Page Name="[Data Page] supdemAct_tech_name" PageGUID="13B61C01-D799-4677-B9C2-2DCFAC39DF1F" />
+	<Page Name="[Data Page] finalEnergy_actEL" PageGUID="44C37B43-819F-4DDD-9899-7D1E3EF2CF21" />
+	<Page Name="[Data Page] finalEnergy_act_kev" PageGUID="C1C21B98-C48D-482D-9CFB-1E83BA830AD1" />
+	<Page Name="[Data Page] finalEnergy_actEL_kev" PageGUID="EC03E0C5-D4D0-4800-BA30-64C4B64873FD" />
+	<Page Name="[Data Page] feedstockUse_sec_kev" PageGUID="660A2964-D037-463E-8A34-F534122624A3" />
+	<Page Name="[Data Page] finalEnergy_matrixAct_kev" PageGUID="4360F068-D1C8-443E-A2B0-876705A6D0B0" />
+	<Page Name="[Data Page] finalEnergy_secAct_kev" PageGUID="C582EB72-918C-4E66-A95C-8D11FAECB680" />
+	<Page Name="[Data Page] energyUse_sec_kev" PageGUID="87399F1C-15CD-4C7C-9316-9EC412520B01" />
+	<Page Name="[Data Page] Revenue_tech" PageGUID="44251F15-42FC-4D27-8455-8AB6AD13FBDD" />
+	<Page Name="[Data Page] capacityUP_deltaUchp" PageGUID="8D9ABA9C-3889-4943-928C-6FB4D0F799C1" />
+	<Page Name="[Data Page] emissions_act" PageGUID="2672D767-9B0F-45DF-8107-247582125D36" />
+	<Page Name="[Data Page] FinalInclB" PageGUID="55FC24A7-0F60-4ED4-BB1A-5503FA969F74" />
+	<Page Name="[Data Page] FinalExclB" PageGUID="219796F2-CE1E-460F-BDF9-31B4FB6E4003" />
+	<Page Name="[Data Page] TSC" PageGUID="C292965E-D669-4A4F-AC23-8DFA0CF859C2" />
+	<Page Name="[Data Page] Copy_supplyAct_tech" PageGUID="3D3470CE-3C5A-4967-A0EB-4B64DA497FC7" />
+	<Page Name="[Data Page] Copy_demandAct_tech" PageGUID="3561DF8B-5F3E-4411-8EC1-6E10C5D6938E" />
+	<Page Name="[Data Page] Copy_energyUse_act" PageGUID="372BE4C8-A1CF-44A2-B72E-BE04B6C0F4B0" />
+	<Page Name="[Data Page] FinalInclB_sec" PageGUID="8AA36EAA-DAD4-4435-A9AC-1747B566FC03" />
+	<Page Name="[Data Page] newparameter" PageGUID="9339EF14-7C4C-4F56-9748-107FDA51DEBC" Marked="true" />
+	<Page Name="[Data Page] LCOE_total" PageGUID="587A7338-C82F-4EC4-AD9A-713C9917E89C" Marked="true" />
+	<Page Name="[Data Page] LCOE_breakdown" PageGUID="92172304-B1A5-46B6-A74F-838CC1D2B94D" Marked="true" />
+	<Page Name="[Data Page] emission_targetCum" PageGUID="7B0F1498-F9AD-465B-8E01-8C6E1BBA3092" />
+	<Page Name="[Data Page] FinalExclB_sec" PageGUID="ECBD7757-5B1F-42C1-BD46-BFD7EB22707A" />
+	<Page Name="[Data Page] emissions_NL_sec" PageGUID="89478743-5D64-4485-925C-886BBE106D98" />
+	<Page Name="[Data Page] Copy1_demandAct_tech" PageGUID="7F673763-88CE-4779-970A-A7B0751F9BCE" Marked="true" />
+	<Page Name="[Data Page] calc_DMI" PageGUID="40CE80E4-FAFE-4C1E-910A-F110982F7AEE" />
+	<Page Name="[Data Page] calc_Bio_DMI" PageGUID="04A41112-EE3B-4567-B0FD-D837BB61F4B2" />
+	<Page Name="[Data Page] calc_circular_DMI" PageGUID="A808EA4B-EB03-435F-8CB3-0C5C51F6219A" />
+	<Page Name="[Data Page] calc_DMC" PageGUID="8B4FD55B-057F-430A-8938-02CF4FA557D6" Marked="true" />
+	<Page Name="[Data Page] balanceH_deltaS" PageGUID="F53CE315-2868-429F-BC2F-49996A333478" />
+	<Page Name="[Data Page] test" PageGUID="EDBAA2F2-BF94-4048-A606-0CE71F59F079" Marked="true" />
+	<Page Name="[Data Page] balance_activitiesDaily" PageGUID="DBAAD4D1-9E91-4624-8328-8CD9764186C1" />
+	<Page Name="[Data Page] tech_useHourly_violation" PageGUID="EA6B809A-8BD6-4FA7-966F-229EF9CBA32E" />
+	<Page Name="[Data Page] test2" PageGUID="1B8256A1-F549-4B91-A4A1-C628674D95B7" Marked="true" />
+	<Page Name="[Data Page] linked_investments_XC" PageGUID="73B72662-5299-4D41-858F-4C812688F9D1" />
+	<Page Name="[Data Page] linked_Stock_XC" PageGUID="AA0DD360-4599-43C6-AC0A-FD3E050C6CB0" />
+	<Page Name="[Data Page] test1" PageGUID="8CB1BE02-7632-45BB-907C-0EDF012FF4DB" Marked="true" />
+	<Page Name="[Data Page] interconnectedHourly_prices" PageGUID="543468EC-39A2-4B6B-A7A3-5A0DD8B43597" />
+	<Page Name="[Data Page] linked_hourly_XC" PageGUID="751152EB-5D76-425F-9BC3-0697F5327586" />
+	<Page Name="[Data Page] toost" PageGUID="5DDDD496-828D-49C0-8BAE-3D8243EF5F16" Marked="true" />
+	<Page Name="[Data Page] SectoralConfiguration_stock_name" PageGUID="2B3824F7-2C5A-4708-8EB3-DBFAF8247FA2" />
+	<Page Name="[Data Page] vom_interconnected_hourly" PageGUID="782CE241-EE8A-48CF-BB36-7BF7C3A854D4" Marked="true" />
+	<Page Name="[Data Page] RSectoralConfiguration_stock_name" PageGUID="A71B3494-2B16-47E9-A2D6-2BC500EDA653" />
+	<Page Name="[Data Page] RSectoralConfiguration_stock" PageGUID="59953C4A-E079-4886-8EC0-58052DA027B5" />
+	<Page Name="[Data Page] RSectoralConfiguration_use_name" PageGUID="7CB4F5F1-297E-4C4F-9A59-91004AEA7CEE" />
+	<Page Name="[Data Page] shadow_CO2Prices" PageGUID="0EBCD4ED-DB28-44D9-8D7B-EFFEA8354914" />
+	<Page Name="[Data Page] shadow_energyPrices" PageGUID="33293C6F-8C21-48E1-9F37-2353E4AF3CFF" />
+	<Page Name="[Data Page] balance_activities_EmissionTarget" PageGUID="D5DCF98B-6961-4742-B094-037A33B88CE1" />
+</TemplateManager>
