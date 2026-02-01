@@ -1,0 +1,27 @@
+# Dependencies (mirrors SSDashboard/dependencies.txt for identical functionality)
+streamlit==1.50.0
+pygwalker==0.4.9.15
+
+pandas==2.3.3
+numpy==1.26.4
+scipy
+
+plotly>=5.0.0
+matplotlib
+seaborn
+
+salib==1.5.1
+ema-workbench==2.5.3
+platypus-opt==1.4.1
+
+statsmodels==0.14.5
+scikit-learn==1.5.2
+
+openpyxl
+xlrd
+pyarrow
+
+sqlalchemy
+requests
+tqdm
+dill

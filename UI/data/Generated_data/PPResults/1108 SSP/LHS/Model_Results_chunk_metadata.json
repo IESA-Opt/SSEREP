@@ -1,0 +1,16 @@
+{
+  "original_file": "Model_Results.csv",
+  "total_chunks": 7,
+  "chunk_files": [
+    "Model_Results_chunk_001.csv",
+    "Model_Results_chunk_002.csv",
+    "Model_Results_chunk_004.csv",
+    "Model_Results_chunk_005.csv",
+    "Model_Results_chunk_006.csv",
+    "Model_Results_chunk_007.csv",
+    "Model_Results_chunk_008.csv"
+  ],
+  "total_rows": 4011997,
+  "created_by": "SSDashboard file chunking system",
+  "version": "1.0"
+}

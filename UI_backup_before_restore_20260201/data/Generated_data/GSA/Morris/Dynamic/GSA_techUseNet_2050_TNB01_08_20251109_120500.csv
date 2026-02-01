@@ -1,0 +1,32 @@
+Parameter,Outcome,mu,mu_star,mu_star_conf,sigma,mu_star_norm,sigma_norm,Method,ComputedAt,Methods
+CO2 Cap,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Buildings demand,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Steel Production,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Chemical Production,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Passenger Cars,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Bunker aviation,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Bunker navigation,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Agriculture neGHG CH4,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Agriculture neGHG N2O,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Wind offshore Costs,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Wind offshore Potential,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Solar PV Costs,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Solar PV Potential,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Nuclear Costs,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Nuclear Potential,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Hydrogen Import Potential,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Hydrogen Import Price,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Biomass Import Potential,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Biomass Import Price,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Ammonia Import Potential,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Ammonia Import Price,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+CCS potential,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Flexibility Costs,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+LNG Price,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Electricity Trade Price,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Weather Conditions,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Electricity Trade Ratio,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Electricity Trade Volume,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+WACC,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+Bunker Emission Reduction,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
+End-of-Life Emission Reduction,techUseNet 2050 TNB01_08,0.0,0.0,0.0,0.0,1.0,1.0,Morris,20251109_120500,Morris
