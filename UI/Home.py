@@ -5,7 +5,6 @@ import side-effects here can re-introduce old tab-based navigation.
 """
 
 import streamlit as st
-import sys
 from pathlib import Path
 
 # Use the full browser width (the legacy dashboard did this in its old Home module).
@@ -27,51 +26,66 @@ data_loading._init_defaults()
 
 st.title("SSEREP dashboard")
 
-
-# -----------------------------------------------------------------------------
-# Diagnostics (useful on Streamlit Community Cloud)
-# -----------------------------------------------------------------------------
-with st.expander("Diagnostics (navigation/pages)", expanded=False):
-	app_file = Path(__file__).resolve()
-	repo_root_guess = app_file.parents[1]
-	ui_dir = app_file.parents[0]
-	root_pages = repo_root_guess / "pages"
-	ui_pages = ui_dir / "pages"
-
-	st.write(
-		{
-			"streamlit": getattr(st, "__version__", "unknown"),
-			"python": sys.version.split()[0],
-			"cwd": str(Path.cwd()),
-			"home_file": str(app_file),
-			"repo_root_guess": str(repo_root_guess),
-			"root_pages_exists": root_pages.exists(),
-			"ui_pages_exists": ui_pages.exists(),
-		}
-	)
-
-	if root_pages.exists():
-		try:
-			st.write("Root pages:", sorted([p.name for p in root_pages.glob("*.py")]))
-		except Exception as e:
-			st.write("Failed listing root pages:", str(e))
-
-	if ui_pages.exists():
-		try:
-			st.write("UI pages:", sorted([p.name for p in ui_pages.glob("*.py")]))
-		except Exception as e:
-			st.write("Failed listing UI pages:", str(e))
-
 st.markdown(
 	"""
 Scenario Space Exploration for Robust Energy Planning
 
 Energy and climate assessments often contrast a few narrative scenarios, limiting insight into interacting uncertainties. This dashboard supports **scenario space exploration** for a whole energy system model by mapping an ensemble of **4,500+ cost-optimal runs** and enabling interactive analysis of the results.
-
-Use the left sidebar to navigate to:
-- **GSA** (global sensitivity analysis)
-- **Technology** (technology portfolio exploration)
-- **Histograms** (outcome distributions)
-- **PRIM** (scenario discovery)
 """
 )
+
+# Render the workflow diagram shipped at repo root.
+repo_root = Path(__file__).resolve().parents[1]
+workflow_diagram = repo_root / "Workflow_diagram.png"
+if workflow_diagram.exists():
+	# Responsive: fill available width, but cap the visual height so it doesn't dominate.
+	st.image(str(workflow_diagram), caption="Workflow diagram", use_container_width=True)
+	st.markdown(
+		"""
+		<style>
+		div[data-testid="stImage"] img {
+			max-height: min(60vh, 520px);
+			width: 100%;
+			height: auto;
+			object-fit: contain;
+		}
+		</style>
+		""",
+		unsafe_allow_html=True,
+	)
+
+	st.markdown(
+		"""
+		**Workflow in one view.** The diagram contrasts a conventional scenario study workflow with a scenario space workflow. In conventional studies, a small set of narratives is solved in a high-fidelity optimisation model and results are compared across scenarios, followed by iterative manual refinement of assumptions and occasional sensitivity checks.
+
+		In a **scenario space** workflow, the uncertain inputs (and their ranges) are defined up front, sampled (e.g., Latin hypercube / Morris / Sobol), and solved as a large ensemble (often with a reduced-fidelity configuration to keep thousands of runs tractable). The ensemble is then interpreted using condensed diagnostics (like the sensitivity heatmaps) and interactive exploration, including scenario discovery to identify the combinations of assumptions associated with outcomes of interest. Insights feed back into refining the design and resampling, or into selecting a small number of high-fidelity runs for narrative reporting.
+		"""
+	)
+
+	st.markdown(
+		"""
+		Use the left sidebar to navigate to the analysis pages:
+
+		**Sensitivity (GSA).** Compare **Borgonovo δ** and **Morris μ\*** heatmaps to see which uncertain inputs drive output variability. Policy and market parameters often dominate system uncertainty, while some outcomes (e.g., CCS deployment or Solar PV investments) depend mainly on a small number of *direct potential* parameters. The scatter plots complement the heatmaps by revealing whether sensitivities come from smooth trends, threshold effects, bimodality, or regime switching — patterns that summary metrics alone can't fully represent.
+
+		**Technology Portfolios.** Explore how detailed technology choices shift across the scenario space and how system-wide feedbacks reshape competitiveness. This page is designed to separate **robust** options (stable medians / tight spreads), **conditional** options (dispersion increases under certain demand or constraint combinations), and **persistently unattractive** routes that remain inactive across the ensemble — useful for screening policy-relevant pathways without relying on a few hand-picked futures.
+
+		**Uncertainty Distributions (Histograms).** Use distribution plots to understand uncertainty ranges and tails, and to see how meteorological variability acts as a system-wide stress test. The page helps distinguish portfolio elements that remain stable across weather years from those that shift sharply under extreme conditions (e.g., changes in trade, flexibility, and firm capacity), making resilience trade-offs visible.
+
+		**Scenario Discovery (PRIM).** Ask the reverse question: which combinations of uncertain conditions are most consistent with a user-defined outcome region (e.g., low total costs, or low costs *and* low CO₂ prices), and which conditions reliably **avoid** an undesirable region. PRIM layers an interpretable rule-based view on top of the scenario space and reports diagnostics (mass, density) so you can judge how rare and how reliable the discovered regimes are.
+		"""
+	)
+else:
+	st.markdown(
+		"""
+		Use the left sidebar to navigate to the analysis pages:
+
+		**Sensitivity (GSA).** Compare **Borgonovo δ** and **Morris μ\*** heatmaps to see which uncertain inputs drive output variability. Policy and market parameters often dominate system uncertainty, while some outcomes (e.g., CCS deployment or Solar PV investments) depend mainly on a small number of *direct potential* parameters. The scatter plots complement the heatmaps by revealing whether sensitivities come from smooth trends, threshold effects, bimodality, or regime switching — patterns that summary metrics alone can't fully represent. *(Suggested title: “Sensitivity (GSA)”.)*
+
+		**Technology Portfolios.** Explore how detailed technology choices shift across the scenario space and how system-wide feedbacks reshape competitiveness. This page is designed to separate **robust** options (stable medians / tight spreads), **conditional** options (dispersion increases under certain demand or constraint combinations), and **persistently unattractive** routes that remain inactive across the ensemble — useful for screening policy-relevant pathways without relying on a few hand-picked futures. *(Suggested title: “Technology Portfolios”.)*
+
+		**Uncertainty Distributions (Histograms).** Use distribution plots to understand uncertainty ranges and tails, and to see how meteorological variability acts as a system-wide stress test. The page helps distinguish portfolio elements that remain stable across weather years from those that shift sharply under extreme conditions (e.g., changes in trade, flexibility, and firm capacity), making resilience trade-offs visible. *(Suggested title: “Uncertainty Distributions”.)*
+
+		**Scenario Discovery (PRIM).** Ask the reverse question: which combinations of uncertain conditions are most consistent with a user-defined outcome region (e.g., low total costs, or low costs *and* low CO₂ prices), and which conditions reliably **avoid** an undesirable region. PRIM layers an interpretable rule-based view on top of the scenario space and reports diagnostics (mass, density) so you can judge how rare and how reliable the discovered regimes are. *(Suggested title: “Scenario Discovery (PRIM)”.)*
+		"""
+	)
