@@ -1,5 +1,5 @@
 # Dependencies (mirrors SSDashboard/dependencies.txt for identical functionality)
-streamlit==1.50.0
+streamlit==1.45.0
 pygwalker==0.4.9.15
 
 pandas==2.3.3
