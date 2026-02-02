@@ -629,10 +629,9 @@ def add_sidebar_tweaks():
                 position: relative;
             }
 
-            /* Hide the tiny hamburger button that allows users to collapse the sidebar */
-            button[data-testid="sidebarCollapseControl"] {
-                display: none;
-            }
+                /* NOTE: Do not hide Streamlit's sidebar collapse control.
+                    On some Streamlit versions (incl. Community Cloud), hiding it can
+                    inadvertently collapse/compact the page navigation into icons-only. */
 
             /* keep a small bottom padding so page content doesn't butt against the bottom */
             

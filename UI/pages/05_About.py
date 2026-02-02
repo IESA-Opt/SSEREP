@@ -1,8 +1,6 @@
-from Code.Dashboard import utils
-
-utils.add_sidebar_logos()
-
 import streamlit as st
+from pathlib import Path
+import base64
 
 
 st.title("About")
@@ -54,4 +52,48 @@ st.markdown(
 """,
 	unsafe_allow_html=True,
 )
+
+
+st.markdown("---")
+st.subheader("Partners")
+
+
+def _logo_to_data_uri(path: Path) -> str | None:
+	try:
+		b64 = base64.b64encode(path.read_bytes()).decode("utf-8")
+		return f"data:image/png;base64,{b64}"
+	except Exception:
+		return None
+
+
+logos_dir = Path(__file__).resolve().parents[1] / "Code" / "Dashboard"
+logo_paths = [
+	(logos_dir / "logo_IESA.png", "IESA"),
+	(logos_dir / "logo_TNO.png", "TNO"),
+	(logos_dir / "logo_UU.png", "Utrecht University"),
+]
+
+items = []
+for p, name in logo_paths:
+	if p.exists():
+		uri = _logo_to_data_uri(p)
+		if uri:
+			items.append(
+				f"<div style='text-align:center'>"
+				f"<img src='{uri}' alt='{name} logo' style='height:70px; object-fit:contain;'/>"
+				f"</div>"
+			)
+	else:
+		items.append(f"<div style='text-align:center; font-size:0.9rem'>Missing logo: {p.name}</div>")
+
+if items:
+	st.markdown(
+		"""
+		<div style="display:flex; gap:1.5rem; flex-wrap:wrap; justify-content:center; align-items:center; padding: 0.5rem 0 0;">
+		%s
+		</div>
+		"""
+		% "\n".join(items),
+		unsafe_allow_html=True,
+	)
 

@@ -14,7 +14,7 @@ from Code.Dashboard import data_loading
 
 
 utils.add_sidebar_tweaks()
-utils.add_sidebar_logos()
+
 
 # Ensure the default datasets are present in session_state for all pages.
 # Without this, opening pages directly after a server restart may show empty UI.

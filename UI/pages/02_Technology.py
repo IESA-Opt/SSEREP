@@ -8,7 +8,7 @@ from Code.Dashboard import data_loading
 from Code.Dashboard import utils
 
 utils.add_sidebar_tweaks()
-utils.add_sidebar_logos()
+
 
 # Technology analysis as a standalone page.
 data_loading._init_defaults()

@@ -3,7 +3,7 @@ from Code.Dashboard import utils
 import streamlit as st
 
 utils.add_sidebar_tweaks()
-utils.add_sidebar_logos()
+
 
 # Use the extracted histogram module (same behavior as the old Paper Plots
 # histogram tab, without depending on the archived monolith).
