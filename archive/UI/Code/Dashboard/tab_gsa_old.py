@@ -7,7 +7,6 @@ when available and falls back to serial execution on failure.
 
 Includes driver/sub-driver parameter grouping and aggregation functionality.
 """
-
 import sys, os
 from pathlib import Path
 
@@ -17,10 +16,9 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import numpy as np
 from Code import Hardcoded_values
-from Code.Dashboard.utils import fix_display_name_capitalization
+from Code.helpers import fix_display_name_capitalization
 from Code.Dashboard import utils
-from Code.Dashboard.utils import get_unit_for_column
-
+from Code.Dashboard.tab_PRIM import get_unit_for_column
 
 APP_ROOT = Path(__file__).resolve().parents[2]
 
@@ -1047,6 +1045,8 @@ def render():
         st.write("ΓÇó The data files don't contain the expected 'Parameter' column")
         return
     
+    st.header("Global Sensitivity Analysis")
+    
     # Create driver lookup for parameter grouping (Mobi's implementation)
     driver_lookup = pd.DataFrame()
     has_driver_columns = False
@@ -1102,11 +1102,38 @@ def render():
             key="method_selection"
         )
         
-        # Parameter grouping controls
-        # Removed user control: always use the current default grouping (Parameter-level).
-        grouping_modes = ["Parameter"]
-        aggregation_method = "Mean"
-        if not has_driver_columns:
+        # Parameter grouping controls - allow multiple selections
+        if has_driver_columns:
+            grouping_modes = st.multiselect(
+                "Grouping Mode (select one or more):",
+                options=["Driver", "Sub-Driver", "Parameter"],
+                default=["Parameter"],
+                help="Choose analysis grouping level(s). Multiple selections will stack heatmaps in order: Driver, Sub-Driver, Parameter."
+            )
+            
+            # If no selection, default to Parameter
+            if not grouping_modes:
+                grouping_modes = ["Parameter"]
+            
+            # Sort grouping modes in the specified order: Driver, Sub-Driver, Parameter
+            order_map = {"Driver": 0, "Sub-Driver": 1, "Parameter": 2}
+            grouping_modes = sorted(grouping_modes, key=lambda x: order_map.get(x, 3))
+            
+            # Aggregation method
+            if any(mode in ["Driver", "Sub-Driver"] for mode in grouping_modes):
+                aggregation_method = st.pills(
+                    "Aggregation Method:",
+                    options=["Mean", "Max", "Min"],
+                    default="Mean",
+                    selection_mode="single",
+                    help="Method to aggregate parameters within each group."
+                )
+            else:
+                aggregation_method = "Mean"
+                hierarchical_grouping = False
+        else:
+            grouping_modes = ["Parameter"]
+            aggregation_method = "Mean"
             st.info("Driver/Sub-Driver columns not found in parameter space. Parameter-level analysis only.")
         
         # Load GSA data based on selected methods
@@ -1241,32 +1268,61 @@ def render():
             st.info("No GSA data available for selected methods")
         
         # Appearance controls
-        # Removed user control: Color Scale (keep current default behavior).
+        # Auto-select RdYlGn (diverging) when correlation is enabled
+        # Note: add_correlation is defined below, so we need to check session state or use a default
         add_correlation = st.session_state.get('add_correlation_toggle', True)
-        colorscale = "RdYlGn (Diverging)" if add_correlation else "Cividis"
-		
-        # Add Correlation toggle (kept)
+        default_colorscale = "RdYlGn (Diverging)" if add_correlation else "Cividis"
+        colorscale = st.pills(
+            "Color Scale:",
+            options=["Cividis", "Viridis", "Oranges", "Blues", "RdYlGn (Diverging)"],
+            default=default_colorscale,
+            selection_mode="single"
+        )
+        
+        # Add Correlation toggle (placed before Analyze toggle)
         add_correlation = st.toggle(
             "Add Correlation",
             value=True,
             help="Multiply sensitivity metrics by correlation sign. Positive correlation keeps the value positive, negative correlation makes it negative.",
             key='add_correlation_toggle'
         )
-		
-        # Analyze & Units
-        # Removed user control: Analyze (keep current default off).
-        analyze_cells = False
-        show_units = st.toggle(
-            "Units",
-            value=False,
-            help="When enabled, shows parameter ranges and units below each parameter name."
-        )
-		
-        # Removed user controls: Grouping and Sub-Parameters.
-        # Keep current defaults: Grouping=True when available, Sub-Parameters=False.
-        hierarchical_grouping = bool(has_driver_columns)
-        show_subdrivers = False
-		
+        
+        # Analyze and Units toggles side by side
+        analyze_col, units_col = st.columns([0.5, 0.5])
+        with analyze_col:
+            analyze_cells = st.toggle(
+                "Analyze", 
+                value=False,
+                help="Highlight cells based on thresholds: Min Sensitivity Value applies to non-conf metrics, Max Confidence Value applies to conf metrics"
+            )
+        with units_col:
+            show_units = st.toggle(
+                "Units",
+                value=False,
+                help="When enabled, shows parameter ranges and units below each parameter name."
+            )
+        
+        # Grouping and Sub-Parameters toggles side by side
+        grouping_col, subparam_col = st.columns([0.5, 0.5])
+        with grouping_col:
+            if has_driver_columns:
+                hierarchical_grouping = st.toggle(
+                    "Grouping",
+                    value=True,
+                    help="When enabled, shows parameters organized by driver hierarchy with visual separators and labels."
+                )
+            else:
+                hierarchical_grouping = False
+        with subparam_col:
+            if has_driver_columns and hierarchical_grouping:
+                show_subdrivers = st.toggle(
+                    "Sub-Parameters",
+                    value=False,
+                    help="When enabled, shows sub-driver groupings with dotted separator lines."
+                )
+            else:
+                show_subdrivers = False
+        
         # Threshold inputs (only show if analyze_cells is enabled)
         if analyze_cells:
             threshold_col1, threshold_col2 = st.columns(2)
@@ -1296,17 +1352,18 @@ def render():
             # Set default values when toggle is off
             high_sensitivity_threshold = 0.1
             low_confidence_threshold = 0.05
-		
-        # Show Values: convert from selectbox to a simple toggle (default off)
-        show_values = st.toggle(
-            "Show Values",
-            value=False,
-            help="When enabled, displays values inside the heatmap cells."
-        )
-        show_values_mode = "Show Norm Values" if show_values else "Off"
-		
-        # Removed user control: Hide NaN Outcomes (keep current default True)
-        hide_nan_outcomes = True
+        
+        # Show Values and Hide NaN toggles side by side
+        show_values_col, hide_nan_col = st.columns([0.5, 0.5])
+        with show_values_col:
+            show_values_mode = st.selectbox(
+                "Show Values",
+                options=["Off", "Show Norm Values", "Show Values"],
+                index=0,
+                help="Off: No values shown | Show Norm Values: Shows normalized version if available | Show Values: Shows original metric values"
+            )
+        with hide_nan_col:
+            hide_nan_outcomes = st.toggle("Hide NaN Outcomes", value=True)
         
         # Get ALL available outcomes from model results, not just precomputed ones
         all_available_outcomes = set()
@@ -1767,9 +1824,7 @@ def render():
                 # Apply correlation signs if enabled (without changing magnitudes)
                 if add_correlation:
                     try:
-                        # `prepare_results` lives in the shared dashboard utils.
-                        # (Historically it was in tab_scenario_discovery, which is now archived.)
-                        from Code.Dashboard.utils import prepare_results
+                        from Code.Dashboard.tab_scenario_discovery import prepare_results
                         
                         def build_corr_dict(df_raw_local, param_lookup_local):
                             if df_raw_local is None or param_lookup_local is None:
@@ -2423,6 +2478,43 @@ def render():
                     if 'final_plot_df' in locals():
                         st.dataframe(final_plot_df, use_container_width=True)
                 
+                # Action buttons after all heatmaps (only show once, after the loop)
+                st.markdown("---")
+                st.subheader("Data Export & Analysis")
+                col1, col2, col3 = st.columns(3)
+                
+                # Use the last final_plot_df for actions (or could aggregate all)
+                if 'final_plot_df' in locals():
+                    with col1:
+                        if st.button("📊 View Statistics"):
+                            with st.expander("📊 Summary Statistics", expanded=True):
+                                for metric in selected_metrics:
+                                    metric_data = final_plot_df[metric].dropna()
+                                    if len(metric_data) > 0:
+                                        st.write(f"**{metric}:**")
+                                        col_a, col_b, col_c, col_d = st.columns(4)
+                                        with col_a:
+                                            st.metric("Mean", f"{metric_data.mean():.4f}")
+                                        with col_b:
+                                            st.metric("Max", f"{metric_data.max():.4f}")
+                                        with col_c:
+                                            st.metric("Min", f"{metric_data.min():.4f}")
+                                        with col_d:
+                                            st.metric("Std", f"{metric_data.std():.4f}")
+                    
+                    with col2:
+                        if st.button("📋 View Data"):
+                            with st.expander("📋 Raw Data", expanded=True):
+                                st.dataframe(final_plot_df, use_container_width=True)
+                    
+                    with col3:
+                        csv = final_plot_df.to_csv(index=False)
+                        st.download_button(
+                            label="📥 Download CSV",
+                            data=csv,
+                            file_name="gsa_results.csv",
+                            mime="text/csv"
+                        )
             else:
                 st.info("No data available for selected outcomes")
         else:
@@ -2513,9 +2605,7 @@ def render():
         with plot_col:
             try:
                 # Load parameter lookup and model results for scatter plots
-                # `prepare_results` lives in the shared dashboard utils.
-                # (Historically it was in tab_scenario_discovery, which is now archived.)
-                from Code.Dashboard.utils import prepare_results
+                from Code.Dashboard.tab_scenario_discovery import prepare_results
                 import plotly.graph_objects as go
                 import numpy as np
                 
@@ -2592,88 +2682,57 @@ def render():
                             if not top_params:
                                 continue
                             
-                            # Find outcome column in the pivoted model results.
-                            # IMPORTANT: the heatmap (and therefore `scatter_selected_outcomes`) uses *raw* outcome names,
-                            # but we also apply `get_nice_outcome_label()` for display and selection ordering.
-                            # Some outcomes (notably Flexibility Capacity) are often referred to by their *nice* label only,
-                            # so we attempt matching in both raw and nice-space.
+                            # Find outcome column in data
                             outcome_col = None
-                            nice_outcome = get_nice_outcome_label(outcome)
-
                             if outcome in df_pivoted.columns:
                                 outcome_col = outcome
-                            elif nice_outcome in df_pivoted.columns:
-                                outcome_col = nice_outcome
                             else:
                                 # Try fuzzy matching
                                 outcome_cols_in_pivot = [c for c in df_pivoted.columns if c not in param_cols and c != 'Variant']
-
-                                # Special-case: Flexibility Capacity often has many prefixed variants (Hourly/Daily/etc).
-                                # If the user selected the base (no-prefix) flexibility outcome, prefer an exact "Flexibility Capacity …" match.
-                                outcome_l = outcome.lower().strip()
-                                nice_outcome_l = nice_outcome.lower().strip()
-                                base_flex = (outcome_l == 'flexibility capacity') or (nice_outcome_l == 'flexibility capacity')
-                                if base_flex:
-                                    for col in outcome_cols_in_pivot:
-                                        col_l = col.lower().strip()
-                                        if col_l.startswith('flexibility capacity '):
-                                            outcome_col = col
-                                            break
                                 
                                 for col in outcome_cols_in_pivot:
-                                    if col.lower() == outcome.lower() or col.lower() == nice_outcome.lower():
+                                    if col.lower() == outcome.lower():
                                         outcome_col = col
                                         break
                                 
                                 if outcome_col is None:
                                     outcome_cleaned = outcome.replace(' nan', '').replace('.0', '').strip().lower()
-                                    nice_outcome_cleaned = nice_outcome.replace(' nan', '').replace('.0', '').strip().lower()
                                     for col in outcome_cols_in_pivot:
                                         col_cleaned = col.replace(' nan', '').replace('.0', '').strip().lower()
-                                        if col_cleaned == outcome_cleaned or col_cleaned == nice_outcome_cleaned:
+                                        if col_cleaned == outcome_cleaned:
                                             outcome_col = col
                                             break
                                 
                                 if outcome_col is None:
                                     outcome_terms = set(outcome.lower().split())
-                                    nice_terms = set(nice_outcome.lower().split())
                                     outcome_terms.discard('2050')
                                     outcome_terms.discard('nan')
-                                    nice_terms.discard('2050')
-                                    nice_terms.discard('nan')
                                     
                                     if len(outcome_terms) >= 2:
                                         best_match = None
                                         best_score = 0
-									
+                                        
                                         for col in outcome_cols_in_pivot:
                                             col_terms = set(col.lower().split())
                                             col_terms.discard('2050')
                                             col_terms.discard('nan')
-										
+                                            
                                             if len(col_terms) > 0:
-                                                overlap_raw = len(outcome_terms.intersection(col_terms))
-                                                overlap_nice = len(nice_terms.intersection(col_terms))
-                                                overlap = max(overlap_raw, overlap_nice)
-                                                best_basis = outcome_terms if overlap_raw >= overlap_nice else nice_terms
-                                                union = best_basis.union(col_terms)
-                                                score = overlap / len(union) if union else 0
-											
+                                                overlap = len(outcome_terms.intersection(col_terms))
+                                                score = overlap / len(outcome_terms.union(col_terms))
+                                                
                                                 if score > 0.5 and overlap >= 2 and score > best_score:
                                                     best_match = col
                                                     best_score = score
                                         
                                         if best_match:
                                             outcome_col = best_match
-
                             
                             if outcome_col is None:
-                                # Common reason for "empty" scatterplots: outcome naming mismatch between GSA outcomes
-                                # and the pivoted model results. Skip silently, but leave a hint when debugging.
                                 continue
                             
                             # Find y-axis range
-                            # (nice_outcome already computed above)
+                            nice_outcome = get_nice_outcome_label(outcome)
                             y_range = None
                             if nice_outcome in y_axis_ranges:
                                 y_range = y_axis_ranges[nice_outcome]
@@ -2882,24 +2941,10 @@ def render():
                                         row=row_idx,
                                         col=col_idx
                                     )
-
-                                    # Auto-scale y-axis per subplot to the actual plotted data.
-                                    # This prevents clipping (e.g., Flexibility Capacity can go >> 50).
-                                    try:
-                                        y_min = float(y_data.min())
-                                        y_max = float(y_data.max())
-                                        if np.isfinite(y_min) and np.isfinite(y_max):
-                                            if y_min == y_max:
-                                                # Flat line: add a tiny range so Plotly renders nicely
-                                                pad = max(abs(y_min) * 0.05, 1.0)
-                                                y_axis_config['range'] = [y_min - pad, y_max + pad]
-                                            else:
-                                                pad = (y_max - y_min) * 0.05
-                                                y_axis_config['range'] = [y_min - pad, y_max + pad]
-                                    except Exception:
-                                        # If anything goes wrong, fall back to the previous behavior.
-                                        if y_range is not None:
-                                            y_axis_config['range'] = y_range
+                                    
+                                    # Apply custom y-axis range if defined
+                                    if y_range is not None:
+                                        y_axis_config['range'] = y_range
                                     
                                     fig.update_yaxes(**y_axis_config)
                             
@@ -2978,77 +3023,79 @@ def render():
         else:
             st.info("Configure GSA settings above to see top parameter-outcome scatter plots")
     
-    # Convergence Analysis section (collapsed by default)
-    with st.expander("Convergence Analysis", expanded=False):
-        try:
-            # Use the first selected grouping mode for convergence analysis
-            grouping_mode = grouping_modes[0] if grouping_modes else "Parameter"
-            
-            from Code import Hardcoded_values, helpers
-            import os
-            import glob
+    # Convergence Analysis section
+    # Use the first selected grouping mode for convergence analysis
+    grouping_mode = grouping_modes[0] if grouping_modes else "Parameter"
+    
+    st.subheader("Convergence Analysis")
+    
+    # Get available sample sizes from delta re-samples file
+    try:
+        from Code import Hardcoded_values, helpers
+        import os
+        import glob
         
-            # Get the base Delta file path and directory
-            delta_base_file = helpers.get_path(Hardcoded_values.gsa_delta_file, sample="LHS")
-            gsa_dir = os.path.dirname(delta_base_file)
+        # Get the base Delta file path and directory
+        delta_base_file = helpers.get_path(Hardcoded_values.gsa_delta_file, sample="LHS")
+        gsa_dir = os.path.dirname(delta_base_file)
+        
+        # Look for re-samples files in different possible formats
+        possible_resamples_files = [
+            os.path.join(gsa_dir, 'GSA_Delta_All_Re-Samples.csv'),  # Standard name
+            delta_base_file.replace('GSA_Delta.csv', 'GSA_Delta_All_Re-Samples.csv'),
+            delta_base_file.replace('.csv', '_All_Re-Samples.csv')
+        ]
+        
+        # Also search for any files with "Re-Samples" in the name
+        resamples_pattern = os.path.join(gsa_dir, '*Re-Samples*.csv')
+        pattern_files = glob.glob(resamples_pattern)
+        possible_resamples_files.extend(pattern_files)
+        
+        # Find the first existing re-samples file
+        resamples_file = None
+        for file_path in possible_resamples_files:
+            if os.path.exists(file_path):
+                resamples_file = file_path
+                break
+        
+        if not resamples_file:
+            st.error("GSA re-samples file not found")
+        
+        available_sample_sizes = []
+        if resamples_file and os.path.exists(resamples_file):
+            resamples_data = pd.read_csv(resamples_file, low_memory=False)
+            # Extract sample sizes from column names (delta_XXX pattern)
+            # Try normalized columns first (delta_XXX_norm), then fall back to non-normalized (delta_XXX)
+            delta_columns = [col for col in resamples_data.columns if col.startswith('delta_') and col.endswith('_norm')]
             
-            # Look for re-samples files in different possible formats
-            possible_resamples_files = [
-                os.path.join(gsa_dir, 'GSA_Delta_All_Re-Samples.csv'),  # Standard name
-                delta_base_file.replace('GSA_Delta.csv', 'GSA_Delta_All_Re-Samples.csv'),
-                delta_base_file.replace('.csv', '_All_Re-Samples.csv')
-            ]
-            
-            # Also search for any files with "Re-Samples" in the name
-            resamples_pattern = os.path.join(gsa_dir, '*Re-Samples*.csv')
-            pattern_files = glob.glob(resamples_pattern)
-            possible_resamples_files.extend(pattern_files)
-            
-            # Find the first existing re-samples file
-            resamples_file = None
-            for file_path in possible_resamples_files:
-                if os.path.exists(file_path):
-                    resamples_file = file_path
-                    break
-            
-            if not resamples_file:
-                st.error("GSA re-samples file not found")
+            if not delta_columns:
+                # Fall back to non-normalized delta columns
+                delta_columns = [col for col in resamples_data.columns 
+                                if col.startswith('delta_') and not col.endswith('_conf')]
             
             available_sample_sizes = []
-            if resamples_file and os.path.exists(resamples_file):
-                resamples_data = pd.read_csv(resamples_file, low_memory=False)
-                # Extract sample sizes from column names (delta_XXX pattern)
-                # Try normalized columns first (delta_XXX_norm), then fall back to non-normalized (delta_XXX)
-                delta_columns = [col for col in resamples_data.columns if col.startswith('delta_') and col.endswith('_norm')]
-                
-                if not delta_columns:
-                    # Fall back to non-normalized delta columns
-                    delta_columns = [col for col in resamples_data.columns 
-                                    if col.startswith('delta_') and not col.endswith('_conf')]
-                
-                available_sample_sizes = []
-                for col in delta_columns:
-                    # Extract size from delta_XXX_norm or delta_XXX
-                    size_str = col.replace('delta_', '').replace('_norm', '').replace('_conf', '')
-                    if size_str.isdigit():
-                        available_sample_sizes.append(int(size_str))
-                available_sample_sizes = sorted(available_sample_sizes)
+            for col in delta_columns:
+                # Extract size from delta_XXX_norm or delta_XXX
+                size_str = col.replace('delta_', '').replace('_norm', '').replace('_conf', '')
+                if size_str.isdigit():
+                    available_sample_sizes.append(int(size_str))
+            available_sample_sizes = sorted(available_sample_sizes)
+        
+        if available_sample_sizes:
+            # Create 2-column layout for convergence analysis (15% settings, 85% plot)
+            conv_settings_col, conv_plot_col = st.columns([0.15, 0.85])
             
-            if available_sample_sizes:
-                # Create 2-column layout for convergence analysis (15% settings, 85% plot)
-                conv_settings_col, conv_plot_col = st.columns([0.15, 0.85])
-
-                with conv_settings_col:
-                    st.write("**Convergence Settings**")
-					
-                    # Sample size selection - default to all available sizes
-                    selected_sample_sizes = st.multiselect(
-                        "Sample Sizes:",
-                        options=available_sample_sizes,
-                        default=available_sample_sizes,  # Default to all sample sizes
-                        help="Choose sample sizes for convergence analysis.",
-                        key="convergence_sample_sizes"
-                    )
+            with conv_settings_col:
+                st.write("**Convergence Settings**")
+                
+                # Sample size selection - default to all available sizes
+                selected_sample_sizes = st.multiselect(
+                    "Sample Sizes:",
+                    options=available_sample_sizes,
+                    default=available_sample_sizes,  # Default to all sample sizes
+                    help="Choose sample sizes for convergence analysis.",
+                    key="convergence_sample_sizes"
+                )
                 
                 # Load convergence data once if we have re-samples file
                 if resamples_file and os.path.exists(resamples_file):
@@ -3944,14 +3991,14 @@ def render():
                     st.info("Select outcomes to display convergence plot.")
                 else:
                     st.error("Re-samples data file not found or couldn't be loaded.")
-            if not available_sample_sizes:
-                st.warning("No sample sizes found in delta re-samples file. Please ensure the re-samples GSA analysis has been run.")
-			
-        except Exception as e:
-            st.error(f"Error loading convergence data: {e}")
-            st.info("Convergence analysis requires a delta re-samples CSV file to be available.")
-            import traceback
-            st.text(f"Full error: {traceback.format_exc()}")
+        else:
+            st.warning("No sample sizes found in delta re-samples file. Please ensure the re-samples GSA analysis has been run.")
+            
+    except Exception as e:
+        st.error(f"Error loading convergence data: {e}")
+        st.info("Convergence analysis requires a delta re-samples CSV file to be available.")
+        import traceback
+        st.text(f"Full error: {traceback.format_exc()}")
 
 # -----------------------------------------------------------------------------
 if __name__ == "__main__":

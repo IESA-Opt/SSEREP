@@ -1,78 +1,54 @@
+"""Compatibility helpers.
+
+The original dashboard had a `Code/helpers.py` with:
+- `get_path(...)` for formatting path templates from `Hardcoded_values`
+- `fix_display_name_capitalization(...)`
+
+We consolidated most UI helpers into `Code.Dashboard.utils`, but the slimmed UI
+still imports `Code.helpers.get_path` from a few places (notably GSA/loading).
+This file keeps those legacy imports working.
 """
-Generic helper functions that can be imported.
-"""
-import os
-from Code import Hardcoded_values
 
-def fix_display_name_capitalization(text):
-    """
-    Fix common abbreviations that get incorrectly capitalized by .title()
-    
-    Args:
-        text (str): Text to fix, typically a parameter or outcome name with underscores
-        
-    Returns:
-        str: Properly capitalized text with correct abbreviations
-    """
-    # Replace underscores with spaces and apply title case
-    text = text.replace('_', ' ').title()
-    
-    # Fix common abbreviations
-    abbreviation_fixes = {
-        'Dr ': 'DR ',
-        ' Dr ': ' DR ',
-        ' Dr': ' DR',
-        'Co2': 'CO2',
-        'Co₂': 'CO₂',
-        'Pv': 'PV',
-        'Gw': 'GW',
-        'Mw': 'MW',
-        'Kw': 'KW',
-        'Kwh': 'kWh',
-        'Mwh': 'MWh',
-        'Gwh': 'GWh',
-        'Twh': 'TWh',
-        'Eu': 'EU',
-        'Uk': 'UK',
-        'Us': 'US',
-        'Usa': 'USA',
-        'Usd': 'USD',
-        'Eur': 'EUR',
-        'Gbp': 'GBP',
-        'Caes': 'CAES',
-        'Ccgt': 'CCGT',
-        'Ccs': 'CCS',
-        'Dag': 'DAG',
-        'Lng': 'LNG',
-        'Smr': 'SMR',
-        'Atr': 'ATR',
-        'Wgs': 'WGS'
-    }
-    
-    for wrong, correct in abbreviation_fixes.items():
-        text = text.replace(wrong, correct)
-    
-    return text
+from __future__ import annotations
 
-def get_path(path, project=None, sample=None):
-    """
-    Returns the absolute path to the (project, sample) file within
-    a generic data directory/file.
+from pathlib import Path
 
-    path (string): Path to the generic data directory, e.g. "Original_data/Parameter space/[project]/[sample]".
-    project (string): Project name. If not specified, uses the default project.
-    sample (string): Sample type, e.g. "Morris". If not specified, uses the default sample.
-    """
-    # Resolve runtime defaults so callers can change Hardcoded_values.project/sample
-    if project is None:
-        project = getattr(Hardcoded_values, 'project', None)
-    if sample is None:
-        sample = getattr(Hardcoded_values, 'sample', None)
+import streamlit as st
 
-    # Normalize placeholders first
-    path = path.replace("[project]", project if project is not None else "").replace("[sample]", sample if sample is not None else "")
+from Code.Dashboard.utils import fix_display_name_capitalization  # noqa: F401
 
-    # In SSEREP/UI we store the SSDashboard-style folder structure under ./data
-    # so all original paths like "Generated_data/..." resolve correctly.
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
-    return os.path.abspath(os.path.join(base_dir, path))
+
+def get_path(template: str, project: str | None = None, sample: str | None = None, **kwargs) -> str:
+	"""Format a path template using the current Streamlit-selected project/sample.
+
+	Args:
+		template: A string template, typically from `Code.Hardcoded_values`, e.g.
+			`".../{project}/..._{sample}.csv"`.
+		project: Optional override. If omitted, uses `st.session_state['project']`
+			and falls back to `Hardcoded_values.project`.
+		sample: Optional override. If omitted, uses `st.session_state['sample']`
+			and falls back to `Hardcoded_values.sample`.
+		**kwargs: Any additional template fields.
+
+	Returns:
+		A normalized filesystem path as a string.
+	"""
+	# local import to avoid circular deps at import time
+	from Code import Hardcoded_values
+
+	if project is None:
+		project = st.session_state.get("project", getattr(Hardcoded_values, "project", None))
+	if sample is None:
+		sample = st.session_state.get("sample", getattr(Hardcoded_values, "sample", None))
+
+	fmt_kwargs = {"project": project, "sample": sample}
+	fmt_kwargs.update(kwargs)
+
+	try:
+		path = template.format(**fmt_kwargs)
+	except Exception:
+		# If the template isn't a format-string, just use it as-is.
+		path = template
+
+	# Normalize for the current OS / nicer downstream display.
+	return str(Path(path))

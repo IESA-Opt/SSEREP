@@ -8,9 +8,9 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from Code.Dashboard.tab_scenario_discovery import prepare_results
-from Code.Dashboard.tab_upload_data import _init_defaults
-from Code.helpers import fix_display_name_capitalization
+from Code.Dashboard.utils import prepare_results
+from Code.Dashboard.data_loading import _init_defaults
+from Code.Dashboard.utils import fix_display_name_capitalization
 
 
 def format_outcome_label(column_name):
@@ -72,8 +72,7 @@ def apply_default_data_filter(df, enable_filter=True):
 
 def render():
     """Render the Histograms page."""
-    st.header("📊 Histogram Analysis")
-    st.caption("Explore the distribution of outcomes across model variants")
+        # Page wrapper already provides the title/caption; keep this tab content clean.
     
     # Ensure data is loaded
     _init_defaults()
@@ -126,8 +125,7 @@ def render():
     
     # Apply data filter
     df, filtered_count = apply_default_data_filter(df, enable_filter)
-    if filtered_count > 0:
-        st.info(f"🔍 Filtered out {filtered_count:,} variants")
+        # Intentionally suppress the "Filtered out X variants" banner to avoid clutter.
     
     # Get available outcomes
     all_available_outcomes = set()

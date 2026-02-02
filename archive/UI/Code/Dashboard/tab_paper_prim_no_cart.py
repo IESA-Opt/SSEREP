@@ -1,6 +1,6 @@
-"""PRIM (w/o CART) page logic.
+"""PRIM w/o CART page logic extracted from `tab_paper_plots.py`.
 
-Goal: keep the same behavior while allowing the legacy Paper Plots monolith to stay archived.
+Goal: keep *exact* behavior while allowing the Paper Plots monolith to be slimmed down.
 
 This module contains a verbatim copy of `render_prim_without_cart_tab` and exposes
 `render()` as a stable entry point for the Streamlit page wrapper.
@@ -11,7 +11,7 @@ import pandas as pd
 import streamlit as st
 
 from Code.Dashboard.utils import prepare_results
-from Code.Dashboard.utils import apply_default_data_filter
+from Code.Dashboard.paper_plot_utils import apply_default_data_filter
 
 
 def render(use_1031_ssp: bool = False):
@@ -21,15 +21,38 @@ def render(use_1031_ssp: bool = False):
 def render_prim_without_cart_tab(use_1031_ssp=False):
     """Render the PRIM w/o CART tab with horizontal scatter plots and all parameters shown."""
 
-    # Intentionally omit page header/caption: the PRIM page should start with the plots.
+    st.subheader("PRIM w/o CART - Multiple Scenario Discovery")
+    st.caption("Analyze multiple X-Y pairs with PRIM box discovery showing all parameters and their ranges")
 
     # Import PRIM-related functions from shared utils (so we don't depend on the full PRIM tab)
     from Code.Dashboard.utils import run_prim, format_column_label, get_unit_for_column
 
-    # Read control values from session state (controls are rendered inside the expander below)
-    input_selection = st.session_state.get("prim_no_cart_data_source", "LHS")
-    enable_filter = bool(st.session_state.get("prim_no_cart_enable_filter", True))
-    n_pairs = int(st.session_state.get("prim_no_cart_n_pairs", 3))
+    # Data source selection
+    col1, col2, col3 = st.columns([1, 1, 1])
+
+    with col1:
+        input_selection = st.selectbox(
+            "Data source",
+            options=["LHS", "Morris"],
+            key="prim_no_cart_data_source"
+        )
+
+    with col2:
+        enable_filter = st.checkbox(
+            "Data Filter",
+            value=True,
+            help="Filter out variants with: CO2_Price > 2000, totalCosts > 70000, or Undispatched > 1",
+            key="prim_no_cart_enable_filter"
+        )
+
+    with col3:
+        n_pairs = st.number_input(
+            "Number of X-Y pairs",
+            min_value=1,
+            max_value=10,
+            value=3,  # Default to 3 pairs as requested
+            key="prim_no_cart_n_pairs"
+        )
 
     # Get data based on selection
     if input_selection == "LHS":
@@ -53,8 +76,10 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
         st.error(f"Failed to prepare results: {e}")
         return
 
-    # Apply data filter (quiet: do not show the 'Filtered out ...' message on this page)
-    df, _filtered_count = apply_default_data_filter(df, enable_filter)
+    # Apply data filter
+    df, filtered_count = apply_default_data_filter(df, enable_filter)
+    if filtered_count > 0:
+        st.info(f"🔍 Filtered out {filtered_count:,} variants based on data quality criteria")
 
     # Get available outcomes and parameters (exact same logic as PRIM tab)
     all_available_outcomes = set()
@@ -98,8 +123,45 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
         co2_candidates = [col for col in outcome_options if ("co2" in col.lower() and "price" in col.lower())]
     default_y = co2_candidates[0] if co2_candidates else (outcome_options[1] if len(outcome_options) > 1 else (outcome_options[0] if outcome_options else axis_options[0]))
 
+    # Create X-Y pair selectors
+    st.markdown("### Select X-Y pairs for analysis")
+
+    xy_pairs = []
+    for i in range(int(n_pairs)):
+        col_x, col_y = st.columns(2)
+        with col_x:
+            # Set all X-axis defaults to Total System Cost
+            x_default_index = axis_options.index(default_x) if default_x in axis_options else 0
+            x_col = st.selectbox(
+                f"X-axis (Pair {i+1})",
+                options=axis_options,
+                index=x_default_index,
+                key=f"prim_no_cart_x_{i}",
+                format_func=lambda x: format_column_label(x)
+            )
+        with col_y:
+            # Set all Y-axis defaults to CO2 Price
+            y_default_index = axis_options.index(default_y) if default_y in axis_options else 0
+            y_col = st.selectbox(
+                f"Y-axis (Pair {i+1})",
+                options=axis_options,
+                index=y_default_index,
+                key=f"prim_no_cart_y_{i}",
+                format_func=lambda x: format_column_label(x)
+            )
+        xy_pairs.append((x_col, y_col))
+
+    # PRIM parameters
+    st.markdown("### PRIM Parameters")
+    col_p1, col_p2, col_p3 = st.columns(3)
+    with col_p1:
+        mass_min = st.slider("Mass min", 0.0, 0.5, 0.05, 0.01, key="prim_no_cart_mass_min")
+    with col_p2:
+        peel_alpha = st.slider("Peel alpha", 0.01, 0.2, 0.05, 0.01, key="prim_no_cart_peel_alpha")
+    with col_p3:
+        paste_alpha = st.slider("Paste alpha", 0.01, 0.2, 0.05, 0.01, key="prim_no_cart_paste_alpha")
+
     # Helper function to get data series (adapted from tab_PRIM)
-    # NOTE: Must be defined BEFORE any UI blocks that use it (e.g., box defaults).
     def _get_data_series(col_name, df_prepared, df_raw_data, param_lookup):
         """Get data series and return (series, actual_column_used, data_source_type)"""
         # First check if it's available directly in prepared data
@@ -116,201 +178,104 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
 
                 # Ensure we use the SAME variant order as the prepared dataframe
                 if 'variant' in df_prepared.columns:
+                    # Use the exact variant order from the prepared data
                     df_variants = df_prepared['variant'].copy()
                     aligned_series = df_variants.map(variant_means).fillna(0)
+                    # Reset index to match prepared data exactly
                     aligned_series.index = df_prepared.index
                     return aligned_series, col_name, "raw_data_mapping"
 
         # Final fallback: return zeros
         return pd.Series([0] * len(df_prepared), dtype=float, index=df_prepared.index), col_name, "not_found"
 
-    # --- IMPORTANT LAYOUT CHANGE ---
-    # We want the plots at the top. So we only *define* the controls early (above),
-    # but we *render* the detailed control sections inside an expander below.
-
-    with st.expander("Controls (X/Y pairs, PRIM parameters, selection boxes)", expanded=False):
-        # Data + filter controls
-        st.markdown("### Data & layout")
-        col1, col2, col3 = st.columns([1, 1, 1])
-
-        with col1:
-            input_selection = st.selectbox(
-                "Data source",
-                options=["LHS", "Morris"],
-                key="prim_no_cart_data_source",
-            )
-
-        with col2:
-            enable_filter = st.checkbox(
-                "Data Filter",
-                value=True,
-                help="Filter out variants with: CO2_Price > 2000, totalCosts > 70000, or Undispatched > 1",
-                key="prim_no_cart_enable_filter",
-            )
-
-        with col3:
-            n_pairs = st.number_input(
-                "Number of X-Y pairs",
-                min_value=1,
-                max_value=10,
-                value=3,
-                key="prim_no_cart_n_pairs",
-            )
-
-        # Select X-Y pairs
-        st.markdown("### Select X-Y pairs for analysis")
-        xy_pairs = []
-
-        for i in range(int(n_pairs)):
-            col_x, col_y = st.columns(2)
-            with col_x:
-                x_col = st.selectbox(
-                    f"X-axis for Pair {i+1}",
-                    options=axis_options,
-                    index=axis_options.index(default_x) if default_x in axis_options else 0,
-                    key=f"prim_no_cart_x_{i}",
-                    format_func=lambda x: format_column_label(x),
-                )
-            with col_y:
-                y_col = st.selectbox(
-                    f"Y-axis for Pair {i+1}",
-                    options=axis_options,
-                    index=axis_options.index(default_y) if default_y in axis_options else 0,
-                    key=f"prim_no_cart_y_{i}",
-                    format_func=lambda x: format_column_label(x),
-                )
-            xy_pairs.append((x_col, y_col))
-
-        # PRIM parameters
-        st.markdown("### PRIM Parameters")
-        col_p1, col_p2, col_p3 = st.columns(3)
-        with col_p1:
-            mass_min = st.slider("Mass min", 0.0, 0.5, 0.05, 0.01, key="prim_no_cart_mass_min")
-        with col_p2:
-            peel_alpha = st.slider("Peel alpha", 0.01, 0.2, 0.05, 0.01, key="prim_no_cart_peel_alpha")
-        with col_p3:
-            paste_alpha = st.slider("Paste alpha", 0.01, 0.2, 0.05, 0.01, key="prim_no_cart_paste_alpha")
-
-        # Manual box input for each pair
-        st.markdown("### Define Selection Boxes")
-        st.caption("Define rectangular selection boxes for each X-Y pair to run PRIM analysis")
-
-        box_definitions = []
-        inverse_prim_flags = []
-
-        for i in range(int(n_pairs)):
-            with st.expander(
-                f"📦 Box Selection for Pair {i+1}: {format_column_label(xy_pairs[i][1])} vs {format_column_label(xy_pairs[i][0])}",
-                expanded=(i == 0),
-            ):
-                # Create columns for inputs and toggle
-                col_inputs, col_toggle = st.columns([0.75, 0.25])
-
-                with col_inputs:
-                    col_b1, col_b2, col_b3, col_b4 = st.columns(4)
-
-                    x_col, y_col = xy_pairs[i]
-
-                    # Get data series using helper function
-                    x_series, _, _ = _get_data_series(x_col, df, df_raw, parameter_lookup)
-                    y_series, _, _ = _get_data_series(y_col, df, df_raw, parameter_lookup)
-
-                    # Set custom default values based on pair index
-                    if i == 0:  # Pair 1
-                        x_min_default, x_max_default = 15000.0, 40000.0
-                        y_min_default, y_max_default = 220.0, 600.0
-                    elif i == 1:  # Pair 2
-                        x_min_default, x_max_default = 40000.0, 50000.0
-                        y_min_default, y_max_default = 600.0, 1000.0
-                    elif i == 2:  # Pair 3
-                        x_min_default, x_max_default = 50000.0, 66000.0
-                        y_min_default, y_max_default = 1000.0, 2000.0
-                    else:  # For additional pairs beyond 3, use data min/max
-                        x_min_default = float(x_series.min())
-                        x_max_default = float(x_series.max())
-                        y_min_default = float(y_series.min())
-                        y_max_default = float(y_series.max())
-
-                    with col_b1:
-                        x_min = st.number_input(
-                            "X min",
-                            value=x_min_default,
-                            key=f"prim_no_cart_xmin_{i}",
-                            format="%.4f",
-                        )
-                    with col_b2:
-                        x_max = st.number_input(
-                            "X max",
-                            value=x_max_default,
-                            key=f"prim_no_cart_xmax_{i}",
-                            format="%.4f",
-                        )
-                    with col_b3:
-                        y_min = st.number_input(
-                            "Y min",
-                            value=y_min_default,
-                            key=f"prim_no_cart_ymin_{i}",
-                            format="%.4f",
-                        )
-                    with col_b4:
-                        y_max = st.number_input(
-                            "Y max",
-                            value=y_max_default,
-                            key=f"prim_no_cart_ymax_{i}",
-                            format="%.4f",
-                        )
-
-                with col_toggle:
-                    inverse_default = (i == 2)  # Pair 3 defaults to Inverse PRIM
-                    inverse_prim = st.toggle(
-                        "Inverse PRIM",
-                        value=inverse_default,
-                        help="Find parameter ranges that AVOID points in this box (inverts the selection)",
-                        key=f"prim_no_cart_inverse_{i}",
-                    )
-
-                box_definitions.append({
-                    "x_min": x_min,
-                    "x_max": x_max,
-                    "y_min": y_min,
-                    "y_max": y_max,
-                })
-                inverse_prim_flags.append(inverse_prim)
-
-    # When the expander is collapsed, we still need these values.
-    # They are stored in st.session_state, so re-create them from there.
-    if "prim_no_cart_x_0" in st.session_state:
-        xy_pairs = []
-        for i in range(int(n_pairs)):
-            xy_pairs.append(
-                (
-                    st.session_state.get(f"prim_no_cart_x_{i}", default_x),
-                    st.session_state.get(f"prim_no_cart_y_{i}", default_y),
-                )
-            )
-    else:
-        # First run: fall back to defaults
-        xy_pairs = [(default_x, default_y)] * int(n_pairs)
-
-    mass_min = float(st.session_state.get("prim_no_cart_mass_min", 0.05))
-    peel_alpha = float(st.session_state.get("prim_no_cart_peel_alpha", 0.05))
-    paste_alpha = float(st.session_state.get("prim_no_cart_paste_alpha", 0.05))
+    # Manual box input for each pair
+    st.markdown("### Define Selection Boxes")
+    st.caption("Define rectangular selection boxes for each X-Y pair to run PRIM analysis")
 
     box_definitions = []
     inverse_prim_flags = []
-    for i in range(int(n_pairs)):
-        box_definitions.append(
-            {
-                "x_min": float(st.session_state.get(f"prim_no_cart_xmin_{i}", 0.0)),
-                "x_max": float(st.session_state.get(f"prim_no_cart_xmax_{i}", 0.0)),
-                "y_min": float(st.session_state.get(f"prim_no_cart_ymin_{i}", 0.0)),
-                "y_max": float(st.session_state.get(f"prim_no_cart_ymax_{i}", 0.0)),
-            }
-        )
-        inverse_prim_flags.append(bool(st.session_state.get(f"prim_no_cart_inverse_{i}", i == 2)))
 
-    # (Removed legacy second copy of selection-box UI that was below the helper.
-    #  The controls expander above is now the single source of truth for widgets.)
+    for i in range(int(n_pairs)):
+        with st.expander(f"📦 Box Selection for Pair {i+1}: {format_column_label(xy_pairs[i][1])} vs {format_column_label(xy_pairs[i][0])}", expanded=(i==0)):
+            # Create columns for inputs and toggle
+            col_inputs, col_toggle = st.columns([0.75, 0.25])
+
+            with col_inputs:
+                col_b1, col_b2, col_b3, col_b4 = st.columns(4)
+
+                x_col, y_col = xy_pairs[i]
+
+                # Get data series using helper function
+                x_series, _, _ = _get_data_series(x_col, df, df_raw, parameter_lookup)
+                y_series, _, _ = _get_data_series(y_col, df, df_raw, parameter_lookup)
+
+                # Set custom default values based on pair index
+                if i == 0:  # Pair 1
+                    x_min_default, x_max_default = 15000.0, 40000.0
+                    y_min_default, y_max_default = 220.0, 600.0
+                elif i == 1:  # Pair 2
+                    x_min_default, x_max_default = 40000.0, 50000.0
+                    y_min_default, y_max_default = 600.0, 1000.0
+                elif i == 2:  # Pair 3
+                    x_min_default, x_max_default = 50000.0, 66000.0
+                    y_min_default, y_max_default = 1000.0, 2000.0
+                else:  # For additional pairs beyond 3, use data min/max
+                    x_min_default = float(x_series.min())
+                    x_max_default = float(x_series.max())
+                    y_min_default = float(y_series.min())
+                    y_max_default = float(y_series.max())
+
+                with col_b1:
+                    x_min = st.number_input(
+                        f"X min",
+                        value=x_min_default,
+                        key=f"prim_no_cart_xmin_{i}",
+                        format="%.4f"
+                    )
+                with col_b2:
+                    x_max = st.number_input(
+                        f"X max",
+                        value=x_max_default,
+                        key=f"prim_no_cart_xmax_{i}",
+                        format="%.4f"
+                    )
+                with col_b3:
+                    y_min = st.number_input(
+                        f"Y min",
+                        value=y_min_default,
+                        key=f"prim_no_cart_ymin_{i}",
+                        format="%.4f"
+                    )
+                with col_b4:
+                    y_max = st.number_input(
+                        f"Y max",
+                        value=y_max_default,
+                        key=f"prim_no_cart_ymax_{i}",
+                        format="%.4f"
+                    )
+
+            with col_toggle:
+                # Set Inverse PRIM default: True for pair 3 (index 2), False for others
+                inverse_default = (i == 2)  # Pair 3 (index 2) defaults to Inverse PRIM
+
+                inverse_prim = st.toggle(
+                    "Inverse PRIM",
+                    value=inverse_default,
+                    help="Find parameter ranges that AVOID points in this box (inverts the selection)",
+                    key=f"prim_no_cart_inverse_{i}"
+                )
+
+            box_definitions.append({
+                'x_min': x_min,
+                'x_max': x_max,
+                'y_min': y_min,
+                'y_max': y_max
+            })
+            inverse_prim_flags.append(inverse_prim)
+
+    # Create the plot - Horizontal layout with scatter plots and parameter ranges below
+    st.markdown("### PRIM Analysis Results")
+
 
     # Create horizontal subplots for scatter plots
     from plotly.subplots import make_subplots

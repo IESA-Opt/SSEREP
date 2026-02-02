@@ -3,14 +3,14 @@ import streamlit as st
 # Wide layout even when entering directly on this page
 st.set_page_config(layout="wide")
 
-from Code.Dashboard import tab_technology
+from Code.Dashboard import tab_PRIM
 from Code.Dashboard import data_loading
 from Code.Dashboard import utils
 
 utils.add_sidebar_tweaks()
 utils.add_sidebar_logos()
 
-# Technology analysis as a standalone page.
+# PRIM scenario discovery without CART as a standalone page.
 data_loading._init_defaults()
 
 use_1031_ssp = False
@@ -28,4 +28,4 @@ try:
 except Exception:
     use_1031_ssp = False
 
-tab_technology.render_technology_analysis_tab(use_1031_ssp=use_1031_ssp)
+tab_PRIM.render(use_1031_ssp=use_1031_ssp)

@@ -1,49 +1,63 @@
+"""Minimal `Hardcoded_values` compatibility module for the slimmed SSEREP UI.
+
+The original project used a large `Hardcoded_values.py` as a central place for
+project/sample defaults and file path templates.
+
+During cleanup, that file was archived, but the active dashboard modules still
+import a few attributes from here (notably `data_loading.py` and `tab_gsa.py`).
+
+This file keeps those runtime imports working while staying small and safe.
 """
-This script stores hardcoded values that are used across multiple scripts.
 
-Hardcoded filenames may include the '[project]' and '[sample]' tags. When referenced,
-these tags are replaced with the actual project name and sample type using a helper function.
-"""
+from __future__ import annotations
 
-# General settings
-project = "1108 SSP"        # Project name
-sample = "LHS"           # Sample type. This is only used in scripts that only work for a single sample at a time.
+from pathlib import Path
 
+# -----------------------------------------------------------------------------
+# Defaults (can be overridden by Streamlit session_state)
+# -----------------------------------------------------------------------------
 
-# Input files
-elec_lookup_file = 'Original_data/Lookup files/[project]/Electricity technologies.xlsx'   # Lookup file used for post-processing.
-model_results_dir = 'Original_data/Raw model results/[project]/[sample]'
-base_scenario_file = 'Original_data/Base scenario/[project]/database_template.xlsx'
-parameter_space_file = 'Original_data/Parameter space/[project]/[sample]/parameter_space.xlsx'
+project: str = "1108 SSP"
+sample: str = "LHS"
 
-# Intermediate/output files
-parameter_sample_file = 'Generated_data/parameter_space_sample/[project]/[sample]/lookup_table_parameters.xlsx'
-subparameter_sample_file = 'Generated_data/parameter_space_sample/[project]/[sample]/lookup_table_sub-parameters.xlsx'
-generated_databases_dir = 'Generated_data/generated/[project]/[sample]'
-pp_results_file = 'Generated_data/PPResults/[project]/[sample]/Model_Results.csv'
+# -----------------------------------------------------------------------------
+# Base directories
+# -----------------------------------------------------------------------------
 
-# GSA output files
-gsa_morris_file = 'Generated_data/GSA/[project]/Morris/GSA_Morris.csv'
-gsa_delta_file = 'Generated_data/GSA/[project]/LHS/GSA_Delta.csv'
+# .../SSEREP/UI/Code/Hardcoded_values.py -> app_root = .../SSEREP/UI
+app_root: Path = Path(__file__).resolve().parents[1]
 
-# Local (non-OneDrive) directory for temporarily storing generated databases.
-# local_temp_dir = 'C:/Users/lindenmtvd/Temp local files'
-local_temp_dir = 'C:/LocaalFiles/Temp local files'
+data_dir: Path = app_root / "data"
 
-class ppVariables:
-    """
-    Settings or variables used for the post-processing script.
-    """
-    indices = ['period', 'technology', 'commodity']
+# Paths in this trimmed repo follow the original dashboard structure:
+# - Generated artifacts under:  data/Generated_data/...
+# - Inputs/templates under:     data/Original_data/...
+generated_data_dir: Path = data_dir / "Generated_data"
+original_data_dir: Path = data_dir / "Original_data"
 
-    # Variables that appear regardless of the year or are used for identification
-    base_vars = ['variant', 'Tech_ID', 'Policy Sectors', 'Category', 'Sector', 'Sub-sector',
-                 'Main Activity', 'Name', 'UoC', 'WACC', 'Ec. Lifetime']
+# -----------------------------------------------------------------------------
+# File templates used by the dashboard (formatted via `Code.helpers.get_path`)
+# -----------------------------------------------------------------------------
 
-    # Parameters used for the capex, opex_fixed, or opex_variable cost components
-    params_capex = ['Investment_2020', 'Investment_2025', 'Investment_2030', 'Investment_2035',
-                    'Investment_2040', 'Investment_2045', 'Investment_2050']
-    params_opex_fixed = ['Fixed OPEX_2020', 'Fixed OPEX_2025', 'Fixed OPEX_2030', 'Fixed OPEX_2035',
-                         'Fixed OPEX_2040', 'Fixed OPEX_2045', 'Fixed OPEX_2050']
-    params_opex_variable = ['Variable OPEX_2020', 'Variable OPEX_2025', 'Variable OPEX_2030', 'Variable OPEX_2035',
-                            'Variable OPEX_2040', 'Variable OPEX_2045', 'Variable OPEX_2050']
+# Postprocessed results
+pp_results_file: str = str(generated_data_dir / "PPResults" / "{project}" / "{sample}" / "Model_Results.csv")
+
+# Parameter samples/spaces
+parameter_sample_file: str = str(generated_data_dir / "parameter_space_sample" / "{project}" / "{sample}" / "lookup_table_parameters.xlsx")
+parameter_space_file: str = str(original_data_dir / "Parameter space" / "{project}" / "{sample}" / "parameter_space.xlsx")
+
+# Scenario templates
+base_scenario_file: str = str(original_data_dir / "Base scenario" / "{project}" / "database_template.xlsx")
+
+# Precomputed GSA results
+# `data_loading.py` uses these to *discover* files in the directory.
+gsa_morris_file: str = str(generated_data_dir / "GSA" / "{project}" / "Morris" / "GSA_Morris.csv")
+gsa_delta_file: str = str(generated_data_dir / "GSA" / "{project}" / "LHS" / "GSA_Delta.csv")
+
+# -----------------------------------------------------------------------------
+# Optional paths used by offline scripts (kept for compatibility; not required)
+# -----------------------------------------------------------------------------
+
+generated_databases_dir: str = str(data_dir / "{project}" / "generated")
+local_temp_dir: str = str(app_root / "local_temp")
+subparameter_sample_file: str = str(data_dir / "{project}" / "sampling" / "subparameter_samples_{sample}.xlsx")
