@@ -8,14 +8,6 @@ enableXsrfProtection = true
 [ui]
 hideTopBar = false
 
-[client]
-# Make sure the page navigation sidebar is visible by default.
-showSidebarNavigation = true
-
-[runner]
-# "expanded" keeps the multipage menu visible (especially important on mobile/small screens).
-initialSidebarState = "expanded"
-
 [theme]
 # Optional: feel free to tweak / remove
 primaryColor = "#0B5FFF"

@@ -7,7 +7,7 @@ import side-effects here can re-introduce old tab-based navigation.
 import streamlit as st
 
 # Use the full browser width (the legacy dashboard did this in its old Home module).
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
 from Code.Dashboard import utils
 from Code.Dashboard import data_loading
