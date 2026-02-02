@@ -4,6 +4,12 @@
 
 This folder contains all the data related to the paper "Scenario Space Exploration for Robust Energy Planning".
 
+## Streamlit app
+
+The interactive dashboard is deployed on Streamlit Community Cloud:
+
+https://sserep.streamlit.app/
+
 ## Contents
 
 ### Parameter Space Files (`parameter_space/`)
