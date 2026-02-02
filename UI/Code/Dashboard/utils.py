@@ -612,29 +612,16 @@ def make_readable_outcomes(outcomes):
     return original_outcome_dictionary, readable_outcome_dictionary
 
 def add_sidebar_tweaks():
-    # Use flex layout so the sidebar main content (menu) is vertically centered.
-    # Logos will be positioned absolutely at the bottom of the sidebar.
+    # Keep sidebar styling minimal for compatibility with Streamlit Community Cloud.
+    # Overriding the sidebar container layout can cause the multipage navigation
+    # to collapse or disappear on some Streamlit versions.
     st.markdown(
         """
         <style>
-            /* Make the sidebar a column flex container and center its main content */
-            section[data-testid="stSidebar"] > div:first-child {
-                display: flex;
-                flex-direction: column;
-                justify-content: flex-start; /* place the menu at the top (default) */
-                height: 100vh;                /* ensure full viewport height */
-                box-sizing: border-box;
-                padding-top: 1rem;           /* small top padding so menu isn't flush to the top */
-                padding-bottom: 12rem;       /* leave more space for the bottom logos */
-                position: relative;
+            /* Small padding tweaks only (avoid changing display/flex/height of sidebar). */
+            section[data-testid="stSidebar"] {
+                padding-top: 0.25rem;
             }
-
-                /* NOTE: Do not hide Streamlit's sidebar collapse control.
-                    On some Streamlit versions (incl. Community Cloud), hiding it can
-                    inadvertently collapse/compact the page navigation into icons-only. */
-
-            /* keep a small bottom padding so page content doesn't butt against the bottom */
-            
         </style>
         """,
         unsafe_allow_html=True,
