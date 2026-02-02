@@ -27,17 +27,14 @@ st.title("SSEREP dashboard")
 
 st.markdown(
 	"""
-This app is intentionally trimmed for online use.
+Scenario Space Exploration for Robust Energy Planning
+
+Energy and climate assessments often contrast a few narrative scenarios, limiting insight into interacting uncertainties. This dashboard supports **scenario space exploration** for a whole energy system model by mapping an ensemble of **4,500+ cost-optimal runs** and enabling interactive analysis of the results.
 
 Use the left sidebar to navigate to:
-- **GSA**
-- **Technology**
-- **Histograms**
-- **PRIM (w/o CART)**
+- **GSA** (global sensitivity analysis)
+- **Technology** (technology portfolio exploration)
+- **Histograms** (outcome distributions)
+- **PRIM** (scenario discovery)
 """
-)
-
-st.info(
-	"If you still see old tabs like 'PRIM' or 'Paper Plots', they were coming from the legacy Home module. "
-	"This landing page avoids importing it."
 )

@@ -1,0 +1,14 @@
+[server]
+# Needed on Streamlit Community Cloud
+headless = true
+port = 8501
+enableCORS = false
+enableXsrfProtection = true
+
+[theme]
+# Optional: feel free to tweak / remove
+primaryColor = "#0B5FFF"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F5F7FB"
+textColor = "#111827"
+font = "sans serif"

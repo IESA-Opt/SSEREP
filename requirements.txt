@@ -1,0 +1,4 @@
+# Streamlit Community Cloud installs dependencies from the repo root by default.
+# Keep this file as the deploy target.
+
+-r UI/requirements.txt

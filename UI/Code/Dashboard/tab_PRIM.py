@@ -1,4 +1,4 @@
-"""PRIM (w/o CART) page logic.
+"""PRIM page logic.
 
 Goal: keep the same behavior while allowing the legacy Paper Plots monolith to stay archived.
 
@@ -19,7 +19,7 @@ def render(use_1031_ssp: bool = False):
 
 
 def render_prim_without_cart_tab(use_1031_ssp=False):
-    """Render the PRIM w/o CART tab with horizontal scatter plots and all parameters shown."""
+    """Render the PRIM tab with horizontal scatter plots and all parameters shown."""
 
     # Intentionally omit page header/caption: the PRIM page should start with the plots.
 
@@ -1136,9 +1136,9 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
     st.dataframe(summary_df, use_container_width=True, hide_index=True)
 
     # Instructions in expandable box
-    with st.expander("ℹ️ **PRIM w/o CART Analysis Information**", expanded=False):
+    with st.expander("ℹ️ **PRIM Analysis Information**", expanded=False):
         st.info("""
-        📊 **PRIM w/o CART Analysis:**
+    📊 **PRIM Analysis:**
 
         This tab provides a simplified view of PRIM analysis without CART filtering, showing:
         - **Horizontal scatter plots**: Three X-Y pairs displayed side-by-side for easy comparison
