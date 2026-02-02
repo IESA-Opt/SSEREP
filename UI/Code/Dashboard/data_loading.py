@@ -1,8 +1,10 @@
 # tab_upload_data.py  ─────────────────────────────────────────────────
 # data_loading.py  ─────────────────────────────────────────────────
 import os
-import streamlit as st
+
 import pandas as pd
+import streamlit as st
+
 from Code import Hardcoded_values, helpers
 from Code.PostProcessing.file_chunking import read_chunked_csv
 
@@ -10,8 +12,12 @@ from Code.PostProcessing.file_chunking import read_chunked_csv
 # CACHED READING OF DEFAULT FILES
 # ────────────────────────────────────────────────────────────────────
 @st.cache_data(show_spinner=False)
-def _read_default_files():
-    """Load every default file from disk exactly once per server run."""
+def _read_default_files(project: str | None):
+    """Load default files from disk.
+
+    Cached by Streamlit. The `project` argument is part of the cache key so
+    switching projects won't accidentally reuse stale cached data.
+    """
     def _safe_read_csv(path):
         try:
             return read_chunked_csv(path, low_memory=False)
@@ -219,18 +225,32 @@ def _init_defaults() -> None:
         Hardcoded_values.project = getattr(Hardcoded_values, 'project', '1108 SSP')
         st.session_state['project'] = Hardcoded_values.project
     
-    # Reload defaults when not present or when they belong to a different project
+    # Reload defaults when required.
+    # IMPORTANT: This app is heavy (multi-million-row CSVs). We must avoid
+    # re-reading / re-concatenating defaults on every page navigation.
     current_project = getattr(Hardcoded_values, 'project', None)
     defaults_project = st.session_state.get('defaults_project', None)
-    should_load = (not all(k in st.session_state for k in needed)) or (defaults_project != current_project)
+    defaults_loaded = bool(st.session_state.get('defaults_loaded', False))
+
+    missing_any = not all(k in st.session_state for k in needed)
+    project_changed = (defaults_project != current_project)
+
+    # Only load if:
+    # - defaults have never been loaded in this session, OR
+    # - something is missing (e.g., fresh server start), OR
+    # - user switched project.
+    should_load = (not defaults_loaded) or missing_any or project_changed
+
     if should_load:
-        # clear any old defaults to avoid mixing projects
-        for k in needed:
-            try:
-                if k in st.session_state:
-                    del st.session_state[k]
-            except Exception:
-                pass
+        # If project changed we must clear existing defaults to avoid mixing data.
+        # If only some keys are missing, we preserve what's already loaded.
+        if project_changed:
+            for k in needed:
+                try:
+                    if k in st.session_state:
+                        del st.session_state[k]
+                except Exception:
+                    pass
         (
             mr_morris,
             mr_latin,
@@ -245,19 +265,35 @@ def _init_defaults() -> None:
             gsa_delta_morris,
             gsa_delta_latin,
             available_delta_sizes,
-        ) = _read_default_files()
-        st.session_state.model_results_MORRIS   = mr_morris
-        st.session_state.model_results_LATIN    = mr_latin
-        st.session_state.parameter_lookup_MORRIS = par_morris
-        st.session_state.parameter_space_MORRIS  = par_morris_space
-        st.session_state.parameter_lookup_LATIN  = par_latin
-        st.session_state.parameter_space_LATIN   = par_latin_space
-        st.session_state.technologies            = tech
-        st.session_state.activities              = activities
-        st.session_state.gsa_morris_MORRIS       = gsa_morris
-        st.session_state.gsa_morris_LATIN        = gsa_latin_morris
-        st.session_state.gsa_delta_MORRIS        = gsa_delta_morris
-        st.session_state.gsa_delta_LATIN         = gsa_delta_latin
+    ) = _read_default_files(current_project)
+        # Only set values we don't already have (unless project changed and we cleared).
+        if "model_results_MORRIS" not in st.session_state:
+            st.session_state.model_results_MORRIS = mr_morris
+        if "model_results_LATIN" not in st.session_state:
+            st.session_state.model_results_LATIN = mr_latin
+
+        if "parameter_lookup_MORRIS" not in st.session_state:
+            st.session_state.parameter_lookup_MORRIS = par_morris
+        if "parameter_space_MORRIS" not in st.session_state:
+            st.session_state.parameter_space_MORRIS = par_morris_space
+        if "parameter_lookup_LATIN" not in st.session_state:
+            st.session_state.parameter_lookup_LATIN = par_latin
+        if "parameter_space_LATIN" not in st.session_state:
+            st.session_state.parameter_space_LATIN = par_latin_space
+
+        if "technologies" not in st.session_state:
+            st.session_state.technologies = tech
+        if "activities" not in st.session_state:
+            st.session_state.activities = activities
+
+        if "gsa_morris_MORRIS" not in st.session_state:
+            st.session_state.gsa_morris_MORRIS = gsa_morris
+        if "gsa_morris_LATIN" not in st.session_state:
+            st.session_state.gsa_morris_LATIN = gsa_latin_morris
+        if "gsa_delta_MORRIS" not in st.session_state:
+            st.session_state.gsa_delta_MORRIS = gsa_delta_morris
+        if "gsa_delta_LATIN" not in st.session_state:
+            st.session_state.gsa_delta_LATIN = gsa_delta_latin
         st.session_state.available_delta_sizes   = available_delta_sizes
         # Mark defaults loaded so other pages (e.g., Home) can skip re-loading UI
         st.session_state.defaults_loaded = True
