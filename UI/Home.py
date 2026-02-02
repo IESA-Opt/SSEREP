@@ -10,19 +10,25 @@ from pathlib import Path
 # Use the full browser width (the legacy dashboard did this in its old Home module).
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
-from Code.Dashboard import utils
-from Code.Dashboard import data_loading
+try:
+	from Code.Dashboard import utils
+	from Code.Dashboard import data_loading
 
+	utils.add_sidebar_tweaks()
 
-utils.add_sidebar_tweaks()
+	# Ensure the default datasets are present in session_state for all pages.
+	# Without this, opening pages directly after a server restart may show empty UI.
+	if "project" not in st.session_state:
+		st.session_state["project"] = "1108 SSP"
 
-
-# Ensure the default datasets are present in session_state for all pages.
-# Without this, opening pages directly after a server restart may show empty UI.
-if "project" not in st.session_state:
-	st.session_state["project"] = "1108 SSP"
-
-data_loading._init_defaults()
+	# This can be expensive; if the server is under memory pressure, we still want
+	# the Home page to render instead of showing a blank screen.
+	data_loading._init_defaults()
+except Exception as e:
+	st.warning(
+		"Home loaded without preloading datasets (server may be under heavy load). "
+		f"Details: {type(e).__name__}: {e}"
+	)
 
 st.title("SSEREP dashboard")
 
@@ -39,7 +45,7 @@ repo_root = Path(__file__).resolve().parents[1]
 workflow_diagram = repo_root / "Workflow_diagram.png"
 if workflow_diagram.exists():
 	# Responsive: fill available width, but cap the visual height so it doesn't dominate.
-	st.image(str(workflow_diagram), caption="Workflow diagram", use_container_width=True)
+	st.image(str(workflow_diagram), caption="Workflow diagram", width="stretch")
 	st.markdown(
 		"""
 		<style>
