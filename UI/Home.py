@@ -16,17 +16,69 @@ try:
 
 	utils.add_sidebar_tweaks()
 
-	# Ensure the default datasets are present in session_state for all pages.
-	# Without this, opening pages directly after a server restart may show empty UI.
+	# Ensure we have a project selected.
 	if "project" not in st.session_state:
 		st.session_state["project"] = "1108 SSP"
 
-	# This can be expensive; if the server is under memory pressure, we still want
-	# the Home page to render instead of showing a blank screen.
-	data_loading._init_defaults()
+	# Home-first UX: start loading defaults in the background so text/diagram render immediately.
+	data_loading.ensure_defaults_loading_started()
+
+	# Sidebar status indicator (spinner + color).
+	with st.sidebar:
+		_ready = data_loading.defaults_ready()
+		_loading = bool(st.session_state.get("defaults_loading", False))
+		_err = str(st.session_state.get("defaults_load_error", "") or "")
+
+		if _ready:
+			st.markdown(
+				"""
+				<div style="display:flex;align-items:center;gap:.5rem;padding:.35rem .6rem;border-radius:.6rem;"
+							background:#E8F5E9;border:1px solid #2E7D32;">
+					<span style="font-weight:700;color:#1B5E20;">●</span>
+					<span style="color:#1B5E20;font-weight:600;">Data loaded</span>
+				</div>
+				""",
+				unsafe_allow_html=True,
+			)
+		elif _loading:
+			st.markdown(
+				"""
+				<style>
+				@keyframes sserep-spin { to { transform: rotate(360deg); } }
+				.sserep-spinner {
+					width: 14px;
+					height: 14px;
+					border: 2px solid rgba(255,140,0,.35);
+					border-top-color: rgba(255,140,0,1);
+					border-radius: 50%;
+					animation: sserep-spin .8s linear infinite;
+				}
+				</style>
+				<div style="display:flex;align-items:center;gap:.5rem;padding:.35rem .6rem;border-radius:.6rem;"
+							background:#FFF3E0;border:1px solid #FF8C00;">
+					<div class="sserep-spinner"></div>
+					<span style="color:#8A4B00;font-weight:600;">Loading data…</span>
+				</div>
+				""",
+				unsafe_allow_html=True,
+			)
+		else:
+			# Not ready and not currently loading (should be rare). Keep it visible.
+			st.markdown(
+				"""
+				<div style="display:flex;align-items:center;gap:.5rem;padding:.35rem .6rem;border-radius:.6rem;"
+							background:#FFF3E0;border:1px solid #FF8C00;">
+					<span style="font-weight:700;color:#FF8C00;">●</span>
+					<span style="color:#8A4B00;font-weight:600;">Data not loaded</span>
+				</div>
+				""",
+				unsafe_allow_html=True,
+			)
+			if _err:
+				st.caption(f"Last load error: {_err}")
 except Exception as e:
 	st.warning(
-		"Home loaded without preloading datasets (server may be under heavy load). "
+		"Home loaded without starting dataset preload (server may be under heavy load). "
 		f"Details: {type(e).__name__}: {e}"
 	)
 

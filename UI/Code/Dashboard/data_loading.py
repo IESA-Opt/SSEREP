@@ -1,12 +1,87 @@
 # tab_upload_data.py  ─────────────────────────────────────────────────
 # data_loading.py  ─────────────────────────────────────────────────
 import os
+import threading
+import time
 
 import pandas as pd
 import streamlit as st
 
 from Code import Hardcoded_values, helpers
 from Code.PostProcessing.file_chunking import read_chunked_csv
+
+
+# ────────────────────────────────────────────────────────────────────
+# Non-blocking defaults loading (Home-first UX)
+# ────────────────────────────────────────────────────────────────────
+def defaults_ready() -> bool:
+    """Return True if the core defaults have been loaded into session_state."""
+    try:
+        return bool(st.session_state.get("defaults_loaded", False))
+    except Exception:
+        return False
+
+
+def ensure_defaults_loading_started() -> None:
+    """Start loading defaults in a background thread (best-effort).
+
+    Streamlit executes scripts synchronously, so the only way to let Home content
+    show immediately while data loads is to kick off a daemon thread.
+
+    Notes:
+    - This is intentionally best-effort. If Streamlit disallows session_state
+      mutation from a background thread in some environments, pages still call
+      `_init_defaults()` directly as a fallback.
+    """
+    if defaults_ready():
+        return
+
+    if st.session_state.get("defaults_loading", False):
+        return
+
+    st.session_state["defaults_loading"] = True
+    st.session_state.setdefault("defaults_load_error", "")
+
+    def _worker():
+        try:
+            _init_defaults()
+        except Exception as e:
+            try:
+                st.session_state["defaults_load_error"] = f"{type(e).__name__}: {e}"
+            except Exception:
+                pass
+        finally:
+            try:
+                st.session_state["defaults_loading"] = False
+            except Exception:
+                pass
+
+    t = threading.Thread(target=_worker, name="defaults_loader", daemon=True)
+    t.start()
+
+
+def require_defaults_ready(message: str = "Loading datasets…") -> None:
+    """Guard for pages that need defaults.
+
+    If defaults aren't ready yet, show a spinner/info and stop the script.
+    """
+    if defaults_ready():
+        return
+
+    # If background loading failed, fall back to synchronous load once.
+    err = str(st.session_state.get("defaults_load_error", "") or "")
+    if err and not st.session_state.get("defaults_load_error_ack", False):
+        # One-time warning; still attempt a synchronous load.
+        st.session_state["defaults_load_error_ack"] = True
+        st.warning(f"Background load failed ({err}). Loading datasets in the foreground…")
+        _init_defaults()
+        return
+
+    with st.spinner(message):
+        # Let the user see the page chrome; we don't busy-wait too long.
+        time.sleep(0.05)
+    st.info("Datasets are still loading. Please wait a few seconds and this page will refresh.")
+    st.stop()
 
 # ────────────────────────────────────────────────────────────────────
 # CACHED READING OF DEFAULT FILES
@@ -71,11 +146,42 @@ def _read_default_files(project: str | None):
                 pass
             return pd.DataFrame()
 
-    mr_morris = _safe_read_csv(helpers.get_path(Hardcoded_values.pp_results_file, sample="Morris"))
+    def _read_results_pair(sample: str):
+        """Read (unfiltered, filtered) results for a sample.
+
+        Filtered results are expected next to the unfiltered file as
+        `Model_Results_filtered.csv` (and may be chunked).
+
+        If filtered results are missing, the filtered return value falls back
+        to the unfiltered DataFrame.
+        """
+        base_path = helpers.get_path(Hardcoded_values.pp_results_file, sample=sample)
+        base_dir = os.path.dirname(base_path)
+        base_stem = os.path.splitext(os.path.basename(base_path))[0]
+        ext = os.path.splitext(base_path)[1]
+
+        filtered_path = os.path.join(base_dir, f"{base_stem}_filtered{ext}")
+
+        df_unf = _safe_read_csv(base_path)
+
+        try:
+            # Use read_chunked_csv directly so we can load filtered chunk sets
+            # even when the unfiltered file is missing.
+            df_filt = read_chunked_csv(filtered_path, low_memory=False)
+        except FileNotFoundError:
+            df_filt = pd.DataFrame()
+        except Exception:
+            df_filt = pd.DataFrame()
+
+        if df_filt is None or getattr(df_filt, 'shape', (0, 0))[0] == 0:
+            df_filt = df_unf
+
+        return df_unf, df_filt, base_path
+
+    mr_morris, mr_morris_filtered, _ = _read_results_pair("Morris")
 
     # LHS results may be stored as chunked CSVs to avoid size limits.
-    lhs_results_path = helpers.get_path(Hardcoded_values.pp_results_file, sample="LHS")
-    mr_latin = _safe_read_csv(lhs_results_path)
+    mr_latin, mr_latin_filtered, lhs_results_path = _read_results_pair("LHS")
 
     if mr_latin.empty:
         # Try to discover chunked files next to the expected location.
@@ -98,6 +204,11 @@ def _read_default_files(project: str | None):
                         mr_latin = pd.DataFrame()
         except Exception:
             pass
+
+    # If we had to reconstruct LHS from legacy model_results_chunk_* chunks and
+    # no filtered dataset exists, keep filtered aligned with the unfiltered.
+    if mr_latin_filtered is None or getattr(mr_latin_filtered, 'shape', (0, 0))[0] == 0:
+        mr_latin_filtered = mr_latin
     par_morris = _safe_read_excel(helpers.get_path(Hardcoded_values.parameter_sample_file, sample="Morris"))
     par_morris_space = _safe_read_excel(
         helpers.get_path(Hardcoded_values.parameter_space_file, sample="Morris"),
@@ -195,7 +306,7 @@ def _read_default_files(project: str | None):
     gsa_latin_morris = pd.DataFrame()  # LHS doesn't use Morris method
     gsa_delta_morris = pd.DataFrame()  # Morris doesn't use Delta method
 
-    return mr_morris, mr_latin, par_morris, par_morris_space, par_latin, par_latin_space, tech, activities, gsa_morris, gsa_latin_morris, gsa_delta_morris, gsa_delta_latin, available_delta_sizes
+    return mr_morris, mr_latin, mr_morris_filtered, mr_latin_filtered, par_morris, par_morris_space, par_latin, par_latin_space, tech, activities, gsa_morris, gsa_latin_morris, gsa_delta_morris, gsa_delta_latin, available_delta_sizes
 
 
 def _init_defaults() -> None:
@@ -254,6 +365,8 @@ def _init_defaults() -> None:
         (
             mr_morris,
             mr_latin,
+            mr_morris_filtered,
+            mr_latin_filtered,
             par_morris,
             par_morris_space,
             par_latin,
@@ -265,12 +378,19 @@ def _init_defaults() -> None:
             gsa_delta_morris,
             gsa_delta_latin,
             available_delta_sizes,
-    ) = _read_default_files(current_project)
+        ) = _read_default_files(current_project)
         # Only set values we don't already have (unless project changed and we cleared).
         if "model_results_MORRIS" not in st.session_state:
             st.session_state.model_results_MORRIS = mr_morris
         if "model_results_LATIN" not in st.session_state:
             st.session_state.model_results_LATIN = mr_latin
+
+        # Precomputed filtered results (same long schema as unfiltered).
+        # Pages can use these when the Data Filter toggle is enabled.
+        if "model_results_MORRIS_filtered" not in st.session_state:
+            st.session_state.model_results_MORRIS_filtered = mr_morris_filtered
+        if "model_results_LATIN_filtered" not in st.session_state:
+            st.session_state.model_results_LATIN_filtered = mr_latin_filtered
 
         if "parameter_lookup_MORRIS" not in st.session_state:
             st.session_state.parameter_lookup_MORRIS = par_morris

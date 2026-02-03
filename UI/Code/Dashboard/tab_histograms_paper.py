@@ -33,13 +33,28 @@ def render(use_1031_ssp: bool = False):
 def render_histogram_analysis_tab(use_1031_ssp=False):
     """Render the Histogram Analysis tab for plotting distributions of any output variable."""
 
+    # Home-first UX: if defaults aren't ready yet, start loading and show a friendly message.
+    try:
+        from Code.Dashboard import data_loading as upload
+        upload.ensure_defaults_loading_started()
+        upload.require_defaults_ready("Loading datasets for Histograms…")
+    except Exception:
+        pass
+
     # Import required function for unit handling
     from Code.Dashboard.utils import get_unit_for_column
 
     # NOTE: The controls (data source, data filter, outcomes, bins) are rendered
     # below the plots. We still need their *values* here to load/filter data.
     input_selection = st.session_state.get("histogram_data_source", "LHS")
-    enable_filter = st.session_state.get("histogram_enable_filter", True)
+
+    # Community Cloud stability: the filter path pivots the *entire* raw results
+    # table through `prepare_results(...)`, which can be very memory-intensive for
+    # large result sets. Default this toggle to False so the page loads reliably,
+    # while still letting users opt-in.
+    if "histogram_enable_filter" not in st.session_state:
+        st.session_state["histogram_enable_filter"] = True
+    enable_filter = bool(st.session_state.get("histogram_enable_filter", True))
 
     # Get data based on selection
     if input_selection == "LHS":
@@ -57,46 +72,22 @@ def render_histogram_analysis_tab(use_1031_ssp=False):
     # Apply current filter toggle (value is set by the Settings container below).
     enable_filter = bool(st.session_state.get("histogram_enable_filter", enable_filter))
 
-    # Apply default data filter
+    # Apply default data filter.
+    # Community Cloud stability: do NOT pivot at runtime to compute filtering.
+    # Instead, use the precomputed filtered dataset (same long schema).
     if enable_filter:
-        try:
-            # Prepare results to get pivoted data for filtering
-            df_pivoted, _ = prepare_results(df_raw, parameter_lookup)
+        if input_selection == "LHS":
+            df_filtered = st.session_state.get("model_results_LATIN_filtered")
+        else:
+            df_filtered = st.session_state.get("model_results_MORRIS_filtered")
 
-            # Apply filter
-            df_pivoted_filtered, filtered_count = apply_default_data_filter(df_pivoted, enable_filter)
-
-            # Get the list of variants that passed the filter
-            variant_col = None
-            for col in df_pivoted_filtered.columns:
-                if col.lower() == 'variant':
-                    variant_col = col
-                    break
-
-            if variant_col:
-                valid_variants = set(df_pivoted_filtered[variant_col].unique())
-                # Filter the raw data to only include these variants
-                variant_col_raw = None
-                for col in df_raw.columns:
-                    if col.lower() == 'variant':
-                        variant_col_raw = col
-                        break
-                if variant_col_raw:
-                    original_raw_count = len(df_raw[variant_col_raw].unique())
-                    # Use set for faster lookup
-                    df_raw = df_raw[df_raw[variant_col_raw].isin(valid_variants)].copy()
-                    filtered_raw_count = len(df_raw[variant_col_raw].unique())
-
-                    # Intentionally suppress the "Filtered out ... variants" banner to avoid clutter.
-                else:
-                    st.warning("⚠️ Could not find variant column in raw data. Filter may not be applied correctly.")
-            else:
-                st.warning("⚠️ Could not find variant column in pivoted data. Filter may not be applied correctly.")
-        except Exception as e:
-            st.error(f"⚠️ Could not apply default data filter: {str(e)}")
-            import traceback
-            with st.expander("Error details"):
-                st.code(traceback.format_exc())
+        if df_filtered is not None and getattr(df_filtered, 'shape', (0, 0))[0] > 0:
+            df_raw = df_filtered
+        else:
+            st.warning(
+                "Filtered results are not available for this dataset. "
+                "Using unfiltered results instead."
+            )
 
     # Get available display names
     available_display_names = sorted(df_raw['display_name'].unique())

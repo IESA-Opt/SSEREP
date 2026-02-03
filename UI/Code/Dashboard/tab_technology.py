@@ -26,8 +26,13 @@ def render(use_1031_ssp: bool = False):
 def render_technology_analysis_tab(use_1031_ssp=False):
     """Render the Technology Analysis tab."""
 
-    # Ensure default files are available in session state
-    upload._init_defaults()
+    # Home-first UX: if defaults aren't ready yet, start loading and show a friendly message.
+    try:
+        upload.ensure_defaults_loading_started()
+        upload.require_defaults_ready("Loading datasets for Technology…")
+    except Exception:
+        # Fallback (older sessions / environments): load synchronously.
+        upload._init_defaults()
 
     # Check if base scenario data is available
     if "technologies" not in st.session_state or "activities" not in st.session_state:
@@ -176,19 +181,6 @@ def render_technology_analysis_tab(use_1031_ssp=False):
                 if not default_selection and available_activities:
                     default_selection = [available_activities[0]]
 
-                # Streamlit behavior: once a widget key exists in session_state, the widget's
-                # `default=` is ignored. Sync defaults on first use (or if current selection is invalid).
-                activity_state_key = "tech_analysis_selected_activity"
-                if activity_state_key not in st.session_state:
-                    st.session_state[activity_state_key] = default_selection
-                else:
-                    current = st.session_state.get(activity_state_key, [])
-                    if not isinstance(current, list):
-                        current = []
-                    # If empty, or contains values not in the current options, reset to defaults.
-                    if not current or any(v not in available_activities for v in current):
-                        st.session_state[activity_state_key] = default_selection
-
                 selected_activity = st.multiselect(
                     "Select Activity (max 10)",
                     options=available_activities,
@@ -250,8 +242,28 @@ def render_technology_analysis_tab(use_1031_ssp=False):
         return
 
     # For technology analysis, we need to work with the raw data directly
-    # because prepare_results pivots the data and loses the Variable/technology structure we need
+    # because prepare_results pivots the data and loses the Variable/technology structure we need.
+    #
+    # IMPORTANT: apply the Data Filter by *choosing the dataset* first, then merge parameters.
+    # If we merge first and then swap to a filtered df, the parameter columns disappear and the
+    # UI shows "Parameter filtering not available".
     df = df_raw.copy()
+
+    # Apply default data filter by swapping in the precomputed filtered dataset.
+    # (Same long schema; avoids runtime pivoting on Community Cloud.)
+    if enable_filter:
+        if input_selection == "LHS":
+            df_filtered = st.session_state.get("model_results_LATIN_filtered")
+        else:
+            df_filtered = st.session_state.get("model_results_MORRIS_filtered")
+
+        if df_filtered is not None and getattr(df_filtered, 'shape', (0, 0))[0] > 0:
+            df = df_filtered.copy()
+        else:
+            st.warning(
+                "Filtered results are not available for this dataset. "
+                "Using unfiltered results instead."
+            )
 
     # Get parameter columns from parameter_lookup for potential filtering later
     param_cols = [c for c in parameter_lookup.columns if c.lower() != 'variant']
@@ -282,25 +294,6 @@ def render_technology_analysis_tab(use_1031_ssp=False):
     else:
         st.warning("Could not find variant columns for parameter merging. Filters will be disabled.")
         param_cols = []
-
-    # Apply default data filter - need to pivot first to apply filter, then unpivot
-    if enable_filter:
-        try:
-            # Prepare results to get pivoted data
-            df_pivoted, _ = prepare_results(df_raw, parameter_lookup)
-
-            # Apply filter
-            df_pivoted_filtered, filtered_count = apply_default_data_filter(df_pivoted, enable_filter)
-
-            # Intentionally suppress the "Filtered out ... variants" banner to avoid clutter.
-
-            # Get the list of variants that passed the filter
-            if variant_col in df_pivoted_filtered.columns:
-                valid_variants = df_pivoted_filtered[variant_col].unique()
-                # Filter the raw data to only include these variants
-                df = df[df[variant_col].isin(valid_variants)]
-        except Exception as e:
-            st.warning(f"Could not apply default data filter: {str(e)}")
 
     # Filter technologies by selected activity
     # Check if column F exists in technologies (main activity column)

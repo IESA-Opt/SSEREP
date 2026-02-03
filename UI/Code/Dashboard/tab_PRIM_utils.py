@@ -946,8 +946,12 @@ def render():
         unsafe_allow_html=True,
     )
 
-    # Ensure default files are available in session state (use uploader's initializer)
-    upload._init_defaults()
+    # Home-first UX: if defaults aren't ready yet, start loading and show a friendly message.
+    try:
+        upload.ensure_defaults_loading_started()
+        upload.require_defaults_ready("Loading datasets for PRIM…")
+    except Exception:
+        upload._init_defaults()
 
     # Verify required data in session
     if "model_results_LATIN" not in st.session_state and "model_results_MORRIS" not in st.session_state:
@@ -1022,17 +1026,14 @@ def render():
         st.error(f"Failed to prepare results for plotting: {e}")
         return
     
-    # Apply default data filter
-    df, filtered_count = apply_default_data_filter(df, enable_filter)
-    if filtered_count > 0:
-        st.info(f"🔍 Filtered out {filtered_count:,} variants based on data quality criteria")
+    # Filter has already been applied if precomputed filtered results are loaded.
 
     # Carbon price scatter
     # Create axis options from both outcomes (using Outcome column like GSA tab) and parameters
-    
+
     # Get all available outcomes from model results (same approach as GSA tab)
     all_available_outcomes = set()
-    
+
     # Check both LATIN and MORRIS results in session state
     for sample_type in ['LATIN', 'MORRIS']:
         model_results_key = f'model_results_{sample_type}'
@@ -1049,9 +1050,7 @@ def render():
         # Fallback to display names from raw data
         outcome_options = sorted(df_raw['display_name'].unique())
         outcome_display = {name: name for name in outcome_options}
-    else:
-        # Final fallback to prepared results columns
-        all_cols = df.columns.tolist()
+            # Filter has already been applied if precomputed filtered results are loaded.
         outcome_options = [c for c in all_cols if c not in param_cols and c != "variant"]
         outcome_display = {name: name for name in outcome_options}
     

@@ -21,6 +21,14 @@ def render(use_1031_ssp: bool = False):
 def render_prim_without_cart_tab(use_1031_ssp=False):
     """Render the PRIM tab with horizontal scatter plots and all parameters shown."""
 
+    # Home-first UX: if defaults aren't ready yet, start loading and show a friendly message.
+    try:
+        from Code.Dashboard import data_loading as upload
+        upload.ensure_defaults_loading_started()
+        upload.require_defaults_ready("Loading datasets for PRIM…")
+    except Exception:
+        pass
+
     # Intentionally omit page header/caption: the PRIM page should start with the plots.
 
     # Import PRIM-related functions from shared utils (so we don't depend on the full PRIM tab)
@@ -28,16 +36,27 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
 
     # Read control values from session state (controls are rendered inside the expander below)
     input_selection = st.session_state.get("prim_no_cart_data_source", "LHS")
+    if "prim_no_cart_enable_filter" not in st.session_state:
+        st.session_state["prim_no_cart_enable_filter"] = True
     enable_filter = bool(st.session_state.get("prim_no_cart_enable_filter", True))
     n_pairs = int(st.session_state.get("prim_no_cart_n_pairs", 3))
 
-    # Get data based on selection
+    # Get data based on selection.
+    # If filter is enabled, prefer the precomputed filtered long results.
     if input_selection == "LHS":
-        df_raw = st.session_state.model_results_LATIN
+        df_raw = (
+            st.session_state.get("model_results_LATIN_filtered")
+            if enable_filter
+            else st.session_state.model_results_LATIN
+        )
         parameter_lookup = st.session_state.parameter_lookup_LATIN
         parameter_space = st.session_state.get('parameter_space_LATIN')
     else:
-        df_raw = st.session_state.model_results_MORRIS
+        df_raw = (
+            st.session_state.get("model_results_MORRIS_filtered")
+            if enable_filter
+            else st.session_state.model_results_MORRIS
+        )
         parameter_lookup = st.session_state.parameter_lookup_MORRIS
         parameter_space = st.session_state.get('parameter_space_MORRIS')
 
@@ -53,8 +72,7 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
         st.error(f"Failed to prepare results: {e}")
         return
 
-    # Apply data filter (quiet: do not show the 'Filtered out ...' message on this page)
-    df, _filtered_count = apply_default_data_filter(df, enable_filter)
+    # Filter has already been applied if precomputed filtered results are loaded.
 
     # Get available outcomes and parameters (exact same logic as PRIM tab)
     all_available_outcomes = set()
