@@ -12,11 +12,14 @@ https://sserep.streamlit.app/
 
 ## Contents
 
-### Parameter Space Files (`parameter_space/`)
-- `parameter_space_LHS.xlsx` - Parameter space values for Latin Hypercube Sampling (LHS)
-- `parameter_space_Morris.xlsx` - Parameter space values for Morris sampling
+### Parameter Space Files (`Parameter_space/`)
+- `parameter_space_LHS.xlsx` - Parameter space definition used for Latin Hypercube Sampling (LHS)
+- `parameter_space_Morris.xlsx` - Parameter space definition used for Morris sampling
 
-### Model Results (`model_results/`)
+> Note: the Streamlit UI loads parameter-space definitions from `UI/data/Original_data/Parameter space/...`.
+> The repo-root `Parameter_space/` folder is provided as a convenient copy of the source spreadsheets.
+
+### Model Results (`Model_results/`)
 
 #### LHS Results (`model_results/LHS/`)
 Latin Hypercube Sampling (LHS) is used for the Delta sensitivity analysis method:
@@ -54,7 +57,14 @@ The IESA-Opt energy system model used for scenario generation and analysis.
 ## Methodology Notes
 - **LHS (Latin Hypercube Sampling)**: Used with the Delta sensitivity analysis method for variance-based sensitivity analysis
 - **Morris Sampling**: Used with Morris Elementary Effects method for screening-level sensitivity analysis
-- The CSV files contain the energy system model outputs and sensitivity analysis results for both sampling approaches
+- **Feb 2026 update (UI):** the dashboard is now **Parquet-first** for model outputs.
+	- Required (default): `UI/data/Generated_data/PPResults/<project>/<sample>/Model_Results_filtered.parquet`
+	- Optional: `Model_Results.parquet` (unfiltered)
+	- Deprecated: “light/defaults” CSV outputs under `UI/data/Generated_data/Defaults/...`
+
+- The sensitivity-analysis summary tables (e.g. `GSA_*.csv`) are still shipped/used as CSV.
+
+For the exact expected directory structure and copy instructions, see `UI/DATA_SETUP.md`.
 
 ## License
 

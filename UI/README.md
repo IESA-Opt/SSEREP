@@ -49,6 +49,13 @@ pip install -r requirements.txt
 
 3. Ensure data is in place (see `DATA_SETUP.md` for details)
 
+**Feb 2026 update:** model outputs are now loaded from **merged Parquet** files (filtered results by default). CSV chunking is still supported for some auxiliary tables, but PPResults for **LHS** and **Morris** should be provided as:
+
+- `UI/data/Generated_data/PPResults/<project>/LHS/Model_Results_filtered.parquet`
+- `UI/data/Generated_data/PPResults/<project>/Morris/Model_Results_filtered.parquet`
+
+Unfiltered `Model_Results.parquet` is optional.
+
 ## Running the Dashboard
 
 ```bash
@@ -111,6 +118,7 @@ This dashboard is configured for the **1108 SSP** project. See `DATA_SETUP.md` f
 - ema-workbench >= 2.4.0
 - scikit-learn >= 1.3.0
 - openpyxl >= 3.1.0
+- pyarrow (required for Parquet)
 
 ## License
 

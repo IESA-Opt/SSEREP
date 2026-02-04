@@ -1,47 +1,39 @@
-"""Streamlit Community Cloud entrypoint.
+"""Repo-root Streamlit entrypoint for Streamlit Community Cloud.
 
-This repo's Streamlit app lives in `UI/Home.py`, but Community Cloud expects an
-entrypoint at the repo root.
+The *real* app lives under `UI/` (with its own `pages/` directory).
 
-Important: avoid importing `UI.Home` as a *package* import, because `UI/` isn't
-guaranteed to be a Python package in all runtimes. Instead, we execute the
-`UI/Home.py` script in-place after adjusting `sys.path` so `Code.*` imports work.
+Community Cloud expects an entrypoint at repo root, but Streamlit's multipage
+navigation is discovered **relative to the entrypoint file**. Executing
+`UI/Home.py` with `exec()` keeps the entrypoint as the repo-root `Home.py`,
+which can cause the wrong `pages/` folder to be detected and can trigger noisy
+component-manifest scanning.
+
+Instead we tell Streamlit to run the `UI` app directly by changing into `UI/`
+and executing `UI/Home.py` as the *actual script file*.
 """
 
 from __future__ import annotations
 
+import os
+import runpy
 import sys
 from pathlib import Path
 
+
 REPO_ROOT = Path(__file__).resolve().parent
 UI_DIR = REPO_ROOT / "UI"
+UI_HOME = UI_DIR / "Home.py"
 
-# Be explicit: Streamlit Community Cloud runs with repo root as CWD, but
-# Python import resolution can still be sensitive to sys.path ordering.
-for p in (str(UI_DIR), str(REPO_ROOT)):
-    if p not in sys.path:
-        sys.path.insert(0, p)
+if not UI_HOME.exists():
+    raise FileNotFoundError(f"Expected Streamlit script at: {UI_HOME}")
 
-# Pre-import the `Code` package (located at UI/Code) so submodule imports like
-# `from Code.Dashboard import utils` are registered consistently across runtimes.
-try:
-    import importlib
+# Ensure imports like `from Code...` resolve (Code/ lives at UI/Code).
+ui_path = str(UI_DIR)
+if ui_path not in sys.path:
+    sys.path.insert(0, ui_path)
 
-    importlib.import_module("Code")
-except Exception:
-    # If this fails, UI.Home will still raise a useful import error.
-    pass
+# Make Streamlit treat UI/ as the app root, so it discovers UI/pages/.
+os.chdir(str(UI_DIR))
 
-# Execute `UI/Home.py` as the Streamlit script.
-# Keep this last so the path manipulation above is applied first.
-home_script = UI_DIR / "Home.py"
-if not home_script.exists():
-    raise FileNotFoundError(f"Expected Streamlit script at: {home_script}")
-
-code = home_script.read_text(encoding="utf-8")
-globals_dict = {
-    "__file__": str(home_script),
-    "__name__": "__main__",
-    "__package__": None,
-}
-exec(compile(code, str(home_script), "exec"), globals_dict)
+# Run UI/Home.py as __main__.
+runpy.run_path(str(UI_HOME), run_name="__main__")
