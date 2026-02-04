@@ -171,13 +171,18 @@ def render_technology_analysis_tab(use_1031_ssp=False):
         pass
 
 
-    # Check if base scenario data is available
-    if "technologies" not in st.session_state or "activities" not in st.session_state:
-        st.error("Base scenario data not available. Please upload the base scenario file first or select a project with base scenario data on the Home page.")
-        return
+    # Base scenario tables (Cloud defaults-only: may live in cache, not session_state).
+    technologies_df = st.session_state.get("technologies")
+    activities_df = st.session_state.get("activities")
+    if technologies_df is None or activities_df is None:
+        try:
+            technologies_df, activities_df = upload.get_default_base_scenario_tables(project)
+        except Exception:
+            technologies_df, activities_df = None, None
 
-    technologies_df = st.session_state.technologies
-    activities_df = st.session_state.activities
+    if technologies_df is None or activities_df is None:
+        st.error("Base scenario data not available for the selected project.")
+        return
 
     if technologies_df.empty or activities_df.empty:
         st.error("Technologies or Activities data is empty. Please check the base scenario file.")
@@ -331,9 +336,37 @@ def render_technology_analysis_tab(use_1031_ssp=False):
 
             # Get data based on selection to access parameter_lookup
             if input_selection == "LHS":
-                parameter_lookup = st.session_state.parameter_lookup_LATIN
+                df_raw = st.session_state.get("model_results_LATIN")
+                if df_raw is None:
+                    try:
+                        from Code.Dashboard import data_loading as _dl
+                        df_raw = _dl.get_default_model_results_filtered(project, "LHS")
+                    except Exception:
+                        df_raw = None
+
+                parameter_lookup = st.session_state.get("parameter_lookup_LATIN")
+                if parameter_lookup is None:
+                    try:
+                        from Code.Dashboard import data_loading as _dl
+                        parameter_lookup = _dl.get_default_parameter_lookup(project, "LHS")
+                    except Exception:
+                        parameter_lookup = None
             else:  # Morris
-                parameter_lookup = st.session_state.parameter_lookup_MORRIS
+                df_raw = st.session_state.get("model_results_MORRIS")
+                if df_raw is None:
+                    try:
+                        from Code.Dashboard import data_loading as _dl
+                        df_raw = _dl.get_default_model_results_filtered(project, "Morris")
+                    except Exception:
+                        df_raw = None
+
+                parameter_lookup = st.session_state.get("parameter_lookup_MORRIS")
+                if parameter_lookup is None:
+                    try:
+                        from Code.Dashboard import data_loading as _dl
+                        parameter_lookup = _dl.get_default_parameter_lookup(project, "Morris")
+                    except Exception:
+                        parameter_lookup = None
 
             if parameter_lookup is None:
                 st.error(f"No {input_selection} parameter data available. Please upload data first.")
@@ -361,11 +394,33 @@ def render_technology_analysis_tab(use_1031_ssp=False):
 
     # Get data based on selection
     if input_selection == "LHS":
-        df_raw = st.session_state.model_results_LATIN
-        parameter_lookup = st.session_state.parameter_lookup_LATIN
+        df_raw = st.session_state.get("model_results_LATIN")
+        if df_raw is None:
+            try:
+                df_raw = upload.get_default_model_results_filtered(project, "LHS")
+            except Exception:
+                df_raw = None
+
+        parameter_lookup = st.session_state.get("parameter_lookup_LATIN")
+        if parameter_lookup is None:
+            try:
+                parameter_lookup = upload.get_default_parameter_lookup(project, "LHS")
+            except Exception:
+                parameter_lookup = None
     else:  # Morris
-        df_raw = st.session_state.model_results_MORRIS
-        parameter_lookup = st.session_state.parameter_lookup_MORRIS
+        df_raw = st.session_state.get("model_results_MORRIS")
+        if df_raw is None:
+            try:
+                df_raw = upload.get_default_model_results_filtered(project, "Morris")
+            except Exception:
+                df_raw = None
+
+        parameter_lookup = st.session_state.get("parameter_lookup_MORRIS")
+        if parameter_lookup is None:
+            try:
+                parameter_lookup = upload.get_default_parameter_lookup(project, "Morris")
+            except Exception:
+                parameter_lookup = None
 
     if df_raw is None or parameter_lookup is None:
         st.error(f"No {input_selection} data available. Please upload data first.")

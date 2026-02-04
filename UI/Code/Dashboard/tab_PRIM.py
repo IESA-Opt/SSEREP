@@ -14,22 +14,6 @@ from Code.Dashboard.utils import prepare_results
 from Code.Dashboard.utils import apply_default_data_filter
 
 
-@st.cache_data(show_spinner=False)
-def _prepare_results_for_prim_cached(
-    project: str,
-    input_selection: str,
-    enable_filter: bool,
-    df_raw: pd.DataFrame,
-    parameter_lookup: pd.DataFrame,
-):
-    """Cache the wide per-variant dataframe for PRIM.
-
-    PRIM uses `prepare_results()` which can be expensive (pivot + merge).
-    Caching this makes revisiting the PRIM tab much faster.
-    """
-    return prepare_results(df_raw, parameter_lookup)
-
-
 def render(use_1031_ssp: bool = False):
     return render_prim_without_cart_tab(use_1031_ssp=use_1031_ssp)
 
@@ -67,20 +51,42 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
     # Get data based on selection.
     # If filter is enabled, prefer the precomputed filtered long results.
     if input_selection == "LHS":
-        df_raw = (
-            st.session_state.get("model_results_LATIN_filtered")
-            if enable_filter
-            else st.session_state.model_results_LATIN
-        )
-        parameter_lookup = st.session_state.parameter_lookup_LATIN
+        df_raw = st.session_state.get("model_results_LATIN_filtered")
+        if df_raw is None:
+            df_raw = st.session_state.get("model_results_LATIN")
+        if df_raw is None:
+            try:
+                project = str(st.session_state.get("project", "") or "")
+                df_raw = upload.get_default_model_results_filtered(project, "LHS")
+            except Exception:
+                df_raw = None
+
+            parameter_lookup = st.session_state.get("parameter_lookup_LATIN")
+            if parameter_lookup is None:
+                try:
+                    project = str(st.session_state.get("project", "") or "")
+                    parameter_lookup = upload.get_default_parameter_lookup(project, "LHS")
+                except Exception:
+                    parameter_lookup = None
         parameter_space = st.session_state.get('parameter_space_LATIN')
     else:
-        df_raw = (
-            st.session_state.get("model_results_MORRIS_filtered")
-            if enable_filter
-            else st.session_state.model_results_MORRIS
-        )
-        parameter_lookup = st.session_state.parameter_lookup_MORRIS
+        df_raw = st.session_state.get("model_results_MORRIS_filtered")
+        if df_raw is None:
+            df_raw = st.session_state.get("model_results_MORRIS")
+        if df_raw is None:
+            try:
+                project = str(st.session_state.get("project", "") or "")
+                df_raw = upload.get_default_model_results_filtered(project, "Morris")
+            except Exception:
+                df_raw = None
+
+            parameter_lookup = st.session_state.get("parameter_lookup_MORRIS")
+            if parameter_lookup is None:
+                try:
+                    project = str(st.session_state.get("project", "") or "")
+                    parameter_lookup = upload.get_default_parameter_lookup(project, "Morris")
+                except Exception:
+                    parameter_lookup = None
         parameter_space = st.session_state.get('parameter_space_MORRIS')
 
     # Check if data exists
@@ -90,19 +96,7 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
 
     # Prepare data
     try:
-        try:
-            from Code import Hardcoded_values as _HC
-            _project = str(st.session_state.get("project", getattr(_HC, "project", "")) or "")
-        except Exception:
-            _project = str(st.session_state.get("project", "") or "")
-
-        df, param_cols = _prepare_results_for_prim_cached(
-            project=_project,
-            input_selection=str(input_selection),
-            enable_filter=bool(enable_filter),
-            df_raw=df_raw,
-            parameter_lookup=parameter_lookup,
-        )
+        df, param_cols = prepare_results(df_raw, parameter_lookup)
     except Exception as e:
         st.error(f"Failed to prepare results: {e}")
         return

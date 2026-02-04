@@ -423,6 +423,56 @@ def ensure_defaults_loading_started() -> None:
     # Initialize diagnostics container early (so failures don’t KeyError).
     if "defaults_load_diag" not in st.session_state:
         st.session_state["defaults_load_diag"] = {}
+    else:
+        # New attempt: keep diagnostics focused on the *current* run.
+        try:
+            if isinstance(st.session_state.get("defaults_load_diag"), dict):
+                st.session_state["defaults_load_diag"]["events"] = []
+        except Exception:
+            pass
+
+    def _diag_event(step: str, extra: dict | None = None) -> None:
+        """Best-effort diagnostic event logger.
+
+        Keeps only tiny metadata (timestamps, RSS MB). Never stores DataFrames.
+        """
+        try:
+            import time as _time
+            import os as _os
+            rss_mb = None
+            try:
+                import psutil  # type: ignore
+
+                rss_mb = psutil.Process(_os.getpid()).memory_info().rss / (1024 * 1024)
+            except Exception:
+                rss_mb = None
+
+            ev = {
+                "t": float(_time.time()),
+                "step": str(step),
+                "rss_mb": (float(rss_mb) if rss_mb is not None else None),
+            }
+            if extra:
+                for k, v in extra.items():
+                    # Keep diagnostics JSON-serializable and small.
+                    if isinstance(v, (str, int, float, bool)) or v is None:
+                        ev[str(k)] = v
+            diag = st.session_state.get("defaults_load_diag")
+            if not isinstance(diag, dict):
+                diag = {}
+                st.session_state["defaults_load_diag"] = diag
+            events = diag.get("events")
+            if not isinstance(events, list):
+                events = []
+                diag["events"] = events
+            events.append(ev)
+            # Cap history to avoid unbounded growth.
+            if len(events) > 60:
+                del events[:-60]
+        except Exception:
+            return
+
+    _diag_event("start")
 
     # Mark loading before any heavy IO.
     st.session_state["defaults_loading"] = True
@@ -435,15 +485,37 @@ def ensure_defaults_loading_started() -> None:
 
             st.session_state["defaults_load_diag"]["phase"] = "reading_ppresults"
 
+            _diag_event("before_ppresults")
+
             # Memory-safety: load ONLY the filtered datasets from disk.
-            # Avoid even temporarily loading the unfiltered datasets, as the
-            # peak RAM during read/convert is often what kills Streamlit Cloud.
-            mr_morris_filtered = _read_ppresults_filtered_only(project, "Morris")
-            mr_latin_filtered = _read_ppresults_filtered_only(project, "LHS")
+            #
+            # IMPORTANT (Streamlit Cloud): do NOT place these large DataFrames into
+            # `st.session_state`. Storing large DataFrames in session_state can trigger
+            # serialization/copy spikes and crash the process.
+            #
+            # Instead, keep them in Streamlit's cache and let pages fetch them via
+            # `get_default_model_results_filtered()`.
+            mr_morris_filtered = get_default_model_results_filtered(project, "Morris")
+            _diag_event(
+                "after_ppresults_morris",
+                {
+                    "rows": int(getattr(mr_morris_filtered, "shape", (0, 0))[0] or 0),
+                    "cols": int(getattr(mr_morris_filtered, "shape", (0, 0))[1] or 0),
+                },
+            )
+            mr_latin_filtered = get_default_model_results_filtered(project, "LHS")
+            _diag_event(
+                "after_ppresults_lhs",
+                {
+                    "rows": int(getattr(mr_latin_filtered, "shape", (0, 0))[0] or 0),
+                    "cols": int(getattr(mr_latin_filtered, "shape", (0, 0))[1] or 0),
+                },
+            )
 
             # Memory optimization: compress repeated string columns.
-            mr_latin_filtered = _optimize_df_memory_categories(mr_latin_filtered, label="LHS")
-            mr_morris_filtered = _optimize_df_memory_categories(mr_morris_filtered, label="Morris")
+            # Category optimization happens inside the cached getter.
+            _diag_event("after_optimize_lhs")
+            _diag_event("after_optimize_morris")
 
             # Backward compatibility: `model_results_*` points to the filtered DF.
             mr_morris = mr_morris_filtered
@@ -455,82 +527,29 @@ def ensure_defaults_loading_started() -> None:
                     f"UI/data/Generated_data/PPResults/{project}/LHS (Model_Results*_filtered.*)."
                 )
 
-            # Parameters + scenario tables (still loaded from the existing locations)
-            par_morris = pd.read_excel(helpers.get_path(Hardcoded_values.parameter_sample_file, sample="Morris"))
-            par_latin = pd.read_excel(helpers.get_path(Hardcoded_values.parameter_sample_file, sample="LHS"))
-            try:
-                par_morris_space = pd.read_excel(
-                    helpers.get_path(Hardcoded_values.parameter_space_file, sample="Morris"),
-                    sheet_name="Parameter Space",
-                )
-            except Exception:
-                par_morris_space = pd.DataFrame()
-            try:
-                par_latin_space = pd.read_excel(
-                    helpers.get_path(Hardcoded_values.parameter_space_file, sample="LHS"),
-                    sheet_name="Parameter Space",
-                )
-            except Exception:
-                par_latin_space = pd.DataFrame()
+            # Parameters + scenario tables
+            _diag_event("before_excel")
+            # Read via cached getters so we don't store these in session_state.
+            par_morris = get_default_parameter_lookup(project, "Morris")
+            par_latin = get_default_parameter_lookup(project, "LHS")
+            par_morris_space = get_default_parameter_space(project, "Morris")
+            par_latin_space = get_default_parameter_space(project, "LHS")
+            tech, activities = get_default_base_scenario_tables(project)
+            _diag_event("after_excel")
 
-            tech = pd.read_excel(
-                helpers.get_path(Hardcoded_values.base_scenario_file), sheet_name="Technologies", skiprows=2
-            )
-            activities = pd.read_excel(
-                helpers.get_path(Hardcoded_values.base_scenario_file), sheet_name="Activities", skiprows=6
-            )
-
-            # GSA results: keep existing discovery logic via the full defaults reader (small files).
-            try:
-                (
-                    _mr_m,
-                    _mr_l,
-                    _mr_m_f,
-                    _mr_l_f,
-                    _par_m,
-                    _par_m_space,
-                    _par_l,
-                    _par_l_space,
-                    _tech,
-                    _act,
-                    gsa_morris,
-                    gsa_latin_morris,
-                    gsa_delta_morris,
-                    gsa_delta_latin,
-                    available_delta_sizes,
-                ) = _read_default_files(project)
-            except Exception:
-                gsa_morris = pd.DataFrame()
-                gsa_latin_morris = pd.DataFrame()
-                gsa_delta_morris = pd.DataFrame()
-                gsa_delta_latin = pd.DataFrame()
-                available_delta_sizes = []
+            # Cloud defaults-only: do NOT load/store GSA results here.
+            # Tabs that need GSA should call `get_default_gsa_results(project)`.
 
             st.session_state["defaults_load_diag"]["phase"] = "storing_session_state"
+            _diag_event("before_session_store")
 
-            # Store only filtered datasets. Keep both keys populated to avoid breaking
-            # older code paths, but don't keep duplicate copies in RAM.
-            st.session_state.model_results_MORRIS_filtered = mr_morris_filtered
-            st.session_state.model_results_LATIN_filtered = mr_latin_filtered
-            st.session_state.model_results_MORRIS = mr_morris_filtered
-            st.session_state.model_results_LATIN = mr_latin_filtered
-
-            st.session_state.parameter_lookup_MORRIS = par_morris
-            st.session_state.parameter_space_MORRIS = par_morris_space
-            st.session_state.parameter_lookup_LATIN = par_latin
-            st.session_state.parameter_space_LATIN = par_latin_space
-            st.session_state.technologies = tech
-            st.session_state.activities = activities
-
-            st.session_state.gsa_morris_MORRIS = gsa_morris
-            st.session_state.gsa_morris_LATIN = gsa_latin_morris
-            st.session_state.gsa_delta_MORRIS = gsa_delta_morris
-            st.session_state.gsa_delta_LATIN = gsa_delta_latin
-            st.session_state.available_delta_sizes = available_delta_sizes
-
+            # Store only small flags.
             st.session_state.defaults_loaded = True
             st.session_state.defaults_project = project
+
+            _diag_event("after_session_store")
             st.session_state["defaults_load_diag"]["phase"] = "done"
+            _diag_event("done")
     except Exception as e:
         # Best-effort: detect memory pressure and present a clear message.
         _raw = f"{type(e).__name__}: {e}"
@@ -552,6 +571,7 @@ def ensure_defaults_loading_started() -> None:
         try:
             st.session_state["defaults_load_diag"]["phase"] = "failed"
             st.session_state["defaults_load_diag"]["exception"] = _msg
+            _diag_event("failed", {"exception": _msg})
         except Exception:
             pass
         # Don't re-raise: crashing here kills the Streamlit process and causes
@@ -564,6 +584,109 @@ def ensure_defaults_loading_started() -> None:
 def ensure_full_data_loaded() -> None:
     """Deprecated: kept for compatibility; defaults loader already loads PPResults."""
     ensure_defaults_loading_started()
+
+
+@st.cache_data(show_spinner=False)
+def get_default_model_results_filtered(project: str, sample: str):
+    """Return the default *filtered* PPResults DataFrame.
+
+    Cloud-safety:
+    - Returned via Streamlit cache (not session_state) to avoid session_state
+      serialization spikes.
+    - Includes category dtype optimization to reduce RAM.
+
+    Args:
+        project: Project name (part of cache key).
+        sample: "Morris" or "LHS".
+    """
+    df = _read_ppresults_filtered_only(project, sample)
+    df = _optimize_df_memory_categories(df, label=str(sample))
+    return df
+
+
+@st.cache_data(show_spinner=False)
+def get_default_parameter_lookup(project: str, sample: str) -> pd.DataFrame:
+    """Return the default parameter sample table for the given sample."""
+    try:
+        Hardcoded_values.project = project
+    except Exception:
+        pass
+    return pd.read_excel(helpers.get_path(Hardcoded_values.parameter_sample_file, sample=sample))
+
+
+@st.cache_data(show_spinner=False)
+def get_default_parameter_space(project: str, sample: str) -> pd.DataFrame:
+    """Return the default parameter space bounds table (may be empty)."""
+    try:
+        Hardcoded_values.project = project
+    except Exception:
+        pass
+    try:
+        return pd.read_excel(
+            helpers.get_path(Hardcoded_values.parameter_space_file, sample=sample),
+            sheet_name="Parameter Space",
+        )
+    except Exception:
+        return pd.DataFrame()
+
+
+@st.cache_data(show_spinner=False)
+def get_default_base_scenario_tables(project: str):
+    """Return (technologies_df, activities_df) from the base scenario file."""
+    try:
+        Hardcoded_values.project = project
+    except Exception:
+        pass
+    tech = pd.read_excel(
+        helpers.get_path(Hardcoded_values.base_scenario_file),
+        sheet_name="Technologies",
+        skiprows=2,
+    )
+    activities = pd.read_excel(
+        helpers.get_path(Hardcoded_values.base_scenario_file),
+        sheet_name="Activities",
+        skiprows=6,
+    )
+    return tech, activities
+
+
+@st.cache_data(show_spinner=False)
+def get_default_gsa_results(project: str):
+    """Return cached GSA results tuples.
+
+    Returns:
+        (gsa_morris, gsa_latin_morris, gsa_delta_morris, gsa_delta_latin, available_delta_sizes)
+    """
+    try:
+        Hardcoded_values.project = project
+    except Exception:
+        pass
+    try:
+        (
+            _mr_m,
+            _mr_l,
+            _mr_m_f,
+            _mr_l_f,
+            _par_m,
+            _par_m_space,
+            _par_l,
+            _par_l_space,
+            _tech,
+            _act,
+            gsa_morris,
+            gsa_latin_morris,
+            gsa_delta_morris,
+            gsa_delta_latin,
+            available_delta_sizes,
+        ) = _read_default_files(project)
+    except Exception:
+        import pandas as _pd
+        gsa_morris = _pd.DataFrame()
+        gsa_latin_morris = _pd.DataFrame()
+        gsa_delta_morris = _pd.DataFrame()
+        gsa_delta_latin = _pd.DataFrame()
+        available_delta_sizes = []
+    return gsa_morris, gsa_latin_morris, gsa_delta_morris, gsa_delta_latin, available_delta_sizes
 
 
 def require_defaults_ready(message: str = "Loading datasets…") -> None:
@@ -869,62 +992,12 @@ def _init_defaults() -> None:
                         del st.session_state[k]
                 except Exception:
                     pass
-        (
-            mr_morris,
-            mr_latin,
-            mr_morris_filtered,
-            mr_latin_filtered,
-            par_morris,
-            par_morris_space,
-            par_latin,
-            par_latin_space,
-            tech,
-            activities,
-            gsa_morris,
-            gsa_latin_morris,
-            gsa_delta_morris,
-            gsa_delta_latin,
-            available_delta_sizes,
-        ) = _read_default_files(current_project)
-        # Only set values we don't already have (unless project changed and we cleared).
-        if "model_results_MORRIS" not in st.session_state:
-            st.session_state.model_results_MORRIS = mr_morris
-        if "model_results_LATIN" not in st.session_state:
-            st.session_state.model_results_LATIN = mr_latin
-
-        # Precomputed filtered results (same long schema as unfiltered).
-        # Pages can use these when the Data Filter toggle is enabled.
-        if "model_results_MORRIS_filtered" not in st.session_state:
-            st.session_state.model_results_MORRIS_filtered = mr_morris_filtered
-        if "model_results_LATIN_filtered" not in st.session_state:
-            st.session_state.model_results_LATIN_filtered = mr_latin_filtered
-
-        if "parameter_lookup_MORRIS" not in st.session_state:
-            st.session_state.parameter_lookup_MORRIS = par_morris
-        if "parameter_space_MORRIS" not in st.session_state:
-            st.session_state.parameter_space_MORRIS = par_morris_space
-        if "parameter_lookup_LATIN" not in st.session_state:
-            st.session_state.parameter_lookup_LATIN = par_latin
-        if "parameter_space_LATIN" not in st.session_state:
-            st.session_state.parameter_space_LATIN = par_latin_space
-
-        if "technologies" not in st.session_state:
-            st.session_state.technologies = tech
-        if "activities" not in st.session_state:
-            st.session_state.activities = activities
-
-        if "gsa_morris_MORRIS" not in st.session_state:
-            st.session_state.gsa_morris_MORRIS = gsa_morris
-        if "gsa_morris_LATIN" not in st.session_state:
-            st.session_state.gsa_morris_LATIN = gsa_latin_morris
-        if "gsa_delta_MORRIS" not in st.session_state:
-            st.session_state.gsa_delta_MORRIS = gsa_delta_morris
-        if "gsa_delta_LATIN" not in st.session_state:
-            st.session_state.gsa_delta_LATIN = gsa_delta_latin
-        st.session_state.available_delta_sizes   = available_delta_sizes
-        # Mark defaults loaded so other pages (e.g., Home) can skip re-loading UI
-        st.session_state.defaults_loaded = True
-        st.session_state.defaults_project = current_project
+    # Cloud defaults-only UX:
+    # Keep default dataframes in Streamlit cache (see cached getters above).
+    # Do NOT mirror large DataFrames into session_state.
+    # Mark defaults loaded so other pages (e.g., Home) can skip re-loading.
+    st.session_state.defaults_loaded = True
+    st.session_state.defaults_project = current_project
 
 # ────────────────────────────────────────────────────────────────────
 # Helper to paginate big dataframes

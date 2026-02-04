@@ -16,256 +16,6 @@ from Code.Dashboard.utils import apply_default_data_filter
 from Code.Dashboard.utils import fix_display_name_capitalization
 
 
-@st.cache_data(show_spinner=False)
-def _build_histogram_fig_cached(
-    # Cache key inputs
-    project: str,
-    input_selection: str,
-    enable_filter: bool,
-    selected_display_names: tuple[str, ...],
-    n_bins: int,
-    color_column: str | None,
-    combine_weather: bool,
-    group_by_weather: bool,
-    # Data inputs
-    df_plot: pd.DataFrame,
-    base_colors: list,
-    category_orders: dict,
-):
-    """Build the (potentially expensive) histogram subplot Figure.
-
-    Streamlit still re-renders the page, but caching the figure prevents spending
-    CPU time on rebuilding traces and annotations when the user revisits the tab.
-    """
-
-    from plotly.subplots import make_subplots
-    import re
-
-    def get_extreme_colors(colors, n_colors):
-        if n_colors <= 2:
-            return [colors[0], colors[-1]]
-        # Evenly sample across the palette.
-        idx = np.linspace(0, len(colors) - 1, n_colors).astype(int)
-        return [colors[i] for i in idx]
-
-    def clean_column_name(display_name):
-        cleaned = str(display_name)
-        # Same cleanups as the main function (kept local for cache determinism)
-        prefixes_to_remove = [
-            'Electricity capacity_Carrier_sum ',
-            'Electricity generation_Carrier_sum ',
-            'Capacity ' ,
-            'Generation ',
-        ]
-        for prefix in prefixes_to_remove:
-            cleaned = cleaned.replace(prefix, '')
-        suffixes_to_remove = [' 2050', '2050']
-        for suffix in suffixes_to_remove:
-            cleaned = cleaned.replace(suffix, '')
-        cleaned = cleaned.replace('Electricity Import from EU - Power NL', 'E-Imports')
-        cleaned = cleaned.replace('Electricity Export to EU', 'E-Exports')
-        cleaned = cleaned.replace('Battery Storage Daily - Power NL', 'Daily Battery')
-        cleaned = cleaned.replace('Battery Storage Weekly - Power NL', 'Weekly Battery')
-        if 'totalCosts' in cleaned.lower():
-            cleaned = 'System Costs'
-        return cleaned
-
-    # Titles
-    selected_plot_labels = [clean_column_name(name) for name in selected_display_names]
-    n_outcomes = len(selected_plot_labels)
-    if n_outcomes <= 0:
-        return None
-    if n_outcomes == 1:
-        rows, cols = 1, 1
-    elif n_outcomes == 2:
-        rows, cols = 1, 2
-    elif n_outcomes == 3:
-        rows, cols = 1, 3
-    elif n_outcomes == 4:
-        rows, cols = 1, 4
-    else:
-        cols = 4
-        rows = int(np.ceil(n_outcomes / cols))
-
-    fig = make_subplots(
-        rows=rows,
-        cols=cols,
-        subplot_titles=[""] * n_outcomes,
-        vertical_spacing=0.08,
-        horizontal_spacing=0.04,
-    )
-
-    # Colors
-    if color_column:
-        unique_groups = category_orders.get(color_column, df_plot[color_column].unique())
-        extreme_colors = get_extreme_colors(base_colors, len(unique_groups))
-
-    for i, (display_name, plot_label) in enumerate(zip(selected_display_names, selected_plot_labels)):
-        row = (i // cols) + 1
-        col = (i % cols) + 1
-        outcome_data = df_plot[df_plot['display_name'] == display_name]
-        if outcome_data.empty:
-            continue
-
-        data_range = outcome_data['value'].max() - outcome_data['value'].min()
-        bin_edges = np.linspace(outcome_data['value'].min(), outcome_data['value'].max(), n_bins + 1) if data_range > 0 else None
-
-        if color_column:
-            is_combined_weather = color_column == 'Weather_Group' and (
-                'Average Weather Year' in outcome_data[color_column].unique() or
-                'Extreme Weather Year' in outcome_data[color_column].unique()
-            )
-
-            for j, group in enumerate(category_orders.get(color_column, outcome_data[color_column].unique())):
-                group_data = outcome_data[outcome_data[color_column] == group]
-                if group_data.empty:
-                    continue
-                color = extreme_colors[j % len(extreme_colors)]
-
-                if is_combined_weather and combine_weather:
-                    if bin_edges is not None:
-                        hist_counts, _ = np.histogram(group_data['value'], bins=bin_edges)
-                        total_count = len(group_data)
-                        if total_count > 0:
-                            hist_counts = hist_counts / total_count
-                        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
-                        fig.add_bar(
-                            x=bin_centers,
-                            y=hist_counts,
-                            name=group,
-                            width=(bin_edges[1] - bin_edges[0]) * 0.9,
-                            opacity=0.5,
-                            marker_color=color,
-                            marker_line=dict(width=0.5, color='white'),
-                            legendgroup=group,
-                            showlegend=i == 0,
-                            row=row,
-                            col=col,
-                        )
-                    else:
-                        fig.add_histogram(
-                            x=group_data['value'],
-                            name=group,
-                            opacity=0.5,
-                            marker_color=color,
-                            marker_line=dict(width=0.5, color='white'),
-                            legendgroup=group,
-                            showlegend=i == 0,
-                            histnorm='probability density',
-                            row=row,
-                            col=col,
-                        )
-                else:
-                    fig.add_histogram(
-                        x=group_data['value'],
-                        name=group,
-                        xbins=dict(start=bin_edges[0], end=bin_edges[-1], size=(bin_edges[1] - bin_edges[0])) if bin_edges is not None else None,
-                        opacity=0.5,
-                        marker_color=color,
-                        marker_line=dict(width=0.5, color='white'),
-                        legendgroup=group,
-                        showlegend=i == 0,
-                        row=row,
-                        col=col,
-                    )
-        else:
-            fig.add_histogram(
-                x=outcome_data['value'],
-                name=display_name,
-                xbins=dict(start=bin_edges[0], end=bin_edges[-1], size=(bin_edges[1] - bin_edges[0])) if bin_edges is not None else None,
-                opacity=0.5,
-                marker_line=dict(width=0.5, color='white'),
-                showlegend=False,
-                row=row,
-                col=col,
-            )
-
-    subplot_height = 180
-    fig.update_layout(
-        height=subplot_height * rows + 100,
-        showlegend=bool(color_column),
-        legend=dict(
-            orientation="h",
-            yanchor="middle",
-            y=-0.1,
-            xanchor="center",
-            x=0.5,
-            font=dict(size=11, family='Arial, sans-serif'),
-            bordercolor='lightgray',
-            borderwidth=1,
-        ) if color_column else None,
-        hovermode='closest',
-        font=dict(size=10, family='Arial, sans-serif'),
-        plot_bgcolor='white',
-        paper_bgcolor='white',
-        margin=dict(l=20, r=20, t=30, b=70),
-        barmode='overlay' if color_column else 'relative',
-    )
-
-    for ax_i in range(1, rows * cols + 1):
-        current_row = (ax_i - 1) // cols + 1
-        current_col = (ax_i - 1) % cols + 1
-        fig.update_xaxes(
-            title_text="",
-            tickfont=dict(size=10, family='Arial, sans-serif'),
-            showticklabels=True,
-            showline=True,
-            linewidth=0.8,
-            linecolor='black',
-            showgrid=False,
-            mirror=True,
-            row=current_row,
-            col=current_col,
-        )
-        fig.update_yaxes(
-            title_text="",
-            tickfont=dict(size=10, family='Arial, sans-serif'),
-            showticklabels=True,
-            showline=True,
-            linewidth=0.8,
-            linecolor='black',
-            showgrid=False,
-            mirror=True,
-            row=current_row,
-            col=current_col,
-        )
-
-    # Titles (without units to keep cache inputs small; units are computed at render time)
-    for i, plot_label in enumerate(selected_plot_labels):
-        fig.add_annotation(
-            text=plot_label,
-            xref=f"x{i+1 if i > 0 else ''} domain",
-            yref=f"y{i+1 if i > 0 else ''} domain",
-            x=0.5,
-            y=0.97,
-            xanchor='center',
-            yanchor='bottom',
-            showarrow=False,
-            font=dict(size=11, family='Arial, sans-serif', color='black'),
-            bgcolor='rgba(255, 255, 255, 0.9)',
-            bordercolor='lightgray',
-            borderwidth=1,
-            borderpad=2,
-        )
-
-    is_combined_weather = (color_column == 'Weather_Group' and combine_weather and group_by_weather)
-    y_label = "Probability Density" if is_combined_weather else "Frequency"
-    fig.add_annotation(
-        text=y_label,
-        xref="paper",
-        yref="paper",
-        x=-0.05,
-        y=0.5,
-        xanchor='center',
-        yanchor='middle',
-        showarrow=False,
-        font=dict(size=16, family='Arial, sans-serif', color='black', weight='bold'),
-        textangle=-90,
-    )
-
-    return fig
-
-
 # Ensure the Histogram page can use the full browser width.
 # (If the app sets this elsewhere, Streamlit will raise; we ignore in that case.)
 try:
@@ -310,13 +60,40 @@ def render_histogram_analysis_tab(use_1031_ssp=False):
     # Streamlit's warning when the widget is also created with a `value=`.
     enable_filter = bool(st.session_state.get("histogram_enable_filter", True))
 
-    # Get data based on selection
+    # Get data based on selection.
+    # Cloud safety: defaults loader may keep large frames in cache (not session_state).
     if input_selection == "LHS":
-        df_raw = st.session_state.model_results_LATIN
-        parameter_lookup = st.session_state.parameter_lookup_LATIN
+        df_raw = st.session_state.get("model_results_LATIN")
+        if df_raw is None:
+            try:
+                from Code.Dashboard import data_loading as _dl
+                project = str(st.session_state.get("project", "") or "")
+                df_raw = _dl.get_default_model_results_filtered(project, "LHS")
+            except Exception:
+                df_raw = None
+        parameter_lookup = st.session_state.get("parameter_lookup_LATIN")
+        if parameter_lookup is None:
+            try:
+                from Code.Dashboard import data_loading as _dl
+                parameter_lookup = _dl.get_default_parameter_lookup(project, "LHS")
+            except Exception:
+                parameter_lookup = None
     else:
-        df_raw = st.session_state.model_results_MORRIS
-        parameter_lookup = st.session_state.parameter_lookup_MORRIS
+        df_raw = st.session_state.get("model_results_MORRIS")
+        if df_raw is None:
+            try:
+                from Code.Dashboard import data_loading as _dl
+                project = str(st.session_state.get("project", "") or "")
+                df_raw = _dl.get_default_model_results_filtered(project, "Morris")
+            except Exception:
+                df_raw = None
+        parameter_lookup = st.session_state.get("parameter_lookup_MORRIS")
+        if parameter_lookup is None:
+            try:
+                from Code.Dashboard import data_loading as _dl
+                parameter_lookup = _dl.get_default_parameter_lookup(project, "Morris")
+            except Exception:
+                parameter_lookup = None
 
     # Guard: if the raw data is empty, show error
     if df_raw is None or getattr(df_raw, 'shape', (0, 0))[0] == 0:
@@ -922,30 +699,257 @@ def render_histogram_analysis_tab(use_1031_ssp=False):
                 else:
                     pass  # UI message removed to avoid clutter.
 
-        # Build the expensive subplot Figure via cache.
-        try:
-            from Code import Hardcoded_values as _HC
-            _project = str(st.session_state.get("project", getattr(_HC, "project", "")) or "")
-        except Exception:
-            _project = str(st.session_state.get("project", "") or "")
+        # Create subplots with professional styling
+        from plotly.subplots import make_subplots
 
-        fig = _build_histogram_fig_cached(
-            project=_project,
-            input_selection=str(input_selection),
-            enable_filter=bool(enable_filter),
-            selected_display_names=tuple(selected_display_names),
-            n_bins=int(n_bins),
-            color_column=str(color_column) if color_column else None,
-            combine_weather=bool(combine_weather),
-            group_by_weather=bool(group_by_weather),
-            df_plot=df_plot,
-            base_colors=base_colors,
-            category_orders=category_orders,
+        fig = make_subplots(
+            rows=rows,
+            cols=cols,
+            subplot_titles=[""] * n_outcomes,  # Empty titles, we'll add custom annotations
+            vertical_spacing=0.08,  # Increased vertical spacing
+            horizontal_spacing=0.04  # Reduced horizontal spacing between columns
         )
 
-        if fig is None:
-            st.warning("No data available for the selected histogram outcomes.")
-            return
+        # Color setup - use selected palette colors for all groupings
+        color_discrete_map = None
+
+        # Determine number of groups and get extreme colors
+        if color_column:
+            unique_groups = category_orders.get(color_column, df_plot[color_column].unique())
+            n_groups = len(unique_groups)
+            extreme_colors = get_extreme_colors(base_colors, n_groups)
+
+        # Create histogram for each outcome
+        for i, (display_name, plot_label) in enumerate(zip(selected_display_names, selected_plot_labels)):
+            row = (i // cols) + 1
+            col = (i % cols) + 1
+
+            # Filter data for this specific outcome (using original display_name)
+            outcome_data = df_plot[df_plot['display_name'] == display_name]
+
+            if outcome_data.empty:
+                continue
+
+            # Calculate consistent bin edges for this outcome across all groups
+            data_range = outcome_data['value'].max() - outcome_data['value'].min()
+            if data_range > 0:
+                bin_edges = np.linspace(outcome_data['value'].min(), outcome_data['value'].max(), n_bins + 1)
+            else:
+                bin_edges = None
+
+            if color_column:
+                # Check if we're using combined weather years for normalization
+                is_combined_weather = color_column == 'Weather_Group' and (
+                    'Average Weather Year' in outcome_data[color_column].unique() or
+                    'Extreme Weather Year' in outcome_data[color_column].unique()
+                )
+
+                # Create grouped histogram with consistent bins
+                for j, group in enumerate(category_orders.get(color_column, outcome_data[color_column].unique())):
+                    group_data = outcome_data[outcome_data[color_column] == group]
+                    if group_data.empty:
+                        continue
+
+                    # Use extreme colors from the selected palette
+                    color = extreme_colors[j % len(extreme_colors)]
+
+                    if is_combined_weather and combine_weather:
+                        # For combined weather years, normalize to probability density for fair comparison
+                        if bin_edges is not None:
+                            hist_counts, _ = np.histogram(group_data['value'], bins=bin_edges)
+                            # Normalize by total count to get probability density
+                            total_count = len(group_data)
+                            if total_count > 0:
+                                hist_counts = hist_counts / total_count
+
+                            # Calculate bin centers for plotting
+                            bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+                            # Add as a bar trace instead of histogram
+                            fig.add_bar(
+                                x=bin_centers,
+                                y=hist_counts,
+                                name=group,
+                                width=(bin_edges[1] - bin_edges[0]) * 0.9,  # Slight gap between bars
+                                opacity=0.5,
+                                marker_color=color,
+                                marker_line=dict(width=0.5, color='white'),
+                                legendgroup=group,
+                                showlegend=i == 0,
+                                row=row,
+                                col=col
+                            )
+                        else:
+                            # Fallback to regular histogram with normalization
+                            fig.add_histogram(
+                                x=group_data['value'],
+                                name=group,
+                                opacity=0.5,
+                                marker_color=color,
+                                marker_line=dict(width=0.5, color='white'),
+                                legendgroup=group,
+                                showlegend=i == 0,
+                                histnorm='probability density',  # Normalize to probability density
+                                row=row,
+                                col=col
+                            )
+                    else:
+                        # Regular histogram for Average or non-combined data
+                        fig.add_histogram(
+                            x=group_data['value'],
+                            name=group,
+                            xbins=dict(start=bin_edges[0], end=bin_edges[-1], size=(bin_edges[1] - bin_edges[0])) if bin_edges is not None else None,
+                            opacity=0.5,
+                            marker_color=color,
+                            marker_line=dict(width=0.5, color='white'),  # Add border for clarity
+                            legendgroup=group,
+                            showlegend=i == 0,  # Only show legend for first subplot
+                            row=row,
+                            col=col
+                        )
+            else:
+                # Single histogram with consistent bins
+                fig.add_histogram(
+                    x=outcome_data['value'],
+                    name=display_name,
+                    xbins=dict(start=bin_edges[0], end=bin_edges[-1], size=(bin_edges[1] - bin_edges[0])) if bin_edges is not None else None,
+                    opacity=0.5,
+                    marker_color=colors[i % len(colors)],
+                    marker_line=dict(width=0.5, color='white'),  # Add border for clarity
+                    showlegend=False,
+                    row=row,
+                    col=col
+                )
+
+        # Professional layout styling - let Streamlit control the width.
+        subplot_height = 180
+
+        fig.update_layout(
+            height=subplot_height * rows + 100,  # Add padding for labels
+            showlegend=bool(color_column),
+            legend=dict(
+                orientation="h",
+                yanchor="middle",
+                y=-0.1,
+                xanchor="center",
+                x=0.5,  # Increased distance from subplots
+                font=dict(size=11, family='Arial, sans-serif'),
+                bordercolor='lightgray',
+                borderwidth=1
+            ) if color_column else None,
+            hovermode='closest',
+            font=dict(size=10, family='Arial, sans-serif'),
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            margin=dict(l=20, r=20, t=30, b=70),
+            barmode='overlay' if color_column else 'relative'
+        )
+
+        # Update all x and y axes with professional styling
+        # Show x-axis tick marks on all subplots, y-axis labels on all subplots
+        for i in range(1, rows * cols + 1):
+            current_row = (i - 1) // cols + 1
+            current_col = (i - 1) % cols + 1
+            is_bottom_row = current_row == rows
+            is_left_col = current_col == 1
+
+            fig.update_xaxes(
+                title_text="",  # No individual x-axis labels
+                tickfont=dict(size=10, family='Arial, sans-serif'),
+                showticklabels=True,  # Show x-axis tick labels on all subplots
+                showline=True,
+                linewidth=0.8,
+                linecolor='black',
+                showgrid=False,  # Remove grid lines
+                mirror=True,
+                row=current_row,
+                col=current_col
+            )
+            fig.update_yaxes(
+                title_text="",  # No individual y-axis labels
+                tickfont=dict(size=10, family='Arial, sans-serif'),
+                showticklabels=True,  # Show tick labels on all subplots for independent scaling
+                showline=True,
+                linewidth=0.8,
+                linecolor='black',
+                showgrid=False,  # Remove grid lines
+                mirror=True,
+                row=current_row,
+                col=current_col
+            )
+
+        # Add subplot titles at the top of each plot (GSA scatter plot style)
+        for i, plot_label in enumerate(selected_plot_labels):
+            current_row = (i // cols) + 1
+            current_col = (i % cols) + 1
+
+            # Use the short label directly (already shortened)
+            subplot_title = plot_label
+
+            # Check if the plot_label already contains units in brackets
+            import re
+            has_units_in_brackets = bool(re.search(r'\[.*\]', subplot_title))
+
+            # If no units in the title, try to get units using the same function as other plots
+            if not has_units_in_brackets:
+                display_name = selected_display_names[i]  # Get original display name
+                unit = get_unit_for_column(display_name, None, selected_display_names, df_raw)
+
+                # Fix-up: CO2 price units are commonly rendered incorrectly.
+                # We want: "[€ / Mton CO2]".
+                if isinstance(display_name, str) and "co2" in display_name.lower() and "price" in display_name.lower():
+                    unit = "[€ / Mton CO2]"
+
+                # Ensure units are formatted consistently: bracketed like "[PJ]", "[GW]", etc.
+                if unit and not re.search(r"^\s*\[.*\]\s*$", str(unit)):
+                    unit = f"[{str(unit).strip()}]"
+
+                # Add unit to title if available
+                if unit:
+                    title_text = f"{subplot_title} {unit}"
+                else:
+                    title_text = subplot_title
+            else:
+                # Use the plot_label as-is since it already contains units
+                title_text = subplot_title
+
+            # Add text annotation at the top center of each subplot (GSA style)
+            fig.add_annotation(
+                text=title_text,
+                xref=f"x{i+1 if i > 0 else ''} domain",
+                yref=f"y{i+1 if i > 0 else ''} domain",
+                x=0.5,  # Center horizontally
+                y=0.97,  # Near top of plot area
+                xanchor='center',  # Center horizontally
+                yanchor='bottom',
+                showarrow=False,
+                font=dict(size=11, family='Arial, sans-serif', color='black'),
+                bgcolor='rgba(255, 255, 255, 0.9)',  # White background for better readability
+                bordercolor='lightgray',  # Light border
+                borderwidth=1,
+                borderpad=2
+            )
+
+        # Add shared y-axis label on the left side (closer to plots)
+        # Check if we're using combined weather years for the label
+        is_combined_weather = (color_column == 'Weather_Group' and
+                              combine_weather and
+                              group_by_weather)
+
+        y_label = "Probability Density" if is_combined_weather else "Frequency"
+
+        fig.add_annotation(
+            text=y_label,
+            xref="paper",
+            yref="paper",
+            x=-0.05,
+            y=0.5,
+            xanchor='center',
+            yanchor='middle',
+            showarrow=False,
+            font=dict(size=16, family='Arial, sans-serif', color='black', weight='bold'),
+            textangle=-90  # Rotate 90 degrees counter-clockwise
+        )
 
         # Display the plot using the full available column width.
         st.plotly_chart(

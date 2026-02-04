@@ -126,6 +126,23 @@ else:
 	err = str(st.session_state.get("defaults_load_error", "") or "")
 	if err:
 		st.error(f"Default data failed to load: {err}")
+
+
+# Optional: show tiny, Cloud-safe loader diagnostics (RSS checkpoints) to help
+# debug Streamlit Cloud memory collapses.
+with st.expander("Loading diagnostics", expanded=False):
+	diag = st.session_state.get("defaults_load_diag")
+	if not isinstance(diag, dict):
+		st.caption("No diagnostics captured yet.")
+	else:
+		events = diag.get("events")
+		if not isinstance(events, list) or len(events) == 0:
+			st.caption("No events captured yet.")
+		else:
+			import pandas as _pd
+			df_ev = _pd.DataFrame(events)
+			st.dataframe(df_ev.tail(30), use_container_width=True, hide_index=True)
+
 # Now that the Home page is fully rendered, trigger defaults loading.
 if not _defaults_loaded and _dl is not None:
 	try:

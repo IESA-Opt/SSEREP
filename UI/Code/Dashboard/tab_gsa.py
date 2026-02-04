@@ -1032,8 +1032,39 @@ def render():
         return st.session_state[key]
 
     results_full = get_or_init("results_prepared", pd.DataFrame())
-    parameter_space = get_or_init("parameter_space_MORRIS", pd.DataFrame())
-    parameter_lookup = get_or_init("parameter_lookup_MORRIS", pd.DataFrame())
+
+    # Cloud defaults-only: the loader may keep default tables in cache rather than
+    # session_state. Prefer session_state if present, otherwise fetch via cached getters.
+    try:
+        from Code.Dashboard import data_loading as _dl
+        try:
+            from Code import Hardcoded_values as _HC
+            _project = str(st.session_state.get("project", getattr(_HC, "project", "")) or "")
+        except Exception:
+            _project = str(st.session_state.get("project", "") or "")
+    except Exception:
+        _dl = None
+        _project = str(st.session_state.get("project", "") or "")
+
+    parameter_space = st.session_state.get("parameter_space_MORRIS")
+    if parameter_space is None or getattr(parameter_space, "empty", True):
+        if _dl is not None:
+            try:
+                parameter_space = _dl.get_default_parameter_space(_project, "Morris")
+            except Exception:
+                parameter_space = pd.DataFrame()
+        else:
+            parameter_space = pd.DataFrame()
+
+    parameter_lookup = st.session_state.get("parameter_lookup_MORRIS")
+    if parameter_lookup is None or getattr(parameter_lookup, "empty", True):
+        if _dl is not None:
+            try:
+                parameter_lookup = _dl.get_default_parameter_lookup(_project, "Morris")
+            except Exception:
+                parameter_lookup = pd.DataFrame()
+        else:
+            parameter_lookup = pd.DataFrame()
     gsa_df = st.session_state.get("gsa", pd.DataFrame(columns=["Parameter", "Outcome"]))
 
     problem, X = get_problem_X(parameter_space, parameter_lookup)
@@ -1083,6 +1114,17 @@ def render():
         with st.expander("Settings", expanded=False):
             # Method selection
             available_sizes = st.session_state.get('available_delta_sizes', [])
+            if (not available_sizes) and _dl is not None:
+                try:
+                    (
+                        _gsa_m,
+                        _gsa_lm,
+                        _gsa_dm,
+                        _gsa_dl,
+                        available_sizes,
+                    ) = _dl.get_default_gsa_results(_project)
+                except Exception:
+                    available_sizes = []
             method_options = ['Morris']
 
             if available_sizes:
@@ -1421,10 +1463,13 @@ def render():
                 except Exception:
                     pass
         
-            # If we have outcomes available, show them all
-
+            # If we have outcomes available, show them all.
+            # Ensure this is always initialized to avoid UnboundLocalError.
+            available_outcomes = []
             if all_available_outcomes:
                 available_outcomes = sorted(list(all_available_outcomes))
+            elif precomputed_outcomes:
+                available_outcomes = sorted(list(precomputed_outcomes))
 
             # Build a mapping: outcome -> set of methods with results
             # Include both main GSA files and dynamic results
@@ -1828,15 +1873,38 @@ def render():
                                                 corr_map[(param, gsa_outcome)] = 1 if corr_val >= 0 else -1
                             return corr_map
 
-                        # Get correlation maps from both datasets
-                        corr_lhs = build_corr_dict(
-                            st.session_state.get('model_results_LATIN'),
-                            st.session_state.get('parameter_lookup_LATIN')
-                        )
-                        corr_morris = build_corr_dict(
-                            st.session_state.get('model_results_MORRIS'),
-                            st.session_state.get('parameter_lookup_MORRIS')
-                        )
+                        # Get correlation maps from both datasets.
+                        # In Cloud defaults-only mode, large frames may not be stored in session_state,
+                        # so fall back to cached default getters.
+                        df_lhs = st.session_state.get('model_results_LATIN')
+                        pl_lhs = st.session_state.get('parameter_lookup_LATIN')
+                        df_morris = st.session_state.get('model_results_MORRIS')
+                        pl_morris = st.session_state.get('parameter_lookup_MORRIS')
+
+                        if _dl is not None:
+                            try:
+                                if df_lhs is None or getattr(df_lhs, 'empty', True):
+                                    df_lhs = _dl.get_default_model_results_filtered(_project, "LHS")
+                            except Exception:
+                                pass
+                            try:
+                                if df_morris is None or getattr(df_morris, 'empty', True):
+                                    df_morris = _dl.get_default_model_results_filtered(_project, "Morris")
+                            except Exception:
+                                pass
+                            try:
+                                if pl_lhs is None or getattr(pl_lhs, 'empty', True):
+                                    pl_lhs = _dl.get_default_parameter_lookup(_project, "LHS")
+                            except Exception:
+                                pass
+                            try:
+                                if pl_morris is None or getattr(pl_morris, 'empty', True):
+                                    pl_morris = _dl.get_default_parameter_lookup(_project, "Morris")
+                            except Exception:
+                                pass
+
+                        corr_lhs = build_corr_dict(df_lhs, pl_lhs)
+                        corr_morris = build_corr_dict(df_morris, pl_morris)
 
                         # Apply correlation signs to normalized metrics only (preserve magnitudes)
                         norm_metrics = [col for col in plot_df.columns if '_norm' in col]
@@ -2519,12 +2587,23 @@ def render():
                 # Get colors based on selected palette
                 scatter_color, regression_color = get_palette_colors(scatter_colorscale)
                 
-                # Try to get the data from session state
-                if 'model_results_LATIN' in st.session_state and st.session_state.model_results_LATIN is not None:
-                    df_raw = st.session_state.model_results_LATIN
-                    parameter_lookup = st.session_state.parameter_lookup_LATIN
-                    
-                    if df_raw is not None and parameter_lookup is not None:
+                # Try to get the data from session state; in defaults-only mode, fall back to cached getters.
+                df_raw = st.session_state.get('model_results_LATIN')
+                parameter_lookup = st.session_state.get('parameter_lookup_LATIN')
+
+                if _dl is not None:
+                    try:
+                        if df_raw is None or getattr(df_raw, 'empty', True):
+                            df_raw = _dl.get_default_model_results_filtered(_project, "LHS")
+                    except Exception:
+                        pass
+                    try:
+                        if parameter_lookup is None or getattr(parameter_lookup, 'empty', True):
+                            parameter_lookup = _dl.get_default_parameter_lookup(_project, "LHS")
+                    except Exception:
+                        pass
+
+                if df_raw is not None and not getattr(df_raw, 'empty', True) and parameter_lookup is not None and not getattr(parameter_lookup, 'empty', True):
                         # Prepare pivoted data
                         df_pivoted, param_cols = prepare_results(df_raw, parameter_lookup)
                         
@@ -2937,8 +3016,6 @@ def render():
                         else:
                             st.warning("No valid outcomes found for scatter plot generation.")
                         
-                    else:
-                        st.info("No model results data available for scatter plots. Please upload data on the Upload page.")
                 else:
                     st.info("No model results data available for scatter plots. Please upload data on the Upload page.")
                     
