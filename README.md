@@ -10,6 +10,10 @@ The interactive dashboard is deployed on Streamlit Community Cloud:
 
 https://sserep.streamlit.app/
 
+> **⚠️ Stability notice (RAM limits):** The Streamlit Community Cloud instance has limited memory. Because the dashboard loads large model-output datasets into memory, the app may occasionally fail to start or restart unexpectedly (for example during initial data loading).
+>
+> We’re actively working on a more stable deployment and improved, memory-efficient data loading. A more reliable version will be made available soon.
+
 ## Contents
 
 ### Parameter Space Files (`Parameter_space/`)
