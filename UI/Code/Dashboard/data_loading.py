@@ -10,6 +10,58 @@ from Code import Hardcoded_values, helpers
 from Code.PostProcessing.file_chunking import read_chunked_csv
 
 
+def _optimize_df_memory_categories(
+    df: pd.DataFrame,
+    *,
+    label: str = "df",
+    max_unique: int = 2000,
+    max_unique_ratio: float = 0.2,
+    min_rows: int = 10,
+) -> pd.DataFrame:
+    """Best-effort memory reduction by converting low-cardinality object columns to 'category'.
+
+    Guardrails:
+    - Only considers object columns.
+    - Skips very high-cardinality columns (many unique values).
+    - Skips tiny frames.
+    - Never raises; returns df unchanged on failure.
+
+    Notes:
+    - This helps a lot when columns contain repeated strings (e.g. technology names,
+      outcome names, scenario labels).
+    - It may not help (or can hurt) for near-unique string columns.
+    """
+    try:
+        if df is None or not isinstance(df, pd.DataFrame):
+            return df
+        n = int(getattr(df, "shape", (0, 0))[0] or 0)
+        if n < min_rows:
+            return df
+
+        obj_cols = [c for c in df.columns if str(df[c].dtype) == "object"]
+        if not obj_cols:
+            return df
+
+        for c in obj_cols:
+            try:
+                s = df[c]
+                # nunique(dropna=True) can be expensive but is usually worth it for a few columns.
+                nunq = int(s.nunique(dropna=True))
+                if nunq <= 1:
+                    df[c] = s.astype("category")
+                    continue
+
+                # Convert when unique count is "small enough" for the frame.
+                if nunq <= max_unique and (nunq / max(n, 1)) <= max_unique_ratio:
+                    df[c] = s.astype("category")
+            except Exception:
+                continue
+
+        return df
+    except Exception:
+        return df
+
+
 # ────────────────────────────────────────────────────────────────────
 # Single-phase loading (Parquet-first): load PPResults filtered datasets by default.
 #
@@ -71,6 +123,41 @@ def _read_ppresults_filtered_first(project: str, sample: str) -> tuple[pd.DataFr
         df_unfiltered = df_filtered
 
     return df_unfiltered, df_filtered
+
+
+def _read_ppresults_filtered_only(project: str, sample: str) -> pd.DataFrame:
+    """Load ONLY the filtered PPResults dataset.
+
+    This is the safest option for Streamlit Cloud RAM usage because it avoids
+    temporarily loading the unfiltered dataset at all.
+    """
+    base_path = helpers.get_path(Hardcoded_values.pp_results_file, project=project, sample=sample)
+    base_dir = os.path.dirname(base_path)
+    base_stem = os.path.splitext(os.path.basename(base_path))[0]
+    ext = os.path.splitext(base_path)[1]
+    filtered_path = os.path.join(base_dir, f"{base_stem}_filtered{ext}")
+
+    # Primary: filtered CSV (possibly chunked).
+    try:
+        df = read_chunked_csv(filtered_path, low_memory=False)
+        if df is not None and getattr(df, "shape", (0, 0))[0] > 0:
+            return df
+    except Exception:
+        pass
+
+    # Fallback: if filtered is missing, load the base (unfiltered) dataset.
+    # This preserves current behaviour for local runs / older data layouts.
+    try:
+        df = read_chunked_csv(base_path, low_memory=False)
+        if df is not None and getattr(df, "shape", (0, 0))[0] > 0:
+            return df
+    except Exception:
+        pass
+
+    raise FileNotFoundError(
+        "No filtered PPResults found. Expected a filtered dataset next to the base file: "
+        f"{filtered_path} (or a readable base dataset at {base_path})."
+    )
 
 
 def _read_default_files_light(project: str | None):
@@ -348,14 +435,17 @@ def ensure_defaults_loading_started() -> None:
 
             st.session_state["defaults_load_diag"]["phase"] = "reading_ppresults"
 
-            # Memory-safety: only keep FILTERED datasets in memory by default.
-            # Loading both filtered+unfiltered can easily double peak RAM and crash
-            # Streamlit Community Cloud ("connection reset by peer").
-            _morris_unf, mr_morris_filtered = _read_ppresults_filtered_first(project, "Morris")
-            _latin_unf, mr_latin_filtered = _read_ppresults_filtered_first(project, "LHS")
+            # Memory-safety: load ONLY the filtered datasets from disk.
+            # Avoid even temporarily loading the unfiltered datasets, as the
+            # peak RAM during read/convert is often what kills Streamlit Cloud.
+            mr_morris_filtered = _read_ppresults_filtered_only(project, "Morris")
+            mr_latin_filtered = _read_ppresults_filtered_only(project, "LHS")
 
-            # For backward compatibility with pages that still reference
-            # `model_results_*` (unfiltered), point them at the filtered dataset.
+            # Memory optimization: compress repeated string columns.
+            mr_latin_filtered = _optimize_df_memory_categories(mr_latin_filtered, label="LHS")
+            mr_morris_filtered = _optimize_df_memory_categories(mr_morris_filtered, label="Morris")
+
+            # Backward compatibility: `model_results_*` points to the filtered DF.
             mr_morris = mr_morris_filtered
             mr_latin = mr_latin_filtered
 

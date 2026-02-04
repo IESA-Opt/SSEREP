@@ -366,11 +366,22 @@ def render_technology_analysis_tab(use_1031_ssp=False):
         st.error("No model results available after loading/merging. Please check the dataset files.")
         return
 
-    if enable_filter and (df_filtered_long is df_raw):
-        st.warning(
-            "Filtered results are not available for this dataset. "
-            "Using unfiltered results instead."
+    # Only warn when the user enabled filtering but a true filtered dataset is
+    # not available (missing or empty). If filtered == unfiltered by design
+    # (e.g. filtered-only mode), don't show a false alarm.
+    if enable_filter:
+        _filtered_key = (
+            "model_results_LATIN_filtered" if input_selection == "LHS" else "model_results_MORRIS_filtered"
         )
+        _filtered_obj = st.session_state.get(_filtered_key)
+        _filtered_missing = (
+            _filtered_obj is None or getattr(_filtered_obj, "shape", (0, 0))[0] == 0
+        )
+        if _filtered_missing:
+            st.warning(
+                "Filtered results are not available for this dataset. "
+                "Using unfiltered results instead."
+            )
 
     # Filter technologies by selected activity
     # Check if column F exists in technologies (main activity column)
