@@ -2,8 +2,12 @@
 # Needed on Streamlit Community Cloud
 headless = true
 port = 8501
-enableCORS = false
 enableXsrfProtection = true
+
+# Note: Streamlit warns if CORS is disabled while XSRF protection is enabled.
+# In that case it forces enableCORS=true anyway.
+# Keep this explicitly true to avoid noisy warnings locally and in Cloud.
+enableCORS = true
 
 [ui]
 hideTopBar = false

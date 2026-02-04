@@ -2,7 +2,11 @@ import streamlit as st
 from pathlib import Path
 import base64
 
+from Code.Dashboard import utils
+
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
+
+utils.add_sidebar_tweaks()
 
 
 st.title("About")

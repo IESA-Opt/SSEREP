@@ -9,7 +9,6 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from Code.Dashboard.utils import prepare_results
-from Code.Dashboard.data_loading import _init_defaults
 from Code.Dashboard.utils import fix_display_name_capitalization
 
 
@@ -74,8 +73,7 @@ def render():
     """Render the Histograms page."""
         # Page wrapper already provides the title/caption; keep this tab content clean.
     
-    # Ensure data is loaded
-    _init_defaults()
+    # Data loading is handled by the page wrapper via `data_loading.ensure_defaults_loading_started()`.
     
     # Data source selection
     col1, col2, col3 = st.columns([1, 1, 1])

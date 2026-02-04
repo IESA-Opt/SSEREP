@@ -1041,10 +1041,7 @@ def render():
     # Check if we have valid parameters for GSA
     if problem.get('num_vars', 0) == 0 or not problem.get('names', []):
         st.error("No valid parameters found for GSA analysis. Please check that parameter space and parameter lookup data are properly loaded.")
-        st.info("This may happen if:")
-        st.write("ΓÇó Parameter space files are missing or empty")
-        st.write("ΓÇó Parameter lookup files are missing or empty") 
-        st.write("ΓÇó The data files don't contain the expected 'Parameter' column")
+        st.info("This may happen if: Parameter space files are missing or empty")
         return
     
     # Create driver lookup for parameter grouping (Mobi's implementation)
@@ -1083,350 +1080,349 @@ def render():
     settings_col, plot_col = st.columns([0.25, 0.75])
     
     with settings_col:
-        st.subheader("Settings")
+        with st.expander("Settings", expanded=False):
+            # Method selection
+            available_sizes = st.session_state.get('available_delta_sizes', [])
+            method_options = ['Morris']
+
+            if available_sizes:
+                for size in available_sizes:
+                    if isinstance(size, int):
+                        method_options.append(f'Delta_{size}')
+
+            selected_methods = st.multiselect(
+                "Method Selection:",
+                options=method_options,
+                default=['Morris', method_options[1]] if len(method_options) > 1 else ['Morris'],
+                help="Choose Morris and/or Delta methods with specific sample sizes.",
+                key="method_selection"
+            )
         
-        # Method selection
-        available_sizes = st.session_state.get('available_delta_sizes', [])
-        method_options = ['Morris']
+            # Parameter grouping controls
+            # Removed user control: always use the current default grouping (Parameter-level).
+            grouping_modes = ["Parameter"]
+            aggregation_method = "Mean"
+            if not has_driver_columns:
+                st.info("Driver/Sub-Driver columns not found in parameter space. Parameter-level analysis only.")
+            
+            # Load GSA data based on selected methods
+            combined_gsa_data = pd.DataFrame()
         
-        if available_sizes:
-            for size in available_sizes:
-                if isinstance(size, int):
-                    method_options.append(f'Delta_{size}')
-        
-        selected_methods = st.multiselect(
-            "Method Selection:",
-            options=method_options,
-            default=['Morris', method_options[1]] if len(method_options) > 1 else ['Morris'],
-            help="Choose Morris and/or Delta methods with specific sample sizes.",
-            key="method_selection"
-        )
-        
-        # Parameter grouping controls
-        # Removed user control: always use the current default grouping (Parameter-level).
-        grouping_modes = ["Parameter"]
-        aggregation_method = "Mean"
-        if not has_driver_columns:
-            st.info("Driver/Sub-Driver columns not found in parameter space. Parameter-level analysis only.")
-        
-        # Load GSA data based on selected methods
-        combined_gsa_data = pd.DataFrame()
-        
-        # Process Morris data
-        if 'Morris' in selected_methods:
-            try:
-                from Code import Hardcoded_values, helpers
-                import os
-                
-                morris_gsa_file = helpers.get_path(Hardcoded_values.gsa_morris_file, sample="MORRIS")
-                morris_all_outcomes_file = morris_gsa_file.replace('GSA_Morris.csv', 'GSA_Morris_AllOutcomes.csv')
-                
-                # Prefer AllOutcomes file if it exists (contains all outcomes)
-                if os.path.exists(morris_all_outcomes_file):
-                    morris_data = pd.read_csv(morris_all_outcomes_file, low_memory=False)
-                    morris_data['Method'] = 'Morris'
-                    combined_gsa_data = pd.concat([combined_gsa_data, morris_data], ignore_index=True)
-                # Otherwise fall back to standard file
-                elif os.path.exists(morris_gsa_file):
-                    morris_data = pd.read_csv(morris_gsa_file, low_memory=False)
-                    morris_data['Method'] = 'Morris'
-                    combined_gsa_data = pd.concat([combined_gsa_data, morris_data], ignore_index=True)
-            except Exception as e:
-                st.warning(f"Could not load Morris GSA data: {e}")
-        
-        # Process Delta data
-        delta_methods = [m for m in selected_methods if m.startswith('Delta_')]
-        if delta_methods:
-            try:
-                from Code import Hardcoded_values, helpers
-                import os
-                gsa_dir = os.path.dirname(helpers.get_path(Hardcoded_values.gsa_delta_file, sample="LHS"))
-                
-                for method in delta_methods:
-                    size = method.replace('Delta_', '')
+            # Process Morris data
+            if 'Morris' in selected_methods:
+                try:
+                    from Code import Hardcoded_values, helpers
+                    import os
                     
-                    delta_file = os.path.join(gsa_dir, f'GSA_Delta_{size}.csv')
-                    delta_all_outcomes_file = os.path.join(gsa_dir, f'GSA_Delta_AllOutcomes_{size}.csv')
+                    morris_gsa_file = helpers.get_path(Hardcoded_values.gsa_morris_file, sample="MORRIS")
+                    morris_all_outcomes_file = morris_gsa_file.replace('GSA_Morris.csv', 'GSA_Morris_AllOutcomes.csv')
                     
                     # Prefer AllOutcomes file if it exists (contains all outcomes)
-                    if os.path.exists(delta_all_outcomes_file):
-                        delta_data = pd.read_csv(delta_all_outcomes_file, low_memory=False)
-                        delta_data['Method'] = f'Delta_{size}'
-                        combined_gsa_data = pd.concat([combined_gsa_data, delta_data], ignore_index=True)
+                    if os.path.exists(morris_all_outcomes_file):
+                        morris_data = pd.read_csv(morris_all_outcomes_file, low_memory=False)
+                        morris_data['Method'] = 'Morris'
+                        combined_gsa_data = pd.concat([combined_gsa_data, morris_data], ignore_index=True)
                     # Otherwise fall back to standard file
-                    elif os.path.exists(delta_file):
-                        delta_data = pd.read_csv(delta_file, low_memory=False)
-                        delta_data['Method'] = f'Delta_{size}'
-                        combined_gsa_data = pd.concat([combined_gsa_data, delta_data], ignore_index=True)
-            except Exception as e:
-                st.warning(f"Could not load Delta GSA data: {e}")
+                    elif os.path.exists(morris_gsa_file):
+                        morris_data = pd.read_csv(morris_gsa_file, low_memory=False)
+                        morris_data['Method'] = 'Morris'
+                        combined_gsa_data = pd.concat([combined_gsa_data, morris_data], ignore_index=True)
+                except Exception as e:
+                    st.warning(f"Could not load Morris GSA data: {e}")
         
-        # Metrics selection
-        if not combined_gsa_data.empty:
-            morris_metrics = []
-            delta_metrics = []
-            
-            # Detect available metrics
-            morris_cols = ['mu', 'mu_star', 'mu_star_conf', 'sigma', 'mu_star_norm', 'sigma_norm']
-            morris_metrics = [col for col in morris_cols if col in combined_gsa_data.columns]
-            
-            for col in combined_gsa_data.columns:
-                if col not in ['Parameter', 'Outcome', 'Method']:
-                    is_delta_metric = (
-                        col in ['delta', 'delta_conf', 'S1', 'S1_conf', 'delta_norm'] or
-                        col.startswith('delta_') or col.startswith('S1_')
-                    )
-                    if is_delta_metric and col not in delta_metrics:
-                        delta_metrics.append(col)
-            
-            # Set defaults - be smarter about what's actually available
-            default_metrics = []
-            
-            # If only Morris is selected, default to Morris metrics
-            if len(selected_methods) == 1 and 'Morris' in selected_methods:
-                if 'mu_star_norm' in morris_metrics:
-                    default_metrics.append('mu_star_norm')
-            
-            # If only Delta is selected, default to Delta metrics
-            elif len(selected_methods) == 1 and any(m.startswith('Delta_') for m in selected_methods):
-                # Add size-specific delta_norm metrics for selected Delta methods
-                for method in selected_methods:
-                    if method.startswith('Delta_'):
-                        size = method.replace('Delta_', '')
-                        size_specific_metric = f'delta_{size}_norm'
-                        if size_specific_metric in delta_metrics:
-                            default_metrics.append(size_specific_metric)
-                
-                # If no size-specific metrics found, add generic delta_norm
-                if not default_metrics and 'delta_norm' in delta_metrics:
-                    default_metrics.append('delta_norm')
-            
-            # If both Morris and Delta are selected, start with Delta metrics by default
-            # (Morris + Delta mixed analysis is complex, so default to the more robust option)
-            else:
-                # Add Delta defaults first - look for size-specific metrics first, then generic
-                if delta_methods:
-                    # Add size-specific delta_norm metrics for selected Delta methods
+            # Process Delta data
+            delta_methods = [m for m in selected_methods if m.startswith('Delta_')]
+            if delta_methods:
+                try:
+                    from Code import Hardcoded_values, helpers
+                    import os
+                    gsa_dir = os.path.dirname(helpers.get_path(Hardcoded_values.gsa_delta_file, sample="LHS"))
+                    
                     for method in delta_methods:
                         size = method.replace('Delta_', '')
-                        size_specific_metric = f'delta_{size}_norm'
-                        if size_specific_metric in delta_metrics:
-                            default_metrics.append(size_specific_metric)
+                        
+                        delta_file = os.path.join(gsa_dir, f'GSA_Delta_{size}.csv')
+                        delta_all_outcomes_file = os.path.join(gsa_dir, f'GSA_Delta_AllOutcomes_{size}.csv')
+                        
+                        # Prefer AllOutcomes file if it exists (contains all outcomes)
+                        if os.path.exists(delta_all_outcomes_file):
+                            delta_data = pd.read_csv(delta_all_outcomes_file, low_memory=False)
+                            delta_data['Method'] = f'Delta_{size}'
+                            combined_gsa_data = pd.concat([combined_gsa_data, delta_data], ignore_index=True)
+                        # Otherwise fall back to standard file
+                        elif os.path.exists(delta_file):
+                            delta_data = pd.read_csv(delta_file, low_memory=False)
+                            delta_data['Method'] = f'Delta_{size}'
+                            combined_gsa_data = pd.concat([combined_gsa_data, delta_data], ignore_index=True)
+                except Exception as e:
+                    st.warning(f"Could not load Delta GSA data: {e}")
+        
+            # Metrics selection
+            if not combined_gsa_data.empty:
+                morris_metrics = []
+                delta_metrics = []
+                
+                # Detect available metrics
+                morris_cols = ['mu', 'mu_star', 'mu_star_conf', 'sigma', 'mu_star_norm', 'sigma_norm']
+                morris_metrics = [col for col in morris_cols if col in combined_gsa_data.columns]
+                
+                for col in combined_gsa_data.columns:
+                    if col not in ['Parameter', 'Outcome', 'Method']:
+                        is_delta_metric = (
+                            col in ['delta', 'delta_conf', 'S1', 'S1_conf', 'delta_norm'] or
+                            col.startswith('delta_') or col.startswith('S1_')
+                        )
+                        if is_delta_metric and col not in delta_metrics:
+                            delta_metrics.append(col)
+                
+                # Set defaults - be smarter about what's actually available
+                default_metrics = []
+                
+                # If only Morris is selected, default to Morris metrics
+                if len(selected_methods) == 1 and 'Morris' in selected_methods:
+                    if 'mu_star_norm' in morris_metrics:
+                        default_metrics.append('mu_star_norm')
+                
+                # If only Delta is selected, default to Delta metrics
+                elif len(selected_methods) == 1 and any(m.startswith('Delta_') for m in selected_methods):
+                    # Add size-specific delta_norm metrics for selected Delta methods
+                    for method in selected_methods:
+                        if method.startswith('Delta_'):
+                            size = method.replace('Delta_', '')
+                            size_specific_metric = f'delta_{size}_norm'
+                            if size_specific_metric in delta_metrics:
+                                default_metrics.append(size_specific_metric)
                     
                     # If no size-specific metrics found, add generic delta_norm
                     if not default_metrics and 'delta_norm' in delta_metrics:
                         default_metrics.append('delta_norm')
                 
-                # Add Morris as secondary option for mixed analysis
-                if 'Morris' in selected_methods and 'mu_star_norm' in morris_metrics:
-                    default_metrics.append('mu_star_norm')
+                # If both Morris and Delta are selected, start with Delta metrics by default
+                # (Morris + Delta mixed analysis is complex, so default to the more robust option)
+                else:
+                    # Add Delta defaults first - look for size-specific metrics first, then generic
+                    if delta_methods:
+                        # Add size-specific delta_norm metrics for selected Delta methods
+                        for method in delta_methods:
+                            size = method.replace('Delta_', '')
+                            size_specific_metric = f'delta_{size}_norm'
+                            if size_specific_metric in delta_metrics:
+                                default_metrics.append(size_specific_metric)
+                        
+                        # If no size-specific metrics found, add generic delta_norm
+                        if not default_metrics and 'delta_norm' in delta_metrics:
+                            default_metrics.append('delta_norm')
+                    
+                    # Add Morris as secondary option for mixed analysis
+                    if 'Morris' in selected_methods and 'mu_star_norm' in morris_metrics:
+                        default_metrics.append('mu_star_norm')
+                
+                all_metrics = morris_metrics + delta_metrics
+                
+                # Create a mapping of display names to actual metric names
+                metric_display_map = {get_metric_display_name(m): m for m in all_metrics}
+                default_display = [get_metric_display_name(m) for m in default_metrics]
+                
+                selected_metric_displays = st.multiselect(
+                    "Metrics:",
+                    options=list(metric_display_map.keys()),
+                    default=default_display,
+                    help="Select sensitivity metrics to display."
+                )
+                
+                # Convert selected display names back to actual metric names
+                selected_metrics = [metric_display_map[display] for display in selected_metric_displays]
+            else:
+                selected_metrics = []
+                st.info("No GSA data available for selected methods")
             
-            all_metrics = morris_metrics + delta_metrics
-            
-            # Create a mapping of display names to actual metric names
-            metric_display_map = {get_metric_display_name(m): m for m in all_metrics}
-            default_display = [get_metric_display_name(m) for m in default_metrics]
-            
-            selected_metric_displays = st.multiselect(
-                "Metrics:",
-                options=list(metric_display_map.keys()),
-                default=default_display,
-                help="Select sensitivity metrics to display."
+            # Appearance controls
+            # Removed user control: Color Scale (keep current default behavior).
+            add_correlation = st.session_state.get('add_correlation_toggle', True)
+            colorscale = "RdYlGn (Diverging)" if add_correlation else "Cividis"
+			
+            # Add Correlation toggle (kept)
+            add_correlation = st.toggle(
+                "Add Correlation",
+                value=True,
+                help="Multiply sensitivity metrics by correlation sign. Positive correlation keeps the value positive, negative correlation makes it negative.",
+                key='add_correlation_toggle'
             )
+			
+            # Analyze & Units
+            # Removed user control: Analyze (keep current default off).
+            analyze_cells = False
+            show_units = st.toggle(
+                "Units",
+                value=False,
+                help="When enabled, shows parameter ranges and units below each parameter name."
+            )
+
+            # Removed user controls: Grouping and Sub-Parameters.
+            # Keep current defaults: Grouping=True when available, Sub-Parameters=False.
+            hierarchical_grouping = bool(has_driver_columns)
+            show_subdrivers = False
+
+            # Threshold inputs (only show if analyze_cells is enabled)
+            if analyze_cells:
+                threshold_col1, threshold_col2 = st.columns(2)
+                with threshold_col1:
+                    high_sensitivity_threshold = st.number_input(
+                        "Min Sensitivity Value:",
+                        min_value=0.0,
+                        max_value=None,
+                        value=0.7,
+                        step=0.01,
+                        format="%.3f",
+                        help="Minimum absolute value for sensitivity metric (e.g., delta or mu_star)",
+                        key="high_sensitivity_threshold"
+                    )
+                with threshold_col2:
+                    low_confidence_threshold = st.number_input(
+                        "Max Confidence Value:",
+                        min_value=0.0,
+                        max_value=None,
+                        value=0.01,
+                        step=0.01,
+                        format="%.3f",
+                        help="Maximum absolute value for confidence metric (e.g., delta_conf or mu_star_conf)",
+                        key="low_confidence_threshold"
+                    )
+            else:
+                # Set default values when toggle is off
+                high_sensitivity_threshold = 0.1
+                low_confidence_threshold = 0.05
+
+            # Show Values: convert from selectbox to a simple toggle (default off)
+            show_values = st.toggle(
+                "Show Values",
+                value=False,
+                help="When enabled, displays values inside the heatmap cells."
+            )
+            show_values_mode = "Show Norm Values" if show_values else "Off"
+
+            # Removed user control: Hide NaN Outcomes (keep current default True)
+            hide_nan_outcomes = True
             
-            # Convert selected display names back to actual metric names
-            selected_metrics = [metric_display_map[display] for display in selected_metric_displays]
-        else:
-            selected_metrics = []
-            st.info("No GSA data available for selected methods")
+            # Get ALL available outcomes from model results, not just precomputed ones
+            all_available_outcomes = set()
+            precomputed_outcomes = set()
         
-        # Appearance controls
-        # Removed user control: Color Scale (keep current default behavior).
-        add_correlation = st.session_state.get('add_correlation_toggle', True)
-        colorscale = "RdYlGn (Diverging)" if add_correlation else "Cividis"
-		
-        # Add Correlation toggle (kept)
-        add_correlation = st.toggle(
-            "Add Correlation",
-            value=True,
-            help="Multiply sensitivity metrics by correlation sign. Positive correlation keeps the value positive, negative correlation makes it negative.",
-            key='add_correlation_toggle'
-        )
-		
-        # Analyze & Units
-        # Removed user control: Analyze (keep current default off).
-        analyze_cells = False
-        show_units = st.toggle(
-            "Units",
-            value=False,
-            help="When enabled, shows parameter ranges and units below each parameter name."
-        )
-		
-        # Removed user controls: Grouping and Sub-Parameters.
-        # Keep current defaults: Grouping=True when available, Sub-Parameters=False.
-        hierarchical_grouping = bool(has_driver_columns)
-        show_subdrivers = False
-		
-        # Threshold inputs (only show if analyze_cells is enabled)
-        if analyze_cells:
-            threshold_col1, threshold_col2 = st.columns(2)
-            with threshold_col1:
-                high_sensitivity_threshold = st.number_input(
-                    "Min Sensitivity Value:",
-                    min_value=0.0,
-                    max_value=None,
-                    value=0.7,
-                    step=0.01,
-                    format="%.3f",
-                    help="Minimum absolute value for sensitivity metric (e.g., delta or mu_star)",
-                    key="high_sensitivity_threshold"
-                )
-            with threshold_col2:
-                low_confidence_threshold = st.number_input(
-                    "Max Confidence Value:",
-                    min_value=0.0,
-                    max_value=None,
-                    value=0.01,
-                    step=0.01,
-                    format="%.3f",
-                    help="Maximum absolute value for confidence metric (e.g., delta_conf or mu_star_conf)",
-                    key="low_confidence_threshold"
-                )
-        else:
-            # Set default values when toggle is off
-            high_sensitivity_threshold = 0.1
-            low_confidence_threshold = 0.05
-		
-        # Show Values: convert from selectbox to a simple toggle (default off)
-        show_values = st.toggle(
-            "Show Values",
-            value=False,
-            help="When enabled, displays values inside the heatmap cells."
-        )
-        show_values_mode = "Show Norm Values" if show_values else "Off"
-		
-        # Removed user control: Hide NaN Outcomes (keep current default True)
-        hide_nan_outcomes = True
-        
-        # Get ALL available outcomes from model results, not just precomputed ones
-        all_available_outcomes = set()
-        precomputed_outcomes = set()
-        
-        # Get all outcomes from model results CSV files
-        try:
-            # Try to get outcomes from session state model results
-            for sample_type in ['MORRIS', 'LATIN']:
-                model_results_key = f'model_results_{sample_type}'
-                if model_results_key in st.session_state and st.session_state[model_results_key] is not None:
-                    model_data = st.session_state[model_results_key]
-                    if 'Outcome' in model_data.columns:
-                        all_available_outcomes.update(model_data['Outcome'].dropna().unique())
-            
-            # If no outcomes from session state, try to load from CSV files directly
-            if not all_available_outcomes:
-                from Code import Hardcoded_values, helpers
-                from Code.PostProcessing.file_chunking import read_chunked_csv
-                try:
-                    # Try to load from processed results using chunked reading
-                    results_file = helpers.get_path(Hardcoded_values.pp_results_file)
-                    if os.path.exists(results_file):
-                        # Load just the Outcome column for efficiency using chunked reading
-                        outcome_data = read_chunked_csv(results_file, usecols=['Outcome'], low_memory=False)
-                        all_available_outcomes.update(outcome_data['Outcome'].dropna().unique())
-                    else:
-                        # Check if chunks exist
-                        from Code.PostProcessing.file_chunking import get_metadata_path
-                        metadata_path = get_metadata_path(results_file)
-                        if os.path.exists(metadata_path):
+            # Get all outcomes from model results CSV files
+            try:
+                # Try to get outcomes from session state model results
+                for sample_type in ['MORRIS', 'LATIN']:
+                    model_results_key = f'model_results_{sample_type}'
+                    if model_results_key in st.session_state and st.session_state[model_results_key] is not None:
+                        model_data = st.session_state[model_results_key]
+                        if 'Outcome' in model_data.columns:
+                            all_available_outcomes.update(model_data['Outcome'].dropna().unique())
+                
+                # If no outcomes from session state, try to load from CSV files directly
+                if not all_available_outcomes:
+                    from Code import Hardcoded_values, helpers
+                    from Code.PostProcessing.file_chunking import read_chunked_csv
+                    try:
+                        # Try to load from processed results using chunked reading
+                        results_file = helpers.get_path(Hardcoded_values.pp_results_file)
+                        if os.path.exists(results_file):
+                            # Load just the Outcome column for efficiency using chunked reading
                             outcome_data = read_chunked_csv(results_file, usecols=['Outcome'], low_memory=False)
                             all_available_outcomes.update(outcome_data['Outcome'].dropna().unique())
+                        else:
+                            # Check if chunks exist
+                            from Code.PostProcessing.file_chunking import get_metadata_path
+                            metadata_path = get_metadata_path(results_file)
+                            if os.path.exists(metadata_path):
+                                outcome_data = read_chunked_csv(results_file, usecols=['Outcome'], low_memory=False)
+                                all_available_outcomes.update(outcome_data['Outcome'].dropna().unique())
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+        
+            # Get precomputed outcomes from existing GSA files
+            if not combined_gsa_data.empty and 'Outcome' in combined_gsa_data.columns:
+                precomputed_outcomes = set(combined_gsa_data['Outcome'].unique())
+        
+            # Also check for dynamically computed outcomes (previously computed and saved)
+            try:
+                from Code import Hardcoded_values, helpers
+                import os
+                
+                # Check Morris Dynamic folder
+                try:
+                    morris_base_dir = os.path.dirname(helpers.get_path(Hardcoded_values.gsa_morris_file, sample="MORRIS"))
+                    morris_dynamic_dir = os.path.join(morris_base_dir, "Dynamic")
+                    morris_consolidated_file = os.path.join(morris_dynamic_dir, "GSA_Dynamic_All.csv")
+                    
+                    if os.path.exists(morris_consolidated_file):
+                        morris_dynamic_data = pd.read_csv(morris_consolidated_file, low_memory=False)
+                        if 'Outcome' in morris_dynamic_data.columns:
+                            precomputed_outcomes.update(morris_dynamic_data['Outcome'].unique())
                 except Exception:
                     pass
-        except Exception:
-            pass
-        
-        # Get precomputed outcomes from existing GSA files
-        if not combined_gsa_data.empty and 'Outcome' in combined_gsa_data.columns:
-            precomputed_outcomes = set(combined_gsa_data['Outcome'].unique())
-        
-        # Also check for dynamically computed outcomes (previously computed and saved)
-        try:
-            from Code import Hardcoded_values, helpers
-            import os
-            
-            # Check Morris Dynamic folder
-            try:
-                morris_base_dir = os.path.dirname(helpers.get_path(Hardcoded_values.gsa_morris_file, sample="MORRIS"))
-                morris_dynamic_dir = os.path.join(morris_base_dir, "Dynamic")
-                morris_consolidated_file = os.path.join(morris_dynamic_dir, "GSA_Dynamic_All.csv")
                 
-                if os.path.exists(morris_consolidated_file):
-                    morris_dynamic_data = pd.read_csv(morris_consolidated_file, low_memory=False)
-                    if 'Outcome' in morris_dynamic_data.columns:
-                        precomputed_outcomes.update(morris_dynamic_data['Outcome'].unique())
-            except Exception:
-                pass
-            
-            # Check LHS/Delta Dynamic folder
-            try:
-                delta_base_dir = os.path.dirname(helpers.get_path(Hardcoded_values.gsa_delta_file, sample="LHS"))
-                delta_dynamic_dir = os.path.join(delta_base_dir, "Dynamic")
-                delta_consolidated_file = os.path.join(delta_dynamic_dir, "GSA_Dynamic_All.csv")
-                
-                if os.path.exists(delta_consolidated_file):
-                    delta_dynamic_data = pd.read_csv(delta_consolidated_file, low_memory=False)
-                    if 'Outcome' in delta_dynamic_data.columns:
-                        precomputed_outcomes.update(delta_dynamic_data['Outcome'].unique())
-            except Exception:
-                pass
-                
-        except Exception:
-            pass
-        
-        # Check Morris precomputed outcomes if Morris is selected
-        if 'Morris' in selected_methods:
-            try:
-                from Code import Hardcoded_values, helpers
-                import os
-                
-                # Check standard Morris file
-                morris_gsa_file = helpers.get_path(Hardcoded_values.gsa_morris_file, sample="MORRIS")
-                if os.path.exists(morris_gsa_file):
-                    morris_data = pd.read_csv(morris_gsa_file, low_memory=False)
-                    if 'Outcome' in morris_data.columns:
-                        precomputed_outcomes.update(morris_data['Outcome'].unique())
-                
-                # Check AllOutcomes Morris file
-                morris_all_outcomes_file = morris_gsa_file.replace('GSA_Morris.csv', 'GSA_Morris_AllOutcomes.csv')
-                if os.path.exists(morris_all_outcomes_file):
-                    morris_all_data = pd.read_csv(morris_all_outcomes_file, low_memory=False)
-                    if 'Outcome' in morris_all_data.columns:
-                        precomputed_outcomes.update(morris_all_data['Outcome'].unique())
+                # Check LHS/Delta Dynamic folder
+                try:
+                    delta_base_dir = os.path.dirname(helpers.get_path(Hardcoded_values.gsa_delta_file, sample="LHS"))
+                    delta_dynamic_dir = os.path.join(delta_base_dir, "Dynamic")
+                    delta_consolidated_file = os.path.join(delta_dynamic_dir, "GSA_Dynamic_All.csv")
+                    
+                    if os.path.exists(delta_consolidated_file):
+                        delta_dynamic_data = pd.read_csv(delta_consolidated_file, low_memory=False)
+                        if 'Outcome' in delta_dynamic_data.columns:
+                            precomputed_outcomes.update(delta_dynamic_data['Outcome'].unique())
+                except Exception:
+                    pass
+                    
             except Exception:
                 pass
         
-        # Check Delta precomputed outcomes if Delta methods are selected
-        delta_methods = [m for m in selected_methods if m.startswith('Delta_')]
-        if delta_methods:
-            try:
-                from Code import Hardcoded_values, helpers
-                import os
-                gsa_dir = os.path.dirname(helpers.get_path(Hardcoded_values.gsa_delta_file, sample="LHS"))
-                
-                for method in delta_methods:
-                    size = method.replace('Delta_', '')
-                    delta_file = os.path.join(gsa_dir, f'GSA_Delta_{size}.csv')
-                    if os.path.exists(delta_file):
-                        delta_data = pd.read_csv(delta_file, low_memory=False)
-                        if 'Outcome' in delta_data.columns:
-                            precomputed_outcomes.update(delta_data['Outcome'].unique())
-            except Exception:
-                pass
+            # Check Morris precomputed outcomes if Morris is selected
+            if 'Morris' in selected_methods:
+                try:
+                    from Code import Hardcoded_values, helpers
+                    import os
+                    
+                    # Check standard Morris file
+                    morris_gsa_file = helpers.get_path(Hardcoded_values.gsa_morris_file, sample="MORRIS")
+                    if os.path.exists(morris_gsa_file):
+                        morris_data = pd.read_csv(morris_gsa_file, low_memory=False)
+                        if 'Outcome' in morris_data.columns:
+                            precomputed_outcomes.update(morris_data['Outcome'].unique())
+                    
+                    # Check AllOutcomes Morris file
+                    morris_all_outcomes_file = morris_gsa_file.replace('GSA_Morris.csv', 'GSA_Morris_AllOutcomes.csv')
+                    if os.path.exists(morris_all_outcomes_file):
+                        morris_all_data = pd.read_csv(morris_all_outcomes_file, low_memory=False)
+                        if 'Outcome' in morris_all_data.columns:
+                            precomputed_outcomes.update(morris_all_data['Outcome'].unique())
+                except Exception:
+                    pass
         
-        # If we have outcomes available, show them all
+            # Check Delta precomputed outcomes if Delta methods are selected
+            delta_methods = [m for m in selected_methods if m.startswith('Delta_')]
+            if delta_methods:
+                try:
+                    from Code import Hardcoded_values, helpers
+                    import os
+                    gsa_dir = os.path.dirname(helpers.get_path(Hardcoded_values.gsa_delta_file, sample="LHS"))
+                    
+                    for method in delta_methods:
+                        size = method.replace('Delta_', '')
+                        delta_file = os.path.join(gsa_dir, f'GSA_Delta_{size}.csv')
+                        if os.path.exists(delta_file):
+                            delta_data = pd.read_csv(delta_file, low_memory=False)
+                            if 'Outcome' in delta_data.columns:
+                                precomputed_outcomes.update(delta_data['Outcome'].unique())
+                except Exception:
+                    pass
+        
+            # If we have outcomes available, show them all
 
-        if all_available_outcomes:
-            available_outcomes = sorted(list(all_available_outcomes))
+            if all_available_outcomes:
+                available_outcomes = sorted(list(all_available_outcomes))
 
             # Build a mapping: outcome -> set of methods with results
             # Include both main GSA files and dynamic results
@@ -1593,21 +1589,6 @@ def render():
                 else:
                     actual_outcome = formatted_outcome
                 selected_outcomes.append(actual_outcome)
-            
-        elif precomputed_outcomes:
-            # Fall back to precomputed outcomes only if no model results found
-            available_outcomes = sorted(list(precomputed_outcomes))
-            default_outcomes = available_outcomes[:20]
-            
-            selected_outcomes = st.multiselect(
-                "Outcomes:",
-                options=available_outcomes,
-                default=default_outcomes,
-                help="Select outcomes for GSA analysis. Showing precomputed outcomes only."
-            )
-        else:
-            selected_outcomes = []
-            st.info("No outcomes available. Please ensure model results are loaded.")
 
     with plot_col:
         

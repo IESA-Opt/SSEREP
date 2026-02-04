@@ -1,10 +1,11 @@
 """Streamlit Community Cloud entrypoint.
 
-This repo's Streamlit app lives in `UI/`.
-Streamlit Community Cloud expects an entrypoint at the repo root by default,
-so this small wrapper ensures `streamlit run Home.py` works from the top-level.
+This repo's Streamlit app lives in `UI/Home.py`, but Community Cloud expects an
+entrypoint at the repo root.
 
-It also makes imports like `from Code...` resolve by putting `UI/` on `sys.path`.
+Important: avoid importing `UI.Home` as a *package* import, because `UI/` isn't
+guaranteed to be a Python package in all runtimes. Instead, we execute the
+`UI/Home.py` script in-place after adjusting `sys.path` so `Code.*` imports work.
 """
 
 from __future__ import annotations
@@ -31,6 +32,16 @@ except Exception:
     # If this fails, UI.Home will still raise a useful import error.
     pass
 
-# Importing `UI/Home.py` runs the Streamlit script.
-# Keep this import last so the path manipulation above is applied first.
-from UI.Home import *  # noqa: F401,F403
+# Execute `UI/Home.py` as the Streamlit script.
+# Keep this last so the path manipulation above is applied first.
+home_script = UI_DIR / "Home.py"
+if not home_script.exists():
+    raise FileNotFoundError(f"Expected Streamlit script at: {home_script}")
+
+code = home_script.read_text(encoding="utf-8")
+globals_dict = {
+    "__file__": str(home_script),
+    "__name__": "__main__",
+    "__package__": None,
+}
+exec(compile(code, str(home_script), "exec"), globals_dict)

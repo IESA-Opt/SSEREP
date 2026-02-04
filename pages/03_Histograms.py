@@ -24,7 +24,7 @@ utils.add_sidebar_tweaks()
 # histogram tab, without depending on the archived monolith).
 from Code.Dashboard import data_loading
 
-data_loading._init_defaults()
+data_loading.ensure_defaults_loading_started()
 
 use_1031_ssp = False
 try:

@@ -11,7 +11,16 @@ utils.add_sidebar_tweaks()
 
 
 # Technology analysis as a standalone page.
-data_loading._init_defaults()
+if "tech_page_bootstrap_done" not in st.session_state:
+    st.session_state["tech_page_bootstrap_done"] = True
+    st.session_state["defaults_loading"] = True
+    st.rerun()
+
+try:
+    if not data_loading.defaults_ready():
+        data_loading.ensure_defaults_loading_started()
+finally:
+    st.session_state["defaults_loading"] = False
 
 use_1031_ssp = False
 try:

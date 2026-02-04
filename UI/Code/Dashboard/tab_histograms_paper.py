@@ -33,6 +33,13 @@ def render(use_1031_ssp: bool = False):
 def render_histogram_analysis_tab(use_1031_ssp=False):
     """Render the Histogram Analysis tab for plotting distributions of any output variable."""
 
+    # Global sidebar: load-complete-data button + status.
+    try:
+        from Code.Dashboard import utils
+        utils.render_data_loading_sidebar()
+    except Exception:
+        pass
+
     # Home-first UX: if defaults aren't ready yet, start loading and show a friendly message.
     try:
         from Code.Dashboard import data_loading as upload
@@ -48,12 +55,9 @@ def render_histogram_analysis_tab(use_1031_ssp=False):
     # below the plots. We still need their *values* here to load/filter data.
     input_selection = st.session_state.get("histogram_data_source", "LHS")
 
-    # Community Cloud stability: the filter path pivots the *entire* raw results
-    # table through `prepare_results(...)`, which can be very memory-intensive for
-    # large result sets. Default this toggle to False so the page loads reliably,
-    # while still letting users opt-in.
-    if "histogram_enable_filter" not in st.session_state:
-        st.session_state["histogram_enable_filter"] = True
+    # Community Cloud stability: default-filtering should be ON.
+    # IMPORTANT: don't set session_state directly for a widget key; that triggers
+    # Streamlit's warning when the widget is also created with a `value=`.
     enable_filter = bool(st.session_state.get("histogram_enable_filter", True))
 
     # Get data based on selection
@@ -147,14 +151,27 @@ def render_histogram_analysis_tab(use_1031_ssp=False):
         """
         tl = (target_label or "").strip().lower()
         if tl in {"methanol production", "hydrogen production"}:
-            # Exact match only (case-insensitive), and explicitly reject techStocks.
+            # Prefer an exact match, but fall back to token match such as
+            # "Methanol Production 2050" (projects differ).
+            exact = None
+            startswith_match = None
             for name in names:
+                nm = _normalize_display_name(name)
+                if "techstocks" in nm:
+                    continue
+
                 if str(name).strip().lower() == target_label.strip().lower():
-                    nm = _normalize_display_name(name)
-                    if "techstocks" in nm:
-                        return None
-                    return name
-            return None
+                    exact = name
+                    break
+
+                # Accept only strings that START with the target, e.g.
+                # "Methanol Production 2050" / "Hydrogen Production 2050".
+                # This avoids accidentally matching other outcomes that only
+                # contain these words as a suffix.
+                if str(name).strip().lower().startswith(target_label.strip().lower()):
+                    startswith_match = startswith_match or name
+
+            return exact or startswith_match
 
         return _pick_first_matching_display_name_any(pattern_sets, names)
 
@@ -999,8 +1016,7 @@ def render_histogram_analysis_tab(use_1031_ssp=False):
         controls_col, filters_col = st.columns([0.6, 0.4])
 
         with controls_col:
-            with st.container(border=True):
-                st.subheader("Settings")
+            with st.expander("Settings", expanded=False):
 
                 c1, c2 = st.columns([2, 1])
                 with c1:
@@ -1033,7 +1049,7 @@ def render_histogram_analysis_tab(use_1031_ssp=False):
                 )
 
         with filters_col:
-            with st.container(border=True):
+            with st.expander("Filters", expanded=False):
                 # Add compact slider styling
                 st.markdown(
                     """
@@ -1054,8 +1070,6 @@ def render_histogram_analysis_tab(use_1031_ssp=False):
                     """,
                     unsafe_allow_html=True,
                 )
-
-                st.subheader("Filters")
 
                 param_filters = {}
                 for param in param_cols:

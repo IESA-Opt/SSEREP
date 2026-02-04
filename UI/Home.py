@@ -20,62 +20,7 @@ try:
 	if "project" not in st.session_state:
 		st.session_state["project"] = "1108 SSP"
 
-	# Home-first UX: start loading defaults in the background so text/diagram render immediately.
-	data_loading.ensure_defaults_loading_started()
-
-	# Sidebar status indicator (spinner + color).
-	with st.sidebar:
-		_ready = data_loading.defaults_ready()
-		_loading = bool(st.session_state.get("defaults_loading", False))
-		_err = str(st.session_state.get("defaults_load_error", "") or "")
-
-		if _ready:
-			st.markdown(
-				"""
-				<div style="display:flex;align-items:center;gap:.5rem;padding:.35rem .6rem;border-radius:.6rem;"
-							background:#E8F5E9;border:1px solid #2E7D32;">
-					<span style="font-weight:700;color:#1B5E20;">●</span>
-					<span style="color:#1B5E20;font-weight:600;">Data loaded</span>
-				</div>
-				""",
-				unsafe_allow_html=True,
-			)
-		elif _loading:
-			st.markdown(
-				"""
-				<style>
-				@keyframes sserep-spin { to { transform: rotate(360deg); } }
-				.sserep-spinner {
-					width: 14px;
-					height: 14px;
-					border: 2px solid rgba(255,140,0,.35);
-					border-top-color: rgba(255,140,0,1);
-					border-radius: 50%;
-					animation: sserep-spin .8s linear infinite;
-				}
-				</style>
-				<div style="display:flex;align-items:center;gap:.5rem;padding:.35rem .6rem;border-radius:.6rem;"
-							background:#FFF3E0;border:1px solid #FF8C00;">
-					<div class="sserep-spinner"></div>
-					<span style="color:#8A4B00;font-weight:600;">Loading data…</span>
-				</div>
-				""",
-				unsafe_allow_html=True,
-			)
-		else:
-			# Not ready and not currently loading (should be rare). Keep it visible.
-			st.markdown(
-				"""
-				<div style="display:flex;align-items:center;gap:.5rem;padding:.35rem .6rem;border-radius:.6rem;"
-							background:#FFF3E0;border:1px solid #FF8C00;">
-					<span style="font-weight:700;color:#FF8C00;">●</span>
-					<span style="color:#8A4B00;font-weight:600;">Data not loaded</span>
-				</div>
-				""",
-				unsafe_allow_html=True,
-			)
-			if _err:
-				st.caption(f"Last load error: {_err}")
+	utils.render_data_loading_sidebar()
 except Exception as e:
 	st.warning(
 		"Home loaded without starting dataset preload (server may be under heavy load). "
@@ -84,6 +29,7 @@ except Exception as e:
 
 st.title("SSEREP dashboard")
 
+# Main Home content should render fully BEFORE any heavy data loading starts.
 st.markdown(
 	"""
 Scenario Space Exploration for Robust Energy Planning
@@ -147,3 +93,52 @@ else:
 		**Scenario Discovery (PRIM).** Ask the reverse question: which combinations of uncertain conditions are most consistent with a user-defined outcome region (e.g., low total costs, or low costs *and* low CO₂ prices), and which conditions reliably **avoid** an undesirable region. PRIM layers an interpretable rule-based view on top of the scenario space and reports diagnostics (mass, density) so you can judge how rare and how reliable the discovered regimes are. *(Suggested title: “Scenario Discovery (PRIM)”.)*
 		"""
 	)
+
+
+# ----------------------------
+# Data loading status + trigger defaults loading AFTER full Home body is rendered
+# ----------------------------
+
+# Pass 1: render the full Home content, then rerun once.
+# Pass 2: start loading defaults.
+if "home_bootstrap_done" not in st.session_state:
+	st.session_state["home_bootstrap_done"] = True
+	# Short warm-up window: lets the sidebar show Loading… immediately after rerun.
+	try:
+		import time as _time
+		st.session_state["loading_warmup_until"] = float(_time.time() + 10.0)
+	except Exception:
+		st.session_state["loading_warmup_until"] = 0.0
+	st.rerun()
+
+
+# In-page status (requested): turn green once defaults are loaded.
+try:
+	from Code.Dashboard import data_loading as _dl
+	_defaults_loaded = bool(_dl.defaults_ready())
+except Exception:
+	_dl = None
+	_defaults_loaded = bool(st.session_state.get("defaults_loaded", False))
+
+else:
+	err = str(st.session_state.get("defaults_load_error", "") or "")
+	if err:
+		st.error(f"Default data failed to load: {err}")
+
+
+# Now that the Home page is fully rendered, trigger defaults loading.
+if not _defaults_loaded and _dl is not None:
+	try:
+		_before = bool(st.session_state.get("defaults_loaded", False))
+		_dl.ensure_defaults_loading_started()
+		_after = bool(st.session_state.get("defaults_loaded", False))
+		# Always rerun once after attempting load so the status banners update.
+		st.rerun()
+		# Force a rerun so the green banner appears immediately after load finishes.
+		if (not _before) and _after:
+			st.rerun()
+	except Exception as e:
+		msg = f"{type(e).__name__}: {e}"
+		st.session_state["defaults_load_error"] = msg
+		st.error(f"Default data failed to load: {msg}")
+		st.stop()

@@ -12,7 +12,16 @@ utils.add_sidebar_tweaks()
 # histogram tab, without depending on the archived monolith).
 from Code.Dashboard import data_loading
 
-data_loading._init_defaults()
+if "hist_page_bootstrap_done" not in st.session_state:
+    st.session_state["hist_page_bootstrap_done"] = True
+    st.session_state["defaults_loading"] = True
+    st.rerun()
+
+try:
+    if not data_loading.defaults_ready():
+        data_loading.ensure_defaults_loading_started()
+finally:
+    st.session_state["defaults_loading"] = False
 
 use_1031_ssp = False
 try:

@@ -26,13 +26,20 @@ def render(use_1031_ssp: bool = False):
 def render_technology_analysis_tab(use_1031_ssp=False):
     """Render the Technology Analysis tab."""
 
+    # Global sidebar: load-complete-data button + status.
+    try:
+        from Code.Dashboard import utils
+        utils.render_data_loading_sidebar()
+    except Exception:
+        pass
+
     # Home-first UX: if defaults aren't ready yet, start loading and show a friendly message.
     try:
         upload.ensure_defaults_loading_started()
         upload.require_defaults_ready("Loading datasets for Technology…")
     except Exception:
-        # Fallback (older sessions / environments): load synchronously.
-        upload._init_defaults()
+        # Defaults are loaded via the central two-tier loader; avoid forcing full loads here.
+        pass
 
     # Check if base scenario data is available
     if "technologies" not in st.session_state or "activities" not in st.session_state:
@@ -54,9 +61,7 @@ def render_technology_analysis_tab(use_1031_ssp=False):
     col_settings, col_filters = st.columns(2)
 
     with col_settings:
-        settings_container = st.container(border=True)
-        with settings_container:
-            st.subheader("Settings")
+        with st.expander("Settings", expanded=False):
 
             # Arrange controls in multiple rows for readability
             row1_left, row1_right = st.columns(2)
@@ -395,8 +400,7 @@ def render_technology_analysis_tab(use_1031_ssp=False):
     base_data = list(activities_data.values())[0]['base_data']
 
     with col_filters:
-        filters_container = st.container(border=True)
-        with filters_container:
+        with st.expander("Filters", expanded=False):
             # Add compact slider styling with horizontal layout
             st.markdown(
                 """
@@ -419,8 +423,6 @@ def render_technology_analysis_tab(use_1031_ssp=False):
                 """,
                 unsafe_allow_html=True,
             )
-
-            st.subheader("Filters")
 
             # Create parameter sliders if parameter data is available
             param_filters = {}

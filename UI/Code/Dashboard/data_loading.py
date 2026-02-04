@@ -1,7 +1,6 @@
 # tab_upload_data.py  ─────────────────────────────────────────────────
 # data_loading.py  ─────────────────────────────────────────────────
 import os
-import threading
 import time
 
 import pandas as pd
@@ -12,52 +11,375 @@ from Code.PostProcessing.file_chunking import read_chunked_csv
 
 
 # ────────────────────────────────────────────────────────────────────
-# Non-blocking defaults loading (Home-first UX)
+# Two-phase loading
+# - "default data": small, fast-to-load subset for default plots
+# - "full data": full result tables for exploration
+#
+# IMPORTANT: avoid background threads. Streamlit session_state is tied to the
+# script run context; mutating it from threads is unreliable.
 # ────────────────────────────────────────────────────────────────────
 def defaults_ready() -> bool:
-    """Return True if the core defaults have been loaded into session_state."""
+    """Return True if the *default* (small) datasets have been loaded."""
     try:
         return bool(st.session_state.get("defaults_loaded", False))
     except Exception:
         return False
 
 
+def full_data_ready() -> bool:
+    """Return True if the full datasets have been loaded."""
+    """True only when the full PPResults tables are actually present in session_state."""
+    try:
+        if not bool(st.session_state.get("full_data_loaded", False)):
+            return False
+        # Guard against stale flags: require at least one PPResults dataset to exist.
+        required_any = (
+            "results" in st.session_state
+            or "results_filtered" in st.session_state
+            or "PPResults" in st.session_state
+            or "pp_results" in st.session_state
+        )
+        return bool(required_any)
+    except Exception:
+        return False
+
+
+def _read_default_files_light(project: str | None):
+    """Load a SMALL subset of defaults for fast initial render.
+
+    This is a pragmatic shortcut: load only the columns/rows typically needed
+    for the default selections on each page.
+
+    IMPORTANT: This loader must never read the full PPResults tables.
+    Full data must only load via the explicit "Load complete data" action.
+    """
+
+    def _safe_read_csv(path, **kwargs):
+        try:
+            return read_chunked_csv(path, low_memory=False, **kwargs)
+        except Exception:
+            return pd.DataFrame()
+
+    def _safe_read_excel(path, **kwargs):
+        try:
+            return pd.read_excel(path, **kwargs)
+        except Exception:
+            return pd.DataFrame()
+
+    # --- Results (LHS/Morris) ---
+    # Mirror the full-loader logic, but point it at Defaults artifacts.
+    def _defaults_base_dir(sample: str):
+        from pathlib import Path
+
+        repo_root = Path(__file__).resolve().parents[3]
+        if not project:
+            return None
+        return repo_root / "UI" / "data" / "Generated_data" / "Defaults" / str(project) / str(sample)
+
+    def _safe_read_defaults_csv(defaults_dir, fname: str) -> pd.DataFrame:
+        """Read a defaults CSV which may be chunked; return empty DF if missing."""
+        if defaults_dir is None:
+            return pd.DataFrame()
+        p = defaults_dir / fname
+        meta = defaults_dir / (p.stem + "_chunk_metadata.json")
+        try:
+            if meta.exists():
+                return read_chunked_csv(str(p), low_memory=False)
+            if p.exists():
+                return pd.read_csv(p, low_memory=False)
+        except Exception:
+            return pd.DataFrame()
+        return pd.DataFrame()
+
+    def _read_results_pair_defaults(sample: str):
+        """Read (unfiltered, filtered) defaults results for a sample.
+
+        Filtered defaults may not exist; if so, filtered falls back to unfiltered.
+        """
+        defaults_dir = _defaults_base_dir(sample)
+        df_unf = _safe_read_defaults_csv(defaults_dir, "Model_Results_default.csv")
+        df_filt = _safe_read_defaults_csv(defaults_dir, "Model_Results_default_filtered.csv")
+
+        # This repo often ships ONLY the filtered defaults. In that case, treat
+        # filtered as the canonical defaults and use it for both.
+        if (df_unf is None or getattr(df_unf, "shape", (0, 0))[0] == 0) and (
+            df_filt is not None and getattr(df_filt, "shape", (0, 0))[0] > 0
+        ):
+            df_unf = df_filt
+
+        # If filtered dataset is missing, fall back to unfiltered.
+        if df_filt is None or getattr(df_filt, "shape", (0, 0))[0] == 0:
+            df_filt = df_unf
+        return df_unf, df_filt
+
+    mr_morris, mr_morris_filtered = _read_results_pair_defaults("Morris")
+    mr_latin, mr_latin_filtered = _read_results_pair_defaults("LHS")
+
+    # At minimum we expect SOME LHS defaults to exist for the bundled project.
+    if mr_latin is None or getattr(mr_latin, "shape", (0, 0))[0] == 0:
+        raise FileNotFoundError(
+            "Default LHS dataset not found under UI/data/Generated_data/Defaults. "
+            "Rebuild defaults or ensure the Defaults chunks are committed."
+        )
+
+    # --- Parameters + scenario tables used by defaults ---
+    par_morris = _safe_read_excel(helpers.get_path(Hardcoded_values.parameter_sample_file, sample="Morris"))
+    par_latin = _safe_read_excel(helpers.get_path(Hardcoded_values.parameter_sample_file, sample="LHS"))
+    def _read_parameter_space(sample: str) -> pd.DataFrame:
+        """Read the parameter space definition table.
+
+        The `parameter_space.xlsx` contains a first "Settings" sheet and a second
+        "Parameter Space" sheet (the one we actually need for GSA).
+        """
+        path = helpers.get_path(Hardcoded_values.parameter_space_file, sample=sample)
+        try:
+            # Prefer the named sheet.
+            df = pd.read_excel(path, sheet_name="Parameter Space")
+        except Exception:
+            try:
+                # Fallback: second sheet by index.
+                df = pd.read_excel(path, sheet_name=1)
+            except Exception:
+                return pd.DataFrame()
+
+        # Normalize column names a bit (GSA expects 'Parameter').
+        try:
+            df.columns = [str(c).strip() for c in df.columns]
+        except Exception:
+            pass
+        return df
+
+    par_morris_space = _read_parameter_space("Morris")
+    par_latin_space = _read_parameter_space("LHS")
+    tech = _safe_read_excel(
+        helpers.get_path(Hardcoded_values.base_scenario_file), sheet_name="Technologies", skiprows=2
+    )
+    activities = _safe_read_excel(
+        helpers.get_path(Hardcoded_values.base_scenario_file), sheet_name="Activities", skiprows=6
+    )
+
+    # --- Pre-computed GSA results (optional, but small enough to load in light mode) ---
+    # These live under UI/data/Generated_data/GSA/<project>/... and do NOT depend on PPResults.
+    def _safe_read_gsa_csv(path: str) -> pd.DataFrame:
+        try:
+            if path and os.path.exists(path):
+                return pd.read_csv(path, low_memory=False)
+        except Exception:
+            return pd.DataFrame()
+        return pd.DataFrame()
+
+    def _load_gsa_results_light():
+        """Load GSA results intelligently based on available files.
+
+        Mirrors _read_default_files() behavior but avoids any PPResults reads.
+        """
+        import re
+
+        gsa_morris = pd.DataFrame()
+        gsa_delta_latin = pd.DataFrame()
+        available_delta_sizes: list[int] = []
+
+        # Morris (static) GSA file
+        morris_gsa_path = helpers.get_path(Hardcoded_values.gsa_morris_file, sample="Morris")
+        if morris_gsa_path and os.path.exists(morris_gsa_path):
+            gsa_morris = _safe_read_gsa_csv(morris_gsa_path)
+
+        # LHS Delta: discover numeric Delta_<N> files and load the largest as default.
+        gsa_dir_lhs = os.path.dirname(helpers.get_path(Hardcoded_values.gsa_delta_file, sample="LHS"))
+        if gsa_dir_lhs and os.path.exists(gsa_dir_lhs):
+            try:
+                for f in os.listdir(gsa_dir_lhs):
+                    if ("Delta" not in f) or (not f.endswith(".csv")):
+                        continue
+                    # Exclude special files that the UI shouldn't treat as a selectable size.
+                    if ("All_Re-Samples" in f) or ("TechExtensive" in f):
+                        continue
+                    m = re.search(r"Delta_(\d+)", f)
+                    if m:
+                        available_delta_sizes.append(int(m.group(1)))
+            except Exception:
+                pass
+
+        sizes = sorted({s for s in available_delta_sizes if isinstance(s, int)}, reverse=True)
+        available_delta_sizes = sizes
+        if sizes:
+            best_path = os.path.join(gsa_dir_lhs, f"GSA_Delta_{sizes[0]}.csv")
+            if os.path.exists(best_path):
+                gsa_delta_latin = _safe_read_gsa_csv(best_path)
+        else:
+            # Fall back to a non-sized default if present.
+            fallback = os.path.join(gsa_dir_lhs, "GSA_Delta.csv")
+            if os.path.exists(fallback):
+                gsa_delta_latin = _safe_read_gsa_csv(fallback)
+
+        return gsa_morris, gsa_delta_latin, available_delta_sizes
+
+    gsa_morris, gsa_delta_latin, available_delta_sizes = _load_gsa_results_light()
+
+    # For compatibility, create empty placeholders for missing combinations
+    gsa_latin_morris = pd.DataFrame()  # LHS doesn't use Morris method
+    gsa_delta_morris = pd.DataFrame()  # Morris doesn't use Delta method
+
+    return (
+        mr_morris,
+        mr_latin,
+        mr_morris_filtered,
+        mr_latin_filtered,
+        par_morris,
+        par_morris_space,
+        par_latin,
+        par_latin_space,
+        tech,
+        activities,
+        gsa_morris,
+        gsa_latin_morris,
+        gsa_delta_morris,
+        gsa_delta_latin,
+        available_delta_sizes,
+    )
+
+
 def ensure_defaults_loading_started() -> None:
-    """Start loading defaults in a background thread (best-effort).
+    """Load the small 'default data' once per session.
 
-    Streamlit executes scripts synchronously, so the only way to let Home content
-    show immediately while data loads is to kick off a daemon thread.
-
-    Notes:
-    - This is intentionally best-effort. If Streamlit disallows session_state
-      mutation from a background thread in some environments, pages still call
-      `_init_defaults()` directly as a fallback.
+    This is intentionally synchronous but fast; Home can call it immediately
+    after rendering its content.
     """
     if defaults_ready():
         return
 
     if st.session_state.get("defaults_loading", False):
+        # Another run is already doing it.
         return
 
+    # Diagnostics: record that we attempted a defaults load this run.
     st.session_state["defaults_loading"] = True
-    st.session_state.setdefault("defaults_load_error", "")
+    st.session_state["defaults_load_error"] = ""
+    st.session_state["defaults_load_diag"] = {
+        "called": True,
+        "project": st.session_state.get("project", None),
+        "defaults_project_before": st.session_state.get("defaults_project", None),
+        "defaults_loaded_before": bool(st.session_state.get("defaults_loaded", False)),
+        "phase": "starting",
+    }
 
-    def _worker():
+    try:
+        # Use the light loader first. Never auto-load full PPResults here.
+        project = st.session_state.get("project")
+        st.session_state["defaults_load_diag"]["phase"] = "reading_light"
         try:
-            _init_defaults()
+            res = _read_default_files_light(project)
         except Exception as e:
-            try:
-                st.session_state["defaults_load_error"] = f"{type(e).__name__}: {e}"
-            except Exception:
-                pass
-        finally:
-            try:
-                st.session_state["defaults_loading"] = False
-            except Exception:
-                pass
+            # Don't swallow: record full details so Home can show them.
+            st.session_state["defaults_load_diag"]["phase"] = "light_exception"
+            st.session_state["defaults_load_diag"]["light_exception"] = f"{type(e).__name__}: {e}"
+            raise
 
-    t = threading.Thread(target=_worker, name="defaults_loader", daemon=True)
-    t.start()
+        # Record basic shape of what came back (without dumping big dataframes).
+        st.session_state["defaults_load_diag"]["phase"] = "light_returned"
+        st.session_state["defaults_load_diag"]["light_type"] = str(type(res))
+        if isinstance(res, tuple):
+            st.session_state["defaults_load_diag"]["light_tuple_len"] = len(res)
+
+        if res is None or not isinstance(res, tuple) or len(res) != 15:
+            st.session_state["defaults_load_diag"]["phase"] = "invalid_light_result"
+            # Raise a *diagnostic* error so we can see what's wrong without having to
+            # rely on rendering st.json().
+            raise RuntimeError(
+                "Default light dataset not available or invalid. "
+                "Expected a 15-item tuple from _read_default_files_light(). "
+                f"Got type={type(res).__name__}, "
+                f"tuple_len={(len(res) if isinstance(res, tuple) else 'n/a')}. "
+                "Refusing to auto-load full data; click 'Load complete data' instead."
+            )
+
+        (
+            mr_morris,
+            mr_latin,
+            mr_morris_filtered,
+            mr_latin_filtered,
+            par_morris,
+            par_morris_space,
+            par_latin,
+            par_latin_space,
+            tech,
+            activities,
+            gsa_morris,
+            gsa_latin_morris,
+            gsa_delta_morris,
+            gsa_delta_latin,
+            available_delta_sizes,
+        ) = res
+
+        st.session_state["defaults_load_diag"]["phase"] = "storing_session_state"
+
+        # Store in session_state using the same keys as full defaults.
+        st.session_state.model_results_MORRIS = mr_morris
+        st.session_state.model_results_LATIN = mr_latin
+        st.session_state.model_results_MORRIS_filtered = (
+            mr_morris_filtered if not mr_morris_filtered.empty else mr_morris
+        )
+        st.session_state.model_results_LATIN_filtered = (
+            mr_latin_filtered if not mr_latin_filtered.empty else mr_latin
+        )
+        st.session_state.parameter_lookup_MORRIS = par_morris
+        st.session_state.parameter_space_MORRIS = par_morris_space
+        st.session_state.parameter_lookup_LATIN = par_latin
+        st.session_state.parameter_space_LATIN = par_latin_space
+        st.session_state.technologies = tech
+        st.session_state.activities = activities
+        st.session_state.gsa_morris_MORRIS = gsa_morris
+        st.session_state.gsa_morris_LATIN = gsa_latin_morris
+        st.session_state.gsa_delta_MORRIS = gsa_delta_morris
+        st.session_state.gsa_delta_LATIN = gsa_delta_latin
+        st.session_state.available_delta_sizes = available_delta_sizes
+
+        st.session_state.defaults_loaded = True
+        st.session_state.defaults_project = st.session_state.get(
+            "project", getattr(Hardcoded_values, "project", None)
+        )
+        st.session_state["defaults_load_diag"]["phase"] = "done"
+        st.session_state["defaults_load_diag"]["defaults_loaded_after"] = True
+        st.session_state["defaults_load_diag"]["defaults_project_after"] = st.session_state.defaults_project
+    except Exception as e:
+        st.session_state["defaults_load_error"] = f"{type(e).__name__}: {e}"
+        try:
+            st.session_state["defaults_load_diag"]["phase"] = "failed"
+            st.session_state["defaults_load_diag"]["exception"] = f"{type(e).__name__}: {e}"
+        except Exception:
+            pass
+        raise
+    finally:
+        st.session_state["defaults_loading"] = False
+
+
+def ensure_full_data_loaded() -> None:
+    """Load full datasets (may be slow). Intended for explicit user action."""
+    # If the flag is set but the data isn't actually present, treat it as not ready.
+    if bool(st.session_state.get("full_data_loaded", False)) and not full_data_ready():
+        st.session_state["full_data_loaded"] = False
+
+    if full_data_ready():
+        return
+    if st.session_state.get("full_data_loading", False):
+        return
+
+    st.session_state["full_data_loading"] = True
+    st.session_state["full_data_load_error"] = ""
+    try:
+        # Force a full reload from PPResults even if light defaults already set
+        # defaults_loaded/defaults_project. Otherwise _init_defaults() may early-out
+        # and never touch PPResults, making the button appear to do nothing.
+        st.session_state["defaults_loaded"] = False
+        st.session_state["defaults_project"] = None
+
+        _init_defaults()
+        st.session_state["full_data_loaded"] = True
+    except Exception as e:
+        st.session_state["full_data_load_error"] = f"{type(e).__name__}: {e}"
+        raise
+    finally:
+        st.session_state["full_data_loading"] = False
 
 
 def require_defaults_ready(message: str = "Loading datasets…") -> None:
@@ -68,19 +390,20 @@ def require_defaults_ready(message: str = "Loading datasets…") -> None:
     if defaults_ready():
         return
 
-    # If background loading failed, fall back to synchronous load once.
-    err = str(st.session_state.get("defaults_load_error", "") or "")
-    if err and not st.session_state.get("defaults_load_error_ack", False):
-        # One-time warning; still attempt a synchronous load.
-        st.session_state["defaults_load_error_ack"] = True
-        st.warning(f"Background load failed ({err}). Loading datasets in the foreground…")
-        _init_defaults()
+    # If defaults haven't been loaded yet, try to load the small default set.
+    with st.spinner(message):
+        ensure_defaults_loading_started()
+
+    if defaults_ready():
         return
 
-    with st.spinner(message):
-        # Let the user see the page chrome; we don't busy-wait too long.
-        time.sleep(0.05)
-    st.info("Datasets are still loading. Please wait a few seconds and this page will refresh.")
+    err = str(st.session_state.get("defaults_load_error", "") or "")
+    if err:
+        st.error(f"Failed to load default data: {err}")
+        st.stop()
+
+    # If still not ready for any reason, stop.
+    st.info("Default data is still loading. Please wait and retry.")
     st.stop()
 
 # ────────────────────────────────────────────────────────────────────
@@ -454,8 +777,8 @@ def show_big_dataframe(df: pd.DataFrame, label: str, page_size: int = 1000):
 def render():
     st.header("Upload data")
 
-    # Load defaults once
-    _init_defaults()
+    # Load lightweight defaults once (never auto-load full PPResults here).
+    ensure_defaults_loading_started()
 
     col1, col2, col3 = st.columns([1, 1, 1])
 

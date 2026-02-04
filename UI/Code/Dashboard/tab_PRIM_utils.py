@@ -951,13 +951,14 @@ def render():
         upload.ensure_defaults_loading_started()
         upload.require_defaults_ready("Loading datasets for PRIM…")
     except Exception:
-        upload._init_defaults()
+        # Defaults are loaded via the central two-tier loader; avoid forcing full loads here.
+        pass
 
     # Verify required data in session
     if "model_results_LATIN" not in st.session_state and "model_results_MORRIS" not in st.session_state:
         # attempt to load defaults (this will respect Hardcoded_values.project / st.session_state['project'])
         try:
-            upload._init_defaults()
+            upload.ensure_defaults_loading_started()
         except Exception:
             pass
     if "model_results_LATIN" not in st.session_state and "model_results_MORRIS" not in st.session_state:

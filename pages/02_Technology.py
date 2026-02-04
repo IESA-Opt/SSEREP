@@ -23,7 +23,7 @@ utils.add_sidebar_tweaks()
 
 
 # Technology analysis as a standalone page.
-data_loading._init_defaults()
+data_loading.ensure_defaults_loading_started()
 
 use_1031_ssp = False
 try:

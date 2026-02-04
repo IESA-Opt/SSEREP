@@ -21,6 +21,13 @@ def render(use_1031_ssp: bool = False):
 def render_prim_without_cart_tab(use_1031_ssp=False):
     """Render the PRIM tab with horizontal scatter plots and all parameters shown."""
 
+    # Global sidebar: load-complete-data button + status.
+    try:
+        from Code.Dashboard import utils
+        utils.render_data_loading_sidebar()
+    except Exception:
+        pass
+
     # Home-first UX: if defaults aren't ready yet, start loading and show a friendly message.
     try:
         from Code.Dashboard import data_loading as upload
