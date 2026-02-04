@@ -348,8 +348,16 @@ def ensure_defaults_loading_started() -> None:
 
             st.session_state["defaults_load_diag"]["phase"] = "reading_ppresults"
 
-            mr_morris, mr_morris_filtered = _read_ppresults_filtered_first(project, "Morris")
-            mr_latin, mr_latin_filtered = _read_ppresults_filtered_first(project, "LHS")
+            # Memory-safety: only keep FILTERED datasets in memory by default.
+            # Loading both filtered+unfiltered can easily double peak RAM and crash
+            # Streamlit Community Cloud ("connection reset by peer").
+            _morris_unf, mr_morris_filtered = _read_ppresults_filtered_first(project, "Morris")
+            _latin_unf, mr_latin_filtered = _read_ppresults_filtered_first(project, "LHS")
+
+            # For backward compatibility with pages that still reference
+            # `model_results_*` (unfiltered), point them at the filtered dataset.
+            mr_morris = mr_morris_filtered
+            mr_latin = mr_latin_filtered
 
             if mr_latin is None or getattr(mr_latin, "shape", (0, 0))[0] == 0:
                 raise FileNotFoundError(
@@ -410,11 +418,12 @@ def ensure_defaults_loading_started() -> None:
 
             st.session_state["defaults_load_diag"]["phase"] = "storing_session_state"
 
-            # Store unfiltered (for pages that disable filter) + filtered (for default ON).
-            st.session_state.model_results_MORRIS = mr_morris
-            st.session_state.model_results_LATIN = mr_latin
+            # Store only filtered datasets. Keep both keys populated to avoid breaking
+            # older code paths, but don't keep duplicate copies in RAM.
             st.session_state.model_results_MORRIS_filtered = mr_morris_filtered
             st.session_state.model_results_LATIN_filtered = mr_latin_filtered
+            st.session_state.model_results_MORRIS = mr_morris_filtered
+            st.session_state.model_results_LATIN = mr_latin_filtered
 
             st.session_state.parameter_lookup_MORRIS = par_morris
             st.session_state.parameter_space_MORRIS = par_morris_space
@@ -433,13 +442,31 @@ def ensure_defaults_loading_started() -> None:
             st.session_state.defaults_project = project
             st.session_state["defaults_load_diag"]["phase"] = "done"
     except Exception as e:
-        st.session_state["defaults_load_error"] = f"{type(e).__name__}: {e}"
+        # Best-effort: detect memory pressure and present a clear message.
+        _raw = f"{type(e).__name__}: {e}"
+        _msg = _raw
         try:
-            st.session_state["defaults_load_diag"]["phase"] = "failed"
-            st.session_state["defaults_load_diag"]["exception"] = f"{type(e).__name__}: {e}"
+            # Pandas/Numpy and OS errors vary; use a conservative string match.
+            s = str(e).lower()
+            if isinstance(e, MemoryError) or ("out of memory" in s) or ("cannot allocate memory" in s):
+                _msg = (
+                    "Out of memory while loading the default datasets. "
+                    "This server instance likely doesn't have enough RAM to load the full Parquet/CSV into pandas. "
+                    "Try using a smaller (more filtered) dataset, reduce columns/rows, or upgrade the server size. "
+                    f"Details: {_raw}"
+                )
         except Exception:
             pass
-        raise
+
+        st.session_state["defaults_load_error"] = _msg
+        try:
+            st.session_state["defaults_load_diag"]["phase"] = "failed"
+            st.session_state["defaults_load_diag"]["exception"] = _msg
+        except Exception:
+            pass
+        # Don't re-raise: crashing here kills the Streamlit process and causes
+        # Streamlit Cloud health checks to see "connection reset by peer".
+        return
     finally:
         st.session_state["defaults_loading"] = False
 
