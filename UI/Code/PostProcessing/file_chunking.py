@@ -264,6 +264,40 @@ def read_chunked_csv(filepath: str, **kwargs) -> pd.DataFrame:
     Returns:
         Combined DataFrame from all chunks, or original file if not chunked
     """
+    # Parquet fast-path:
+    # If a Parquet sibling exists next to the requested CSV, prefer it. This keeps
+    # existing code (which calls read_chunked_csv('.../something.csv')) working
+    # while allowing the repo to ship smaller/faster artifacts.
+    #
+    # IMPORTANT: Some callers expect a file name like 'Model_Results.csv' but the
+    # repo may ship 'Model_Results.parquet' (or 'Model_Results_filtered.parquet').
+    # We therefore try BOTH:
+    #   1) same stem: <path-without-ext>.parquet
+    #   2) canonical names in the same directory (Model_Results*.parquet)
+    try:
+        if isinstance(filepath, str) and filepath.lower().endswith('.csv'):
+            base_no_ext = os.path.splitext(filepath)[0]
+            parquet_path = base_no_ext + '.parquet'
+            if os.path.exists(parquet_path):
+                return pd.read_parquet(parquet_path)
+
+            # If the path is pointing at a non-canonical CSV name (e.g. the
+            # hardcoded expects 'Model_Results.csv'), probe for canonical Parquet
+            # artifacts in that directory.
+            dir_path = os.path.dirname(filepath)
+            fname_lower = os.path.basename(filepath).lower()
+            if 'model_results_filtered' in fname_lower:
+                alt = os.path.join(dir_path, 'Model_Results_filtered.parquet')
+                if os.path.exists(alt):
+                    return pd.read_parquet(alt)
+            if 'model_results' in fname_lower:
+                alt = os.path.join(dir_path, 'Model_Results.parquet')
+                if os.path.exists(alt):
+                    return pd.read_parquet(alt)
+    except Exception:
+        # If parquet loading fails for any reason, fall back to CSV logic.
+        pass
+
     # Check if the original file exists and is small enough
     if os.path.exists(filepath) and not needs_chunking(filepath, 100):
         return pd.read_csv(filepath, **kwargs)
@@ -286,13 +320,18 @@ def read_chunked_csv(filepath: str, **kwargs) -> pd.DataFrame:
         print(f"Reading {metadata['total_chunks']} chunks ({metadata['total_rows']:,} total rows)")
         
         # Read all chunks
+        # Prefer Parquet chunk siblings when present: <chunk>.parquet
         chunk_dfs = []
         for chunk_file in metadata['chunk_files']:
             chunk_path = os.path.join(chunks_dir, chunk_file)
             if not os.path.exists(chunk_path):
                 raise FileNotFoundError(f"Chunk file not found: {chunk_path}")
-            
-            chunk_df = pd.read_csv(chunk_path, **kwargs)
+
+            parquet_chunk_path = os.path.splitext(chunk_path)[0] + '.parquet'
+            if os.path.exists(parquet_chunk_path):
+                chunk_df = pd.read_parquet(parquet_chunk_path)
+            else:
+                chunk_df = pd.read_csv(chunk_path, **kwargs)
             chunk_dfs.append(chunk_df)
         
         # Combine all chunks

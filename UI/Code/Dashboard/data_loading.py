@@ -11,15 +11,13 @@ from Code.PostProcessing.file_chunking import read_chunked_csv
 
 
 # ────────────────────────────────────────────────────────────────────
-# Two-phase loading
-# - "default data": small, fast-to-load subset for default plots
-# - "full data": full result tables for exploration
+# Single-phase loading (Parquet-first): load PPResults filtered datasets by default.
 #
 # IMPORTANT: avoid background threads. Streamlit session_state is tied to the
 # script run context; mutating it from threads is unreliable.
 # ────────────────────────────────────────────────────────────────────
 def defaults_ready() -> bool:
-    """Return True if the *default* (small) datasets have been loaded."""
+    """Return True if the default datasets have been loaded."""
     try:
         return bool(st.session_state.get("defaults_loaded", False))
     except Exception:
@@ -27,31 +25,63 @@ def defaults_ready() -> bool:
 
 
 def full_data_ready() -> bool:
-    """Return True if the full datasets have been loaded."""
-    """True only when the full PPResults tables are actually present in session_state."""
+    """Legacy flag retained for compatibility; in the single-phase UX it's identical to defaults_ready()."""
     try:
-        if not bool(st.session_state.get("full_data_loaded", False)):
-            return False
-        # Guard against stale flags: require at least one PPResults dataset to exist.
-        required_any = (
-            "results" in st.session_state
-            or "results_filtered" in st.session_state
-            or "PPResults" in st.session_state
-            or "pp_results" in st.session_state
-        )
-        return bool(required_any)
+        return defaults_ready()
     except Exception:
         return False
 
 
+def _read_ppresults_filtered_first(project: str, sample: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Load PPResults merged results with a filtered-first preference.
+
+    Returns (df_unfiltered, df_filtered) where df_filtered is preferred when present.
+    If only one exists, it is used for both.
+    """
+    base_path = helpers.get_path(Hardcoded_values.pp_results_file, project=project, sample=sample)
+    base_dir = os.path.dirname(base_path)
+    base_stem = os.path.splitext(os.path.basename(base_path))[0]
+    ext = os.path.splitext(base_path)[1]
+
+    filtered_path = os.path.join(base_dir, f"{base_stem}_filtered{ext}")
+
+    df_filtered = pd.DataFrame()
+    df_unfiltered = pd.DataFrame()
+
+    try:
+        df_filtered = read_chunked_csv(filtered_path, low_memory=False)
+    except Exception:
+        df_filtered = pd.DataFrame()
+
+    # If filtered isn't available, fall back to unfiltered.
+    if df_filtered is None or getattr(df_filtered, "shape", (0, 0))[0] == 0:
+        try:
+            df_unfiltered = read_chunked_csv(base_path, low_memory=False)
+        except Exception:
+            df_unfiltered = pd.DataFrame()
+        df_filtered = df_unfiltered
+    else:
+        # Keep unfiltered aligned when possible, but don't force-load if not needed.
+        try:
+            df_unfiltered = read_chunked_csv(base_path, low_memory=False)
+        except Exception:
+            df_unfiltered = df_filtered
+
+    if df_unfiltered is None or getattr(df_unfiltered, "shape", (0, 0))[0] == 0:
+        df_unfiltered = df_filtered
+
+    return df_unfiltered, df_filtered
+
+
 def _read_default_files_light(project: str | None):
-    """Load a SMALL subset of defaults for fast initial render.
+    """Legacy helper: load minimal defaults artifacts (kept for compatibility).
 
-    This is a pragmatic shortcut: load only the columns/rows typically needed
-    for the default selections on each page.
+    The app now uses a single-phase Parquet-first loader via
+    `ensure_defaults_loading_started()`. This function is retained because some
+    code paths still call `_read_default_files()` (which historically depended on
+    these defaults-shaped inputs for small auxiliary tables like GSA).
 
-    IMPORTANT: This loader must never read the full PPResults tables.
-    Full data must only load via the explicit "Load complete data" action.
+    Note: this function does *not* control any UI/UX tiering anymore.
     """
 
     def _safe_read_csv(path, **kwargs):
@@ -67,7 +97,46 @@ def _read_default_files_light(project: str | None):
             return pd.DataFrame()
 
     # --- Results (LHS/Morris) ---
-    # Mirror the full-loader logic, but point it at Defaults artifacts.
+    # Historical behaviour: load Defaults artifacts, optionally preferring
+    # merged PPResults Parquet if present.
+    def _prefer_ppresults_parquet_light() -> bool:
+        try:
+            return bool(st.session_state.get("prefer_ppresults_parquet_light", True))
+        except Exception:
+            return True
+
+    def _try_read_ppresults_parquet(sample: str) -> tuple[pd.DataFrame, pd.DataFrame] | None:
+        """Try loading PPResults merged Parquet (unfiltered + filtered) for a sample.
+
+        Returns (df_unfiltered, df_filtered) or None if not available.
+        """
+        try:
+            from pathlib import Path
+
+            repo_root = Path(__file__).resolve().parents[3]
+            if not project:
+                return None
+            base_dir = repo_root / "UI" / "data" / "Generated_data" / "PPResults" / str(project) / str(sample)
+
+            p_unf = base_dir / "Model_Results.parquet"
+            p_filt = base_dir / "Model_Results_filtered.parquet"
+            if not p_unf.exists() and not p_filt.exists():
+                return None
+
+            # Prefer filtered if present; if only one exists, use it for both.
+            df_unf = pd.read_parquet(p_unf) if p_unf.exists() else pd.DataFrame()
+            df_filt = pd.read_parquet(p_filt) if p_filt.exists() else pd.DataFrame()
+
+            if df_unf.empty and not df_filt.empty:
+                df_unf = df_filt
+            if df_filt.empty and not df_unf.empty:
+                df_filt = df_unf
+
+            if df_unf.empty and df_filt.empty:
+                return None
+            return df_unf, df_filt
+        except Exception:
+            return None
     def _defaults_base_dir(sample: str):
         from pathlib import Path
 
@@ -112,14 +181,30 @@ def _read_default_files_light(project: str | None):
             df_filt = df_unf
         return df_unf, df_filt
 
-    mr_morris, mr_morris_filtered = _read_results_pair_defaults("Morris")
-    mr_latin, mr_latin_filtered = _read_results_pair_defaults("LHS")
+    if _prefer_ppresults_parquet_light():
+        pp_morris = _try_read_ppresults_parquet("Morris")
+        pp_lhs = _try_read_ppresults_parquet("LHS")
+    else:
+        pp_morris = None
+        pp_lhs = None
 
-    # At minimum we expect SOME LHS defaults to exist for the bundled project.
+    if pp_morris is not None:
+        mr_morris, mr_morris_filtered = pp_morris
+    else:
+        mr_morris, mr_morris_filtered = _read_results_pair_defaults("Morris")
+
+    if pp_lhs is not None:
+        mr_latin, mr_latin_filtered = pp_lhs
+    else:
+        mr_latin, mr_latin_filtered = _read_results_pair_defaults("LHS")
+
+    # If PPResults Parquet isn't available and Defaults are missing too, then we
+    # can't proceed.
     if mr_latin is None or getattr(mr_latin, "shape", (0, 0))[0] == 0:
         raise FileNotFoundError(
-            "Default LHS dataset not found under UI/data/Generated_data/Defaults. "
-            "Rebuild defaults or ensure the Defaults chunks are committed."
+            "No LHS results found. Expected either PPResults Parquet under "
+            "UI/data/Generated_data/PPResults/<project>/LHS (Model_Results*.parquet) "
+            "or Defaults under UI/data/Generated_data/Defaults/<project>/LHS."
         )
 
     # --- Parameters + scenario tables used by defaults ---
@@ -240,107 +325,113 @@ def _read_default_files_light(project: str | None):
 
 
 def ensure_defaults_loading_started() -> None:
-    """Load the small 'default data' once per session.
-
-    This is intentionally synchronous but fast; Home can call it immediately
-    after rendering its content.
-    """
+    """Load PPResults (filtered preferred) once per Streamlit session."""
     if defaults_ready():
         return
 
+    # Prevent re-entrancy: if already loading in this session/run, just return.
     if st.session_state.get("defaults_loading", False):
-        # Another run is already doing it.
         return
 
-    # Diagnostics: record that we attempted a defaults load this run.
+    # Initialize diagnostics container early (so failures don’t KeyError).
+    if "defaults_load_diag" not in st.session_state:
+        st.session_state["defaults_load_diag"] = {}
+
+    # Mark loading before any heavy IO.
     st.session_state["defaults_loading"] = True
-    st.session_state["defaults_load_error"] = ""
-    st.session_state["defaults_load_diag"] = {
-        "called": True,
-        "project": st.session_state.get("project", None),
-        "defaults_project_before": st.session_state.get("defaults_project", None),
-        "defaults_loaded_before": bool(st.session_state.get("defaults_loaded", False)),
-        "phase": "starting",
-    }
 
     try:
-        # Use the light loader first. Never auto-load full PPResults here.
-        project = st.session_state.get("project")
-        st.session_state["defaults_load_diag"]["phase"] = "reading_light"
-        try:
-            res = _read_default_files_light(project)
-        except Exception as e:
-            # Don't swallow: record full details so Home can show them.
-            st.session_state["defaults_load_diag"]["phase"] = "light_exception"
-            st.session_state["defaults_load_diag"]["light_exception"] = f"{type(e).__name__}: {e}"
-            raise
+            project = st.session_state.get("project", getattr(Hardcoded_values, "project", None))
+            if project:
+                Hardcoded_values.project = project
+            project = getattr(Hardcoded_values, "project", None) or str(project or "")
 
-        # Record basic shape of what came back (without dumping big dataframes).
-        st.session_state["defaults_load_diag"]["phase"] = "light_returned"
-        st.session_state["defaults_load_diag"]["light_type"] = str(type(res))
-        if isinstance(res, tuple):
-            st.session_state["defaults_load_diag"]["light_tuple_len"] = len(res)
+            st.session_state["defaults_load_diag"]["phase"] = "reading_ppresults"
 
-        if res is None or not isinstance(res, tuple) or len(res) != 15:
-            st.session_state["defaults_load_diag"]["phase"] = "invalid_light_result"
-            # Raise a *diagnostic* error so we can see what's wrong without having to
-            # rely on rendering st.json().
-            raise RuntimeError(
-                "Default light dataset not available or invalid. "
-                "Expected a 15-item tuple from _read_default_files_light(). "
-                f"Got type={type(res).__name__}, "
-                f"tuple_len={(len(res) if isinstance(res, tuple) else 'n/a')}. "
-                "Refusing to auto-load full data; click 'Load complete data' instead."
+            mr_morris, mr_morris_filtered = _read_ppresults_filtered_first(project, "Morris")
+            mr_latin, mr_latin_filtered = _read_ppresults_filtered_first(project, "LHS")
+
+            if mr_latin is None or getattr(mr_latin, "shape", (0, 0))[0] == 0:
+                raise FileNotFoundError(
+                    "No LHS results found in PPResults. Expected Parquet/CSV under "
+                    f"UI/data/Generated_data/PPResults/{project}/LHS (Model_Results*_filtered.*)."
+                )
+
+            # Parameters + scenario tables (still loaded from the existing locations)
+            par_morris = pd.read_excel(helpers.get_path(Hardcoded_values.parameter_sample_file, sample="Morris"))
+            par_latin = pd.read_excel(helpers.get_path(Hardcoded_values.parameter_sample_file, sample="LHS"))
+            try:
+                par_morris_space = pd.read_excel(
+                    helpers.get_path(Hardcoded_values.parameter_space_file, sample="Morris"),
+                    sheet_name="Parameter Space",
+                )
+            except Exception:
+                par_morris_space = pd.DataFrame()
+            try:
+                par_latin_space = pd.read_excel(
+                    helpers.get_path(Hardcoded_values.parameter_space_file, sample="LHS"),
+                    sheet_name="Parameter Space",
+                )
+            except Exception:
+                par_latin_space = pd.DataFrame()
+
+            tech = pd.read_excel(
+                helpers.get_path(Hardcoded_values.base_scenario_file), sheet_name="Technologies", skiprows=2
+            )
+            activities = pd.read_excel(
+                helpers.get_path(Hardcoded_values.base_scenario_file), sheet_name="Activities", skiprows=6
             )
 
-        (
-            mr_morris,
-            mr_latin,
-            mr_morris_filtered,
-            mr_latin_filtered,
-            par_morris,
-            par_morris_space,
-            par_latin,
-            par_latin_space,
-            tech,
-            activities,
-            gsa_morris,
-            gsa_latin_morris,
-            gsa_delta_morris,
-            gsa_delta_latin,
-            available_delta_sizes,
-        ) = res
+            # GSA results: keep existing discovery logic via the full defaults reader (small files).
+            try:
+                (
+                    _mr_m,
+                    _mr_l,
+                    _mr_m_f,
+                    _mr_l_f,
+                    _par_m,
+                    _par_m_space,
+                    _par_l,
+                    _par_l_space,
+                    _tech,
+                    _act,
+                    gsa_morris,
+                    gsa_latin_morris,
+                    gsa_delta_morris,
+                    gsa_delta_latin,
+                    available_delta_sizes,
+                ) = _read_default_files(project)
+            except Exception:
+                gsa_morris = pd.DataFrame()
+                gsa_latin_morris = pd.DataFrame()
+                gsa_delta_morris = pd.DataFrame()
+                gsa_delta_latin = pd.DataFrame()
+                available_delta_sizes = []
 
-        st.session_state["defaults_load_diag"]["phase"] = "storing_session_state"
+            st.session_state["defaults_load_diag"]["phase"] = "storing_session_state"
 
-        # Store in session_state using the same keys as full defaults.
-        st.session_state.model_results_MORRIS = mr_morris
-        st.session_state.model_results_LATIN = mr_latin
-        st.session_state.model_results_MORRIS_filtered = (
-            mr_morris_filtered if not mr_morris_filtered.empty else mr_morris
-        )
-        st.session_state.model_results_LATIN_filtered = (
-            mr_latin_filtered if not mr_latin_filtered.empty else mr_latin
-        )
-        st.session_state.parameter_lookup_MORRIS = par_morris
-        st.session_state.parameter_space_MORRIS = par_morris_space
-        st.session_state.parameter_lookup_LATIN = par_latin
-        st.session_state.parameter_space_LATIN = par_latin_space
-        st.session_state.technologies = tech
-        st.session_state.activities = activities
-        st.session_state.gsa_morris_MORRIS = gsa_morris
-        st.session_state.gsa_morris_LATIN = gsa_latin_morris
-        st.session_state.gsa_delta_MORRIS = gsa_delta_morris
-        st.session_state.gsa_delta_LATIN = gsa_delta_latin
-        st.session_state.available_delta_sizes = available_delta_sizes
+            # Store unfiltered (for pages that disable filter) + filtered (for default ON).
+            st.session_state.model_results_MORRIS = mr_morris
+            st.session_state.model_results_LATIN = mr_latin
+            st.session_state.model_results_MORRIS_filtered = mr_morris_filtered
+            st.session_state.model_results_LATIN_filtered = mr_latin_filtered
 
-        st.session_state.defaults_loaded = True
-        st.session_state.defaults_project = st.session_state.get(
-            "project", getattr(Hardcoded_values, "project", None)
-        )
-        st.session_state["defaults_load_diag"]["phase"] = "done"
-        st.session_state["defaults_load_diag"]["defaults_loaded_after"] = True
-        st.session_state["defaults_load_diag"]["defaults_project_after"] = st.session_state.defaults_project
+            st.session_state.parameter_lookup_MORRIS = par_morris
+            st.session_state.parameter_space_MORRIS = par_morris_space
+            st.session_state.parameter_lookup_LATIN = par_latin
+            st.session_state.parameter_space_LATIN = par_latin_space
+            st.session_state.technologies = tech
+            st.session_state.activities = activities
+
+            st.session_state.gsa_morris_MORRIS = gsa_morris
+            st.session_state.gsa_morris_LATIN = gsa_latin_morris
+            st.session_state.gsa_delta_MORRIS = gsa_delta_morris
+            st.session_state.gsa_delta_LATIN = gsa_delta_latin
+            st.session_state.available_delta_sizes = available_delta_sizes
+
+            st.session_state.defaults_loaded = True
+            st.session_state.defaults_project = project
+            st.session_state["defaults_load_diag"]["phase"] = "done"
     except Exception as e:
         st.session_state["defaults_load_error"] = f"{type(e).__name__}: {e}"
         try:
@@ -354,32 +445,8 @@ def ensure_defaults_loading_started() -> None:
 
 
 def ensure_full_data_loaded() -> None:
-    """Load full datasets (may be slow). Intended for explicit user action."""
-    # If the flag is set but the data isn't actually present, treat it as not ready.
-    if bool(st.session_state.get("full_data_loaded", False)) and not full_data_ready():
-        st.session_state["full_data_loaded"] = False
-
-    if full_data_ready():
-        return
-    if st.session_state.get("full_data_loading", False):
-        return
-
-    st.session_state["full_data_loading"] = True
-    st.session_state["full_data_load_error"] = ""
-    try:
-        # Force a full reload from PPResults even if light defaults already set
-        # defaults_loaded/defaults_project. Otherwise _init_defaults() may early-out
-        # and never touch PPResults, making the button appear to do nothing.
-        st.session_state["defaults_loaded"] = False
-        st.session_state["defaults_project"] = None
-
-        _init_defaults()
-        st.session_state["full_data_loaded"] = True
-    except Exception as e:
-        st.session_state["full_data_load_error"] = f"{type(e).__name__}: {e}"
-        raise
-    finally:
-        st.session_state["full_data_loading"] = False
+    """Deprecated: kept for compatibility; defaults loader already loads PPResults."""
+    ensure_defaults_loading_started()
 
 
 def require_defaults_ready(message: str = "Loading datasets…") -> None:

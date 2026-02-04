@@ -4,6 +4,12 @@
 
 This dashboard is configured to work with the **1108 SSP** project data.
 
+**Important (Feb 2026 update):** the UI is now **Parquet-first** and loads **PPResults filtered** results by default.
+
+- Required: `UI/data/Generated_data/PPResults/<project>/<sample>/Model_Results_filtered.parquet`
+- Optional: `Model_Results.parquet` (unfiltered)
+- Deprecated: `UI/data/Generated_data/Defaults/...` (light CSV defaults). The app no longer needs or reads these.
+
 ## Data Directory Structure
 
 Create the following directory structure inside the `data/` folder:
@@ -17,10 +23,13 @@ data/
 │   │   └── Morris/
 │   │       └── GSA_Morris.csv
 │   ├── PPResults/
-│   │   ├── LHS/
-│   │   │   └── Model_Results*.csv (may be chunked)
-│   │   └── Morris/
-│   │       └── Model_Results.csv
+│   │   └── 1108 SSP/
+│   │       ├── LHS/
+│   │       │   ├── Model_Results_filtered.parquet (required)
+│   │       │   └── Model_Results.parquet (optional)
+│   │       └── Morris/
+│   │           ├── Model_Results_filtered.parquet (required)
+│   │           └── Model_Results.parquet (optional)
 │   └── parameter_space_sample/
 │       ├── LHS/
 │       │   └── lookup_table_parameters.xlsx
@@ -52,8 +61,9 @@ Copy-Item -Recurse "$srcBase\..\..\Generated_data\GSA\1108 SSP\LHS" "$dstBase\Ge
 Copy-Item -Recurse "$srcBase\..\..\Generated_data\GSA\1108 SSP\Morris" "$dstBase\Generated_data\GSA\Morris"
 
 # Model Results
-Copy-Item -Recurse "$srcBase\..\..\Generated_data\PPResults\1108 SSP\LHS" "$dstBase\Generated_data\PPResults\LHS"
-Copy-Item -Recurse "$srcBase\..\..\Generated_data\PPResults\1108 SSP\Morris" "$dstBase\Generated_data\PPResults\Morris"
+# NOTE: keep the project folder name exactly as-is (e.g. "1108 SSP", with space).
+Copy-Item -Recurse "$srcBase\..\..\Generated_data\PPResults\1108 SSP\LHS" "$dstBase\Generated_data\PPResults\1108 SSP\LHS"
+Copy-Item -Recurse "$srcBase\..\..\Generated_data\PPResults\1108 SSP\Morris" "$dstBase\Generated_data\PPResults\1108 SSP\Morris"
 
 # Parameter lookup tables
 Copy-Item -Recurse "$srcBase\..\..\Generated_data\parameter_space_sample\1108 SSP\LHS" "$dstBase\Generated_data\parameter_space_sample\LHS"
@@ -71,7 +81,8 @@ Copy-Item -Recurse "$srcBase\..\..\Original_data\Parameter space\1108 SSP\Morris
 
 - **GSA_Delta*.csv**: Delta method sensitivity analysis results (S1, ST indices)
 - **GSA_Morris.csv**: Morris method results (mu*, sigma values)
-- **Model_Results*.csv**: Output from model runs (may be chunked for large datasets)
+- **Model_Results_filtered.parquet**: Output from model runs after applying the data-quality filter (**loaded by default**)
+- **Model_Results.parquet**: Unfiltered output (optional; used when the filter is disabled)
 - **lookup_table_parameters.xlsx**: Parameter naming lookup table
 
 ### Original Data

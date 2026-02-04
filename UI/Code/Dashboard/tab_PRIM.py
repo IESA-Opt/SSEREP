@@ -14,6 +14,22 @@ from Code.Dashboard.utils import prepare_results
 from Code.Dashboard.utils import apply_default_data_filter
 
 
+@st.cache_data(show_spinner=False)
+def _prepare_results_for_prim_cached(
+    project: str,
+    input_selection: str,
+    enable_filter: bool,
+    df_raw: pd.DataFrame,
+    parameter_lookup: pd.DataFrame,
+):
+    """Cache the wide per-variant dataframe for PRIM.
+
+    PRIM uses `prepare_results()` which can be expensive (pivot + merge).
+    Caching this makes revisiting the PRIM tab much faster.
+    """
+    return prepare_results(df_raw, parameter_lookup)
+
+
 def render(use_1031_ssp: bool = False):
     return render_prim_without_cart_tab(use_1031_ssp=use_1031_ssp)
 
@@ -74,7 +90,19 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
 
     # Prepare data
     try:
-        df, param_cols = prepare_results(df_raw, parameter_lookup)
+        try:
+            from Code import Hardcoded_values as _HC
+            _project = str(st.session_state.get("project", getattr(_HC, "project", "")) or "")
+        except Exception:
+            _project = str(st.session_state.get("project", "") or "")
+
+        df, param_cols = _prepare_results_for_prim_cached(
+            project=_project,
+            input_selection=str(input_selection),
+            enable_filter=bool(enable_filter),
+            df_raw=df_raw,
+            parameter_lookup=parameter_lookup,
+        )
     except Exception as e:
         st.error(f"Failed to prepare results: {e}")
         return

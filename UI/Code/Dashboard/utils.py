@@ -20,19 +20,15 @@ def render_data_loading_sidebar() -> None:
         return
 
     with st.sidebar:
-        if st.button("Load complete data", use_container_width=True, key="load_complete_data"):
-            data_loading.ensure_full_data_loaded()
-
         default_ready = data_loading.defaults_ready()
-        full_ready = data_loading.full_data_ready()
+        # Single-phase loader: defaults_ready() is the only readiness signal.
+        full_ready = False
         # Loading state: primarily driven by explicit loader flags.
         #
         # Some pages render the sidebar before the loader flag is set (same run), so we
         # keep a very short "warm-up" window after a rerun where we show Loading…
         # *only if* data isn't ready yet.
-        loading_flags = bool(st.session_state.get("defaults_loading", False)) or bool(
-            st.session_state.get("full_data_loading", False)
-        )
+        loading_flags = bool(st.session_state.get("defaults_loading", False))
         loading_warmup_until = float(st.session_state.get("loading_warmup_until", 0.0) or 0.0)
         try:
             import time as _time
@@ -42,26 +38,16 @@ def render_data_loading_sidebar() -> None:
         loading_warmup_active = (now > 0.0 and now < loading_warmup_until and not default_ready and not full_ready)
         loading = bool(loading_flags or loading_warmup_active)
         err = str(st.session_state.get("defaults_load_error", "") or "")
-        full_err = str(st.session_state.get("full_data_load_error", "") or "")
+        full_err = ""
 
-        if full_ready:
+        # In the Parquet-first single-phase UX, defaults == full.
+        if full_ready or default_ready:
             st.markdown(
                 """
                 <div style="display:flex;align-items:center;gap:.5rem;padding:.35rem .6rem;border-radius:.6rem;"
                             background:#E8F5E9;border:1px solid #2E7D32;">
                     <span style="font-weight:700;color:#1B5E20;">●</span>
-                    <span style="color:#1B5E20;font-weight:600;">Complete data loaded</span>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        elif default_ready:
-            st.markdown(
-                """
-                <div style="display:flex;align-items:center;gap:.5rem;padding:.35rem .6rem;border-radius:.6rem;"
-                            background:#E8F5E9;border:1px solid #2E7D32;">
-                    <span style="font-weight:700;color:#1B5E20;">●</span>
-                    <span style="color:#1B5E20;font-weight:600;">Default data loaded</span>
+                    <span style="color:#1B5E20;font-weight:600;">Data loaded</span>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -72,17 +58,18 @@ def render_data_loading_sidebar() -> None:
                 <style>
                 @keyframes sserep-spin { to { transform: rotate(360deg); } }
                 .sserep-spinner {
-                    width: 14px;
-                    height: 14px;
-                    border: 2px solid rgba(255,140,0,.35);
-                    border-top-color: rgba(255,140,0,1);
-                    border-radius: 50%;
+                    display:inline-block;
+                    width:14px;
+                    height:14px;
+                    border:2px solid #FFB74D;
+                    border-top-color:#FF8C00;
+                    border-radius:50%;
                     animation: sserep-spin .8s linear infinite;
                 }
                 </style>
                 <div style="display:flex;align-items:center;gap:.5rem;padding:.35rem .6rem;border-radius:.6rem;"
                             background:#FFF3E0;border:1px solid #FF8C00;">
-                    <div class="sserep-spinner"></div>
+                    <span class="sserep-spinner"></span>
                     <span style="color:#8A4B00;font-weight:600;">Loading data…</span>
                 </div>
                 """,

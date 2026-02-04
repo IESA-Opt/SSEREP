@@ -1107,6 +1107,8 @@ def render():
             
             # Load GSA data based on selected methods
             combined_gsa_data = pd.DataFrame()
+            # Always define delta_methods so later logic can safely check it.
+            delta_methods = []
         
             # Process Morris data
             if 'Morris' in selected_methods:

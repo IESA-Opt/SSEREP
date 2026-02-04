@@ -15,6 +15,95 @@ from Code.Dashboard.utils import prepare_results
 from Code.Dashboard.utils import apply_default_data_filter, get_tech_variable_name, calculate_parameter_ranges
 from Code.Dashboard import data_loading as upload
 from Code.Dashboard.utils import fix_display_name_capitalization
+from Code import Hardcoded_values
+
+
+@st.cache_data(show_spinner=False)
+def _prepare_results_cached(
+    project: str,
+    sample: str,
+    enable_filter: bool,
+    df_unfiltered: pd.DataFrame,
+    df_filtered: pd.DataFrame,
+    parameter_lookup: pd.DataFrame,
+):
+    """Cache the wide/pivoted results used by Technology.
+
+    Technology revisits tended to be slow because the pivot in `prepare_results()`
+    is CPU-heavy. This wrapper makes it stable across page navigation and only
+    recomputes when the underlying inputs change.
+    """
+
+    df_raw = df_filtered if enable_filter else df_unfiltered
+    if enable_filter:
+        # Defensive: some projects store already-filtered results, but keep the
+        # legacy filter behaviour consistent.
+        try:
+            df_raw = apply_default_data_filter(df_raw)
+        except Exception:
+            pass
+
+    return prepare_results(df_raw=df_raw, parameter_lookup=parameter_lookup)
+
+
+@st.cache_data(show_spinner=False)
+def _merge_params_cached(
+    project: str,
+    sample: str,
+    enable_filter: bool,
+    df_unfiltered: pd.DataFrame,
+    df_filtered: pd.DataFrame,
+    parameter_lookup: pd.DataFrame,
+) -> tuple[pd.DataFrame, list[str]]:
+    """Cache the Technology long-schema dataframe after parameter merge.
+
+    This is the expensive part on every navigation: copying the (potentially huge)
+    long-schema results and merging parameter columns.
+
+    Returns:
+      (df_merged, param_cols)
+    """
+
+    df_base = df_filtered if enable_filter else df_unfiltered
+    if df_base is None or getattr(df_base, "shape", (0, 0))[0] == 0:
+        return pd.DataFrame(), []
+
+    df = df_base.copy()
+
+    # Get parameter columns from parameter_lookup for potential filtering
+    if parameter_lookup is None or getattr(parameter_lookup, "shape", (0, 0))[0] == 0:
+        return df, []
+
+    param_cols = [c for c in parameter_lookup.columns if str(c).lower() != "variant"]
+
+    # Find variant columns (case-insensitive)
+    variant_col = None
+    for col in df.columns:
+        if str(col).lower() == "variant":
+            variant_col = col
+            break
+    param_variant_col = None
+    for col in parameter_lookup.columns:
+        if str(col).lower() == "variant":
+            param_variant_col = col
+            break
+
+    if not variant_col or not param_variant_col:
+        return df, []
+
+    try:
+        df_with_params = df.merge(
+            parameter_lookup,
+            left_on=variant_col,
+            right_on=param_variant_col,
+            how="left",
+        )
+        # If merge looks wrong (e.g., exploded), fall back to original.
+        if df_with_params is None or getattr(df_with_params, "shape", (0, 0))[0] < getattr(df, "shape", (0, 0))[0]:
+            return df, []
+        return df_with_params, param_cols
+    except Exception:
+        return df, []
 
 
 def render(use_1031_ssp: bool = False):
@@ -252,53 +341,36 @@ def render_technology_analysis_tab(use_1031_ssp=False):
     # IMPORTANT: apply the Data Filter by *choosing the dataset* first, then merge parameters.
     # If we merge first and then swap to a filtered df, the parameter columns disappear and the
     # UI shows "Parameter filtering not available".
-    df = df_raw.copy()
 
-    # Apply default data filter by swapping in the precomputed filtered dataset.
-    # (Same long schema; avoids runtime pivoting on Community Cloud.)
-    if enable_filter:
-        if input_selection == "LHS":
-            df_filtered = st.session_state.get("model_results_LATIN_filtered")
-        else:
-            df_filtered = st.session_state.get("model_results_MORRIS_filtered")
-
-        if df_filtered is not None and getattr(df_filtered, 'shape', (0, 0))[0] > 0:
-            df = df_filtered.copy()
-        else:
-            st.warning(
-                "Filtered results are not available for this dataset. "
-                "Using unfiltered results instead."
-            )
-
-    # Get parameter columns from parameter_lookup for potential filtering later
-    param_cols = [c for c in parameter_lookup.columns if c.lower() != 'variant']
-
-    # Merge parameter data with results for filtering
-    # Find the variant column (case-insensitive)
-    variant_col = None
-    param_variant_col = None
-
-    for col in df.columns:
-        if col.lower() == 'variant':
-            variant_col = col
-            break
-
-    for col in parameter_lookup.columns:
-        if col.lower() == 'variant':
-            param_variant_col = col
-            break
-
-    if variant_col and param_variant_col:
-        df_with_params = df.merge(parameter_lookup, left_on=variant_col, right_on=param_variant_col, how='left')
-        # Check if merge was successful
-        if not df_with_params.empty and len(df_with_params) >= len(df):
-            df = df_with_params
-        else:
-            st.warning("Could not merge parameter data for filtering. Filters will be disabled.")
-            param_cols = []
+    # Choose datasets (filtered/unfiltered) and merge parameters via a cached helper.
+    # This avoids a big copy+merge on every navigation to this page.
+    project = str(st.session_state.get("project", getattr(Hardcoded_values, "project", "")) or "")
+    df_filtered_long = None
+    if input_selection == "LHS":
+        df_filtered_long = st.session_state.get("model_results_LATIN_filtered")
     else:
-        st.warning("Could not find variant columns for parameter merging. Filters will be disabled.")
-        param_cols = []
+        df_filtered_long = st.session_state.get("model_results_MORRIS_filtered")
+    if df_filtered_long is None or getattr(df_filtered_long, "shape", (0, 0))[0] == 0:
+        df_filtered_long = df_raw
+
+    df, param_cols = _merge_params_cached(
+        project=project,
+        sample=input_selection,
+        enable_filter=bool(enable_filter),
+        df_unfiltered=df_raw,
+        df_filtered=df_filtered_long,
+        parameter_lookup=parameter_lookup,
+    )
+
+    if df is None or getattr(df, "shape", (0, 0))[0] == 0:
+        st.error("No model results available after loading/merging. Please check the dataset files.")
+        return
+
+    if enable_filter and (df_filtered_long is df_raw):
+        st.warning(
+            "Filtered results are not available for this dataset. "
+            "Using unfiltered results instead."
+        )
 
     # Filter technologies by selected activity
     # Check if column F exists in technologies (main activity column)

@@ -6,6 +6,7 @@ import side-effects here can re-introduce old tab-based navigation.
 
 import streamlit as st
 from pathlib import Path
+import os
 
 # Use the full browser width (the legacy dashboard did this in its old Home module).
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
@@ -21,6 +22,7 @@ try:
 		st.session_state["project"] = "1108 SSP"
 
 	utils.render_data_loading_sidebar()
+
 except Exception as e:
 	st.warning(
 		"Home loaded without starting dataset preload (server may be under heavy load). "
@@ -132,9 +134,7 @@ if not _defaults_loaded and _dl is not None:
 		_before = bool(st.session_state.get("defaults_loaded", False))
 		_dl.ensure_defaults_loading_started()
 		_after = bool(st.session_state.get("defaults_loaded", False))
-		# Always rerun once after attempting load so the status banners update.
-		st.rerun()
-		# Force a rerun so the green banner appears immediately after load finishes.
+		# Only rerun after a successful transition to loaded.
 		if (not _before) and _after:
 			st.rerun()
 	except Exception as e:
