@@ -10,12 +10,49 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 import plotly.express as px
+from pathlib import Path
 
 from Code.Dashboard.utils import prepare_results
 from Code.Dashboard.utils import apply_default_data_filter, get_tech_variable_name, calculate_parameter_ranges
 from Code.Dashboard import data_loading as upload
 from Code.Dashboard.utils import fix_display_name_capitalization
 from Code import Hardcoded_values
+
+
+def _get_process_rss_mb() -> float | None:
+    """Best-effort process RSS (MB). Returns None if not available."""
+    try:
+        import psutil  # type: ignore
+
+        return psutil.Process().memory_info().rss / (1024 * 1024)
+    except Exception:
+        return None
+
+
+def _tech_wide_parquet_path(project: str, sample: str) -> Path:
+    repo_root = Path(__file__).resolve().parents[3]
+    return (
+        repo_root
+        / "UI"
+        / "data"
+        / "Generated_data"
+        / "PPResults"
+        / str(project)
+        / str(sample)
+        / "Technology_Wide.parquet"
+    )
+
+
+@st.cache_data(show_spinner=False)
+def _read_technology_wide_parquet(project: str, sample: str) -> pd.DataFrame:
+    """Read Technology_Wide.parquet (precomputed) for this project/sample."""
+    return pd.read_parquet(_tech_wide_parquet_path(project=project, sample=sample))
+
+
+@st.cache_data(show_spinner=False)
+def _read_technology_wide_parquet_columns(project: str, sample: str, columns: tuple[str, ...]) -> pd.DataFrame:
+    """Read only a subset of columns from Technology_Wide.parquet to reduce RAM spikes."""
+    return pd.read_parquet(_tech_wide_parquet_path(project=project, sample=sample), columns=list(columns))
 
 
 @st.cache_data(show_spinner=False)
@@ -122,6 +159,9 @@ def render_technology_analysis_tab(use_1031_ssp=False):
     except Exception:
         pass
 
+    # Keep the sidebar button (data loader) but remove debug/diagnostics UI.
+    project = str(st.session_state.get("project", getattr(Hardcoded_values, "project", "")) or "")
+
     # Home-first UX: if defaults aren't ready yet, start loading and show a friendly message.
     try:
         upload.ensure_defaults_loading_started()
@@ -129,6 +169,7 @@ def render_technology_analysis_tab(use_1031_ssp=False):
     except Exception:
         # Defaults are loaded via the central two-tier loader; avoid forcing full loads here.
         pass
+
 
     # Check if base scenario data is available
     if "technologies" not in st.session_state or "activities" not in st.session_state:
@@ -345,22 +386,50 @@ def render_technology_analysis_tab(use_1031_ssp=False):
     # Choose datasets (filtered/unfiltered) and merge parameters via a cached helper.
     # This avoids a big copy+merge on every navigation to this page.
     project = str(st.session_state.get("project", getattr(Hardcoded_values, "project", "")) or "")
-    df_filtered_long = None
-    if input_selection == "LHS":
-        df_filtered_long = st.session_state.get("model_results_LATIN_filtered")
-    else:
-        df_filtered_long = st.session_state.get("model_results_MORRIS_filtered")
-    if df_filtered_long is None or getattr(df_filtered_long, "shape", (0, 0))[0] == 0:
-        df_filtered_long = df_raw
 
-    df, param_cols = _merge_params_cached(
-        project=project,
-        sample=input_selection,
-        enable_filter=bool(enable_filter),
-        df_unfiltered=df_raw,
-        df_filtered=df_filtered_long,
-        parameter_lookup=parameter_lookup,
-    )
+    # Fast-path: if we have a precomputed wide parquet for this project/sample,
+    # use it to avoid the huge long-data copy+merge RAM spike.
+    wide_df = None
+    wide_path = _tech_wide_parquet_path(project=project, sample=input_selection)
+    if wide_path.exists():
+        try:
+            # Read only the minimum set of columns needed for this tab.
+            metric_col_name = "techStocks" if metric_type == "techStock" else "techUseNet"
+            wanted_cols = ("variant", "period", "technology", metric_col_name)
+            try:
+                wide_df = _read_technology_wide_parquet_columns(
+                    project=project,
+                    sample=input_selection,
+                    columns=wanted_cols,
+                )
+            except Exception:
+                # Fallback: full read (older engines may not support column pruning)
+                wide_df = _read_technology_wide_parquet(project=project, sample=input_selection)
+        except Exception:
+            wide_df = None
+    if wide_df is not None and getattr(wide_df, "shape", (0, 0))[0] > 0:
+        # Wide parquet path: we treat it as the main dataset for the rest of this tab.
+        df = wide_df
+        # Keep param_cols from parameter_lookup (used for grouping UI), but we don't merge them.
+        param_cols = [c for c in parameter_lookup.columns if str(c).lower() != 'variant']
+    else:
+        # Fallback (legacy): merge parameters into the long dataframe.
+        df_filtered_long = None
+        if input_selection == "LHS":
+            df_filtered_long = st.session_state.get("model_results_LATIN_filtered")
+        else:
+            df_filtered_long = st.session_state.get("model_results_MORRIS_filtered")
+        if df_filtered_long is None or getattr(df_filtered_long, "shape", (0, 0))[0] == 0:
+            df_filtered_long = df_raw
+
+        df, param_cols = _merge_params_cached(
+            project=project,
+            sample=input_selection,
+            enable_filter=bool(enable_filter),
+            df_unfiltered=df_raw,
+            df_filtered=df_filtered_long,
+            parameter_lookup=parameter_lookup,
+        )
 
     if df is None or getattr(df, "shape", (0, 0))[0] == 0:
         st.error("No model results available after loading/merging. Please check the dataset files.")
@@ -391,27 +460,36 @@ def render_technology_analysis_tab(use_1031_ssp=False):
         st.error("Technologies sheet does not have enough columns. Expected column F for main activity.")
         return
 
-    # Map metric_type to the correct Variable name in the data
+    # Map metric_type to the correct Variable name in the data (long schema)
     if metric_type == "techStock":
         variable_name = "techStocks"
     else:  # techUse or techUseNet
         variable_name = get_tech_variable_name(use_1031_ssp)
 
-    # Handle case-insensitive column names
-    variable_col = None
-    period_col = None
-    technology_col = None
+    # Detect schema:
+    # - canonical long schema: Variable/Period/Technology/value
+    # - technology parquet schema (from builder): variant/period/technology + metric columns (techStocks/techUseNet/...)
+    df_cols_lower = {str(c).lower(): c for c in df.columns}
 
-    for col in df.columns:
-        if col.lower() == 'variable':
-            variable_col = col
-        elif col.lower() == 'period':
-            period_col = col
-        elif col.lower() == 'technology':
-            technology_col = col
+    has_canonical_long = (
+        'variable' in df_cols_lower and 'period' in df_cols_lower and 'technology' in df_cols_lower and 'value' in df_cols_lower
+    )
+    has_technology_parquet = ('period' in df_cols_lower and 'technology' in df_cols_lower and 'variant' in df_cols_lower)
 
-    if variable_col is None or period_col is None or technology_col is None:
-        st.error(f"Required columns not found in data. Available columns: {list(df.columns)}")
+    variable_col = df_cols_lower.get('variable')
+    period_col = df_cols_lower.get('period')
+    technology_col = df_cols_lower.get('technology')
+    value_col = df_cols_lower.get('value')
+    variant_col = df_cols_lower.get('variant')
+
+    # Treat the parquet schema as a "long" table (one row per technology) but with metric columns.
+    is_long_schema = has_canonical_long or has_technology_parquet
+
+    if not is_long_schema:
+        st.error(
+            "Technology data format not recognized. Expected either (Variable,Period,Technology,value) or (variant,period,technology,metric-cols). "
+            f"Available columns: {list(df.columns)[:30]}"
+        )
         return
 
     # Prepare data for all selected activities
@@ -460,11 +538,20 @@ def render_technology_analysis_tab(use_1031_ssp=False):
         tech_ids = [tech_id for tech_id in tech_ids if tech_id not in excluded_tech_ids]
 
         # Pre-filter data for the selected variable, period, and technologies
-        base_data = df[
-            (df[variable_col] == variable_name) &
-            (df[period_col] == 2050) &
-            (df[technology_col].isin(tech_ids))
-        ]
+        # Canonical long schema uses a 'value' column; technology parquet schema uses metric columns.
+        if value_col is not None and variable_col is not None:
+            base_data = df[
+                (df[variable_col] == variable_name) &
+                (df[period_col] == 2050) &
+                (df[technology_col].isin(tech_ids))
+            ]
+        else:
+            # Technology parquet schema: one row per technology, metric(s) as columns.
+            base_data = df[
+                (df[period_col] == 2050) &
+                (df[technology_col].isin(tech_ids))
+            ]
+
 
         if not base_data.empty:
             activities_data[activity] = {
@@ -483,78 +570,9 @@ def render_technology_analysis_tab(use_1031_ssp=False):
     base_data = list(activities_data.values())[0]['base_data']
 
     with col_filters:
-        with st.expander("Filters", expanded=False):
-            # Add compact slider styling with horizontal layout
-            st.markdown(
-                """
-                <style>
-                /* Compress padding/margins around sliders */
-                div[data-testid="stSlider"] > div {
-                    padding-top: 0rem;
-                    padding-bottom: 0rem;
-                    margin-top: -0.8rem;
-                    margin-bottom: -0.6rem;
-                }
-                /* Minimize all text spacing */
-                div[data-testid="column"] div[data-testid="stMarkdownContainer"] p {
-                    margin-top: -0.5rem;
-                    margin-bottom: -0.5rem;
-                    line-height: 0.9rem;
-                    font-size: 0.85rem;
-                }
-                </style>
-                """,
-                unsafe_allow_html=True,
-            )
-
-            # Create parameter sliders if parameter data is available
-            param_filters = {}
-            if param_cols:
-                for param in param_cols:
-                    if param in df.columns:
-                        param_values = df[param].dropna()
-                        if len(param_values) > 0:
-                            param_min = float(param_values.min())
-                            param_max = float(param_values.max())
-
-                            # Skip parameters that are constant
-                            if param_min == param_max:
-                                continue
-
-                            # Create horizontal layout: label with range on left, slider on right
-                            param_display_name = fix_display_name_capitalization(param)
-                            range_info = f"[{param_min:.1f}-{param_max:.1f}]"
-
-                            # Create mini columns for label and slider
-                            label_col, slider_col = st.columns([1, 2])
-
-                            with label_col:
-                                st.markdown(f"**{param_display_name}** `{range_info}`")
-
-                            with slider_col:
-                                slider_values = st.slider(
-                                    label=param,
-                                    min_value=param_min,
-                                    max_value=param_max,
-                                    value=(param_min, param_max),
-                                    step=(param_max - param_min) / 100,
-                                    key=f"tech_analysis_filter_{param}",
-                                    label_visibility="collapsed"
-                                )
-
-                            param_filters[param] = slider_values
-
-            # Show active filters count
-            if param_filters:
-                active_filters = sum(
-                    1
-                    for param, (min_val, max_val) in param_filters.items()
-                    if param in df.columns and (min_val > df[param].min() or max_val < df[param].max())
-                )
-                if active_filters > 0:
-                    st.success(f"\ud83d\udd27 {active_filters} filter(s)")
-            else:
-                st.info("Parameter filtering not available")
+        # Intentionally minimal: keep the "Data Filter" toggle above, but remove the
+        # slider-based parameter filters (these can be very expensive on reruns).
+        pass
 
     with col_plot:
         # Grouping and styling (simplified per request)
@@ -577,22 +595,34 @@ def render_technology_analysis_tab(use_1031_ssp=False):
             activity_info = activities_data[activity]
             activity_base_data = activity_info['base_data']
 
-            # Apply parameter filters
-            relevant_data = activity_base_data.copy()
-            for param, (min_val, max_val) in param_filters.items():
-                if param in relevant_data.columns:
-                    relevant_data = relevant_data[
-                        (relevant_data[param] >= min_val) & (relevant_data[param] <= max_val)
-                    ]
+            # No parameter slider filters (removed).
+            relevant_data = activity_base_data
 
             if relevant_data.empty:
                 continue
 
             # Prepare plot data
             plot_data = []
+
+            # Canonical long schema uses a 'value' column; technology parquet schema uses metric columns.
+            metric_col = None
+            if value_col is None:
+                # In the technology parquet, the metric columns are named like "techStocks" or "techUseNet".
+                if metric_type == "techStock" and "techstocks" in df_cols_lower:
+                    metric_col = df_cols_lower["techstocks"]
+                else:
+                    # techUse / techUseNet name depends on project; for wide parquet we expect techUseNet.
+                    if "techusenet" in df_cols_lower:
+                        metric_col = df_cols_lower["techusenet"]
+                    elif "techuse" in df_cols_lower:
+                        metric_col = df_cols_lower["techuse"]
+
             for _, row in relevant_data.iterrows():
                 tech_id = row[technology_col]
                 tech_name = row.get('Technology_name', tech_id)
+                variant_val = None
+                if variant_col is not None and variant_col in relevant_data.columns:
+                    variant_val = row[variant_col]
 
                 # Clean technology name
                 if isinstance(tech_name, str) and ' - ' in tech_name:
@@ -602,11 +632,21 @@ def render_technology_analysis_tab(use_1031_ssp=False):
                 if isinstance(tech_name, str) and tech_name.startswith('Existing '):
                     tech_name = tech_name[9:]  # Remove "Existing " (9 characters)
 
-                value = row['value']
+                if value_col is not None:
+                    value = row[value_col]
+                else:
+                    if metric_col is None or metric_col not in relevant_data.columns:
+                        continue
+                    value = row[metric_col]
+
+                if pd.isna(value):
+                    continue
+
                 plot_data.append({
                     'Technology': tech_name,
                     'Tech_ID': tech_id,
-                    'Value': value,
+                    'Variant': variant_val,
+                    'Value': float(value),
                     'Metric': unit_label,
                     'Activity': activity
                 })
@@ -616,8 +656,55 @@ def render_technology_analysis_tab(use_1031_ssp=False):
 
             plot_df = pd.DataFrame(plot_data)
 
-            # Apply grouping if toggles are enabled
+
+            # --- Restore parameter-based coloring (low RAM) ---
+            # Instead of merging the full parameter table into the multi-million-row model results,
+            # only bring the single selected parameter onto the *plot-level* dataframe.
+            # This keeps color grouping consistent with the historical behavior.
             color_column = None
+            if selected_parameter and parameter_lookup is not None and getattr(parameter_lookup, "shape", (0, 0))[0] > 0:
+                # Find Variant column names (case-insensitive)
+                plot_variant_col = None
+                for c in plot_df.columns:
+                    if str(c).lower() == 'variant':
+                        plot_variant_col = c
+                        break
+                param_variant_col = None
+                for c in parameter_lookup.columns:
+                    if str(c).lower() == 'variant':
+                        param_variant_col = c
+                        break
+
+                if plot_variant_col and param_variant_col and selected_parameter in parameter_lookup.columns:
+                    # Build a small lookup: Variant -> selected_parameter
+                    param_small = parameter_lookup[[param_variant_col, selected_parameter]].drop_duplicates(subset=[param_variant_col])
+                    plot_df = plot_df.merge(
+                        param_small,
+                        left_on=plot_variant_col,
+                        right_on=param_variant_col,
+                        how='left',
+                    )
+                    if param_variant_col in plot_df.columns and param_variant_col != plot_variant_col:
+                        plot_df = plot_df.drop(columns=[param_variant_col])
+
+                    if selected_parameter in plot_df.columns:
+                        param_values = plot_df[selected_parameter].dropna()
+                        if len(param_values) > 0:
+                            param_sections = calculate_parameter_ranges(param_values, num_sections=5)
+                            def _assign_group(v: float):
+                                for min_v, max_v, label in param_sections:
+                                    if min_v <= v <= max_v:
+                                        return label
+                                return None
+
+                            plot_df['Parameter_Group'] = plot_df[selected_parameter].apply(
+                                lambda v: _assign_group(v) if pd.notna(v) else None
+                            )
+                            plot_df = plot_df[plot_df['Parameter_Group'].notna()]
+                            color_column = 'Parameter_Group'
+
+            # Apply grouping if toggles are enabled
+            # If we've already set up Parameter_Group above, keep it.
 
             if group_by_weather:
                 weather_param_candidates = [col for col in param_cols if "weather" in col.lower()]
@@ -651,7 +738,7 @@ def render_technology_analysis_tab(use_1031_ssp=False):
                     plot_df = plot_df[plot_df['Weather_Group'] != 'Other']
                     color_column = 'Weather_Group'
 
-            if group_by_param and not group_by_weather:
+            if group_by_param and not group_by_weather and color_column is None:
                 # Use the selected parameter for grouping
                 if selected_parameter in relevant_data.columns:
                     # Calculate parameter ranges dynamically
@@ -746,23 +833,7 @@ def render_technology_analysis_tab(use_1031_ssp=False):
                     color=color_column,
                     title=f"{unit_label} Distribution by Technology ({activity}){title_suffix}",
                     category_orders=category_orders if category_orders else None,
-                    color_discrete_map=color_discrete_map
                 )
-                # Ensure grouped display when color grouping is active
-                if color_column:
-                    fig.update_layout(boxmode='group')
-            elif plot_style == "Violin Plot":
-                fig = px.violin(
-                    plot_df,
-                    x='Technology',
-                    y='Value',
-                    color=color_column,
-                    box=True,
-                    title=f"{unit_label} Distribution by Technology ({activity}){title_suffix}",
-                    category_orders=category_orders if category_orders else None,
-                    color_discrete_map=color_discrete_map
-                )
-                # Ensure grouped display when color grouping is active
                 if color_column:
                     fig.update_layout(violinmode='group')
             else:  # Bar Plot
@@ -834,11 +905,8 @@ def render_technology_analysis_tab(use_1031_ssp=False):
                 'responsive': True  # Maintain responsive behavior in fullscreen
             })
 
-            # Display summary statistics
-            st.subheader("Summary Statistics")
-            summary_stats = plot_df.groupby('Technology')['Value'].agg(['count', 'mean', 'std', 'min', 'max']).round(3)
-            summary_stats.columns = ['Count', 'Mean', 'Std Dev', 'Min', 'Max']
-            st.dataframe(summary_stats, use_container_width=True)
+
+            # Summary statistics removed (per request)
 
         else:
             # Multiple activities - create subplots (max 2 columns)
@@ -1107,12 +1175,4 @@ def render_technology_analysis_tab(use_1031_ssp=False):
                 'responsive': True  # Maintain responsive behavior in fullscreen
             })
 
-            # Display summary statistics for all activities
-            with st.expander("📊 Summary Statistics by Activity", expanded=False):
-                for activity, activity_data in all_plot_data.items():
-                    plot_df = activity_data['plot_df']
-                    st.markdown(f"### {activity}")
-                    summary_stats = plot_df.groupby('Technology')['Value'].agg(['count', 'mean', 'std', 'min', 'max']).round(3)
-                    summary_stats.columns = ['Count', 'Mean', 'Std Dev', 'Min', 'Max']
-                    st.dataframe(summary_stats, use_container_width=True)
-                    st.markdown("---")
+            # Summary statistics removed (per request)

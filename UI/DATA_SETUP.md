@@ -83,7 +83,18 @@ Copy-Item -Recurse "$srcBase\..\..\Original_data\Parameter space\1108 SSP\Morris
 - **GSA_Morris.csv**: Morris method results (mu*, sigma values)
 - **Model_Results_filtered.parquet**: Output from model runs after applying the data-quality filter (**loaded by default**)
 - **Model_Results.parquet**: Unfiltered output (optional; used when the filter is disabled)
+- **Technology_Wide.parquet** *(optional)*: Precomputed wide/pivoted table for the Technology page. Recommended for low-RAM environments (Streamlit Community Cloud) to avoid expensive online pivots.
 - **lookup_table_parameters.xlsx**: Parameter naming lookup table
+
+#### Optional: precompute the Technology wide dataset (offline)
+
+If the Technology page is slow or crashes on low-RAM servers, you can precompute the pivot/reshape **locally** and save it as Parquet:
+
+- Builder script:
+    - `UI/Code/Generate_Variants/build_technology_wide_parquet.py`
+
+- Output location (per project + sample):
+    - `UI/data/Generated_data/PPResults/<project>/<sample>/Technology_Wide.parquet`
 
 ### Original Data
 

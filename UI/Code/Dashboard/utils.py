@@ -75,6 +75,13 @@ def render_data_loading_sidebar() -> None:
                 """,
                 unsafe_allow_html=True,
             )
+
+            # Navigation guidance: leaving the Home page while the defaults loader
+            # is still running can trigger extra reruns / repeated reads.
+            st.warning(
+                "Please wait until data loading is complete before navigating to other tabs.",
+                icon="⚠️",
+            )
         else:
             st.markdown(
                 """
