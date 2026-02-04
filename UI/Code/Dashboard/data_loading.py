@@ -420,60 +420,6 @@ def ensure_defaults_loading_started() -> None:
     if st.session_state.get("defaults_loading", False):
         return
 
-    # Initialize diagnostics container early (so failures don’t KeyError).
-    if "defaults_load_diag" not in st.session_state:
-        st.session_state["defaults_load_diag"] = {}
-    else:
-        # New attempt: keep diagnostics focused on the *current* run.
-        try:
-            if isinstance(st.session_state.get("defaults_load_diag"), dict):
-                st.session_state["defaults_load_diag"]["events"] = []
-        except Exception:
-            pass
-
-    def _diag_event(step: str, extra: dict | None = None) -> None:
-        """Best-effort diagnostic event logger.
-
-        Keeps only tiny metadata (timestamps, RSS MB). Never stores DataFrames.
-        """
-        try:
-            import time as _time
-            import os as _os
-            rss_mb = None
-            try:
-                import psutil  # type: ignore
-
-                rss_mb = psutil.Process(_os.getpid()).memory_info().rss / (1024 * 1024)
-            except Exception:
-                rss_mb = None
-
-            ev = {
-                "t": float(_time.time()),
-                "step": str(step),
-                "rss_mb": (float(rss_mb) if rss_mb is not None else None),
-            }
-            if extra:
-                for k, v in extra.items():
-                    # Keep diagnostics JSON-serializable and small.
-                    if isinstance(v, (str, int, float, bool)) or v is None:
-                        ev[str(k)] = v
-            diag = st.session_state.get("defaults_load_diag")
-            if not isinstance(diag, dict):
-                diag = {}
-                st.session_state["defaults_load_diag"] = diag
-            events = diag.get("events")
-            if not isinstance(events, list):
-                events = []
-                diag["events"] = events
-            events.append(ev)
-            # Cap history to avoid unbounded growth.
-            if len(events) > 60:
-                del events[:-60]
-        except Exception:
-            return
-
-    _diag_event("start")
-
     # Mark loading before any heavy IO.
     st.session_state["defaults_loading"] = True
 
@@ -482,10 +428,6 @@ def ensure_defaults_loading_started() -> None:
             if project:
                 Hardcoded_values.project = project
             project = getattr(Hardcoded_values, "project", None) or str(project or "")
-
-            st.session_state["defaults_load_diag"]["phase"] = "reading_ppresults"
-
-            _diag_event("before_ppresults")
 
             # Memory-safety: load ONLY the filtered datasets from disk.
             #
@@ -496,26 +438,10 @@ def ensure_defaults_loading_started() -> None:
             # Instead, keep them in Streamlit's cache and let pages fetch them via
             # `get_default_model_results_filtered()`.
             mr_morris_filtered = get_default_model_results_filtered(project, "Morris")
-            _diag_event(
-                "after_ppresults_morris",
-                {
-                    "rows": int(getattr(mr_morris_filtered, "shape", (0, 0))[0] or 0),
-                    "cols": int(getattr(mr_morris_filtered, "shape", (0, 0))[1] or 0),
-                },
-            )
             mr_latin_filtered = get_default_model_results_filtered(project, "LHS")
-            _diag_event(
-                "after_ppresults_lhs",
-                {
-                    "rows": int(getattr(mr_latin_filtered, "shape", (0, 0))[0] or 0),
-                    "cols": int(getattr(mr_latin_filtered, "shape", (0, 0))[1] or 0),
-                },
-            )
 
             # Memory optimization: compress repeated string columns.
             # Category optimization happens inside the cached getter.
-            _diag_event("after_optimize_lhs")
-            _diag_event("after_optimize_morris")
 
             # Backward compatibility: `model_results_*` points to the filtered DF.
             mr_morris = mr_morris_filtered
@@ -528,28 +454,19 @@ def ensure_defaults_loading_started() -> None:
                 )
 
             # Parameters + scenario tables
-            _diag_event("before_excel")
             # Read via cached getters so we don't store these in session_state.
             par_morris = get_default_parameter_lookup(project, "Morris")
             par_latin = get_default_parameter_lookup(project, "LHS")
             par_morris_space = get_default_parameter_space(project, "Morris")
             par_latin_space = get_default_parameter_space(project, "LHS")
             tech, activities = get_default_base_scenario_tables(project)
-            _diag_event("after_excel")
 
             # Cloud defaults-only: do NOT load/store GSA results here.
             # Tabs that need GSA should call `get_default_gsa_results(project)`.
 
-            st.session_state["defaults_load_diag"]["phase"] = "storing_session_state"
-            _diag_event("before_session_store")
-
             # Store only small flags.
             st.session_state.defaults_loaded = True
             st.session_state.defaults_project = project
-
-            _diag_event("after_session_store")
-            st.session_state["defaults_load_diag"]["phase"] = "done"
-            _diag_event("done")
     except Exception as e:
         # Best-effort: detect memory pressure and present a clear message.
         _raw = f"{type(e).__name__}: {e}"
@@ -568,12 +485,6 @@ def ensure_defaults_loading_started() -> None:
             pass
 
         st.session_state["defaults_load_error"] = _msg
-        try:
-            st.session_state["defaults_load_diag"]["phase"] = "failed"
-            st.session_state["defaults_load_diag"]["exception"] = _msg
-            _diag_event("failed", {"exception": _msg})
-        except Exception:
-            pass
         # Don't re-raise: crashing here kills the Streamlit process and causes
         # Streamlit Cloud health checks to see "connection reset by peer".
         return
@@ -661,31 +572,63 @@ def get_default_gsa_results(project: str):
         Hardcoded_values.project = project
     except Exception:
         pass
+    # IMPORTANT: this must stay lightweight. Do NOT call `_read_default_files()` here,
+    # because that function also reads PPResults (potentially multi-million-row tables)
+    # which can spike RAM when the GSA page opens.
+    import os
+    import re
+    import pandas as _pd
+
+    def _safe_read_gsa_csv(path: str) -> _pd.DataFrame:
+        try:
+            if path and os.path.exists(path):
+                return _pd.read_csv(path, low_memory=False)
+        except Exception:
+            return _pd.DataFrame()
+        return _pd.DataFrame()
+
+    gsa_morris = _pd.DataFrame()
+    gsa_delta_latin = _pd.DataFrame()
+    available_delta_sizes: list[int] = []
+
     try:
-        (
-            _mr_m,
-            _mr_l,
-            _mr_m_f,
-            _mr_l_f,
-            _par_m,
-            _par_m_space,
-            _par_l,
-            _par_l_space,
-            _tech,
-            _act,
-            gsa_morris,
-            gsa_latin_morris,
-            gsa_delta_morris,
-            gsa_delta_latin,
-            available_delta_sizes,
-        ) = _read_default_files(project)
+        # Morris (prefer the standard file; the huge AllOutcomes file is handled by the tab only if needed)
+        morris_gsa_path = helpers.get_path(Hardcoded_values.gsa_morris_file, sample="Morris")
+        if morris_gsa_path and os.path.exists(morris_gsa_path):
+            gsa_morris = _safe_read_gsa_csv(morris_gsa_path)
     except Exception:
-        import pandas as _pd
         gsa_morris = _pd.DataFrame()
-        gsa_latin_morris = _pd.DataFrame()
-        gsa_delta_morris = _pd.DataFrame()
+
+    try:
+        # Delta: discover available sizes; load the largest size as a reasonable default.
+        gsa_dir_lhs = os.path.dirname(helpers.get_path(Hardcoded_values.gsa_delta_file, sample="LHS"))
+        if gsa_dir_lhs and os.path.exists(gsa_dir_lhs):
+            try:
+                for f in os.listdir(gsa_dir_lhs):
+                    if ("Delta" not in f) or (not f.endswith(".csv")):
+                        continue
+                    # Exclude special files that the UI shouldn't treat as a selectable size.
+                    if ("All_Re-Samples" in f) or ("TechExtensive" in f) or ("AllOutcomes" in f):
+                        continue
+                    m = re.search(r"Delta_(\d+)", f)
+                    if m:
+                        available_delta_sizes.append(int(m.group(1)))
+            except Exception:
+                pass
+
+        sizes = sorted({s for s in available_delta_sizes if isinstance(s, int)}, reverse=True)
+        available_delta_sizes = sizes
+        if sizes:
+            best_path = os.path.join(gsa_dir_lhs, f"GSA_Delta_{sizes[0]}.csv")
+            if os.path.exists(best_path):
+                gsa_delta_latin = _safe_read_gsa_csv(best_path)
+    except Exception:
         gsa_delta_latin = _pd.DataFrame()
         available_delta_sizes = []
+
+    # For compatibility, keep placeholders
+    gsa_latin_morris = _pd.DataFrame()  # LHS doesn't use Morris method
+    gsa_delta_morris = _pd.DataFrame()  # Morris doesn't use Delta method
     return gsa_morris, gsa_latin_morris, gsa_delta_morris, gsa_delta_latin, available_delta_sizes
 
 

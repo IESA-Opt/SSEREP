@@ -1125,6 +1125,7 @@ def render():
                     ) = _dl.get_default_gsa_results(_project)
                 except Exception:
                     available_sizes = []
+
             method_options = ['Morris']
 
             if available_sizes:
@@ -1147,54 +1148,37 @@ def render():
             if not has_driver_columns:
                 st.info("Driver/Sub-Driver columns not found in parameter space. Parameter-level analysis only.")
             
-            # Load GSA data based on selected methods
+            # Load GSA data based on selected methods.
+            # Cloud-safety: avoid reading/concatenating "AllOutcomes" CSVs in the page render.
+            # Those files can be huge and can blow RAM.
             combined_gsa_data = pd.DataFrame()
-            # Always define delta_methods so later logic can safely check it.
-            delta_methods = []
-        
-            # Process Morris data
+            delta_methods = [m for m in selected_methods if m.startswith('Delta_')]
+
+            # Morris: use cached lightweight results when available
             if 'Morris' in selected_methods:
                 try:
-                    from Code import Hardcoded_values, helpers
-                    import os
-                    
-                    morris_gsa_file = helpers.get_path(Hardcoded_values.gsa_morris_file, sample="MORRIS")
-                    morris_all_outcomes_file = morris_gsa_file.replace('GSA_Morris.csv', 'GSA_Morris_AllOutcomes.csv')
-                    
-                    # Prefer AllOutcomes file if it exists (contains all outcomes)
-                    if os.path.exists(morris_all_outcomes_file):
-                        morris_data = pd.read_csv(morris_all_outcomes_file, low_memory=False)
-                        morris_data['Method'] = 'Morris'
-                        combined_gsa_data = pd.concat([combined_gsa_data, morris_data], ignore_index=True)
-                    # Otherwise fall back to standard file
-                    elif os.path.exists(morris_gsa_file):
-                        morris_data = pd.read_csv(morris_gsa_file, low_memory=False)
-                        morris_data['Method'] = 'Morris'
-                        combined_gsa_data = pd.concat([combined_gsa_data, morris_data], ignore_index=True)
+                    if _dl is not None:
+                        gsa_morris_df, _, _, _, _ = _dl.get_default_gsa_results(_project)
+                        if gsa_morris_df is not None and not getattr(gsa_morris_df, 'empty', True):
+                            morris_data = gsa_morris_df.copy()
+                            morris_data['Method'] = 'Morris'
+                            combined_gsa_data = pd.concat([combined_gsa_data, morris_data], ignore_index=True)
+                    else:
+                        raise RuntimeError("No data_loading module available")
                 except Exception as e:
-                    st.warning(f"Could not load Morris GSA data: {e}")
-        
-            # Process Delta data
-            delta_methods = [m for m in selected_methods if m.startswith('Delta_')]
+                    st.warning(f"Could not load Morris GSA data from cache: {e}")
+
+            # Delta: load only the requested size file(s) (never the AllOutcomes variant)
             if delta_methods:
                 try:
                     from Code import Hardcoded_values, helpers
                     import os
                     gsa_dir = os.path.dirname(helpers.get_path(Hardcoded_values.gsa_delta_file, sample="LHS"))
-                    
+
                     for method in delta_methods:
                         size = method.replace('Delta_', '')
-                        
                         delta_file = os.path.join(gsa_dir, f'GSA_Delta_{size}.csv')
-                        delta_all_outcomes_file = os.path.join(gsa_dir, f'GSA_Delta_AllOutcomes_{size}.csv')
-                        
-                        # Prefer AllOutcomes file if it exists (contains all outcomes)
-                        if os.path.exists(delta_all_outcomes_file):
-                            delta_data = pd.read_csv(delta_all_outcomes_file, low_memory=False)
-                            delta_data['Method'] = f'Delta_{size}'
-                            combined_gsa_data = pd.concat([combined_gsa_data, delta_data], ignore_index=True)
-                        # Otherwise fall back to standard file
-                        elif os.path.exists(delta_file):
+                        if os.path.exists(delta_file):
                             delta_data = pd.read_csv(delta_file, low_memory=False)
                             delta_data['Method'] = f'Delta_{size}'
                             combined_gsa_data = pd.concat([combined_gsa_data, delta_data], ignore_index=True)
@@ -1432,14 +1416,18 @@ def render():
                     # Check standard Morris file
                     morris_gsa_file = helpers.get_path(Hardcoded_values.gsa_morris_file, sample="MORRIS")
                     if os.path.exists(morris_gsa_file):
+                        _gsa_diag_event("read_csv_morris_gsa_start")
                         morris_data = pd.read_csv(morris_gsa_file, low_memory=False)
+                        _gsa_diag_event("read_csv_morris_gsa_done", {"rows": int(getattr(morris_data, "shape", (0, 0))[0] or 0)})
                         if 'Outcome' in morris_data.columns:
                             precomputed_outcomes.update(morris_data['Outcome'].unique())
                     
                     # Check AllOutcomes Morris file
                     morris_all_outcomes_file = morris_gsa_file.replace('GSA_Morris.csv', 'GSA_Morris_AllOutcomes.csv')
                     if os.path.exists(morris_all_outcomes_file):
+                        _gsa_diag_event("read_csv_morris_all_start")
                         morris_all_data = pd.read_csv(morris_all_outcomes_file, low_memory=False)
+                        _gsa_diag_event("read_csv_morris_all_done", {"rows": int(getattr(morris_all_data, "shape", (0, 0))[0] or 0)})
                         if 'Outcome' in morris_all_data.columns:
                             precomputed_outcomes.update(morris_all_data['Outcome'].unique())
                 except Exception:
@@ -1457,7 +1445,9 @@ def render():
                         size = method.replace('Delta_', '')
                         delta_file = os.path.join(gsa_dir, f'GSA_Delta_{size}.csv')
                         if os.path.exists(delta_file):
+                            _gsa_diag_event(f"read_csv_delta_{size}_start")
                             delta_data = pd.read_csv(delta_file, low_memory=False)
+                            _gsa_diag_event(f"read_csv_delta_{size}_done", {"rows": int(getattr(delta_data, "shape", (0, 0))[0] or 0)})
                             if 'Outcome' in delta_data.columns:
                                 precomputed_outcomes.update(delta_data['Outcome'].unique())
                 except Exception:

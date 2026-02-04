@@ -115,10 +115,9 @@ def render_histogram_analysis_tab(use_1031_ssp=False):
         if df_filtered is not None and getattr(df_filtered, 'shape', (0, 0))[0] > 0:
             df_raw = df_filtered
         else:
-            st.warning(
-                "Filtered results are not available for this dataset. "
-                "Using unfiltered results instead."
-            )
+            # Silent fallback: filtered results aren't available for some datasets.
+            # (This used to warn, but it is noisy/confusing for default-only usage.)
+            pass
 
     # Get available display names
     available_display_names = sorted(df_raw['display_name'].unique())

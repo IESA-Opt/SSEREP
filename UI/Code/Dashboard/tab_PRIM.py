@@ -52,8 +52,12 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
     # If filter is enabled, prefer the precomputed filtered long results.
     if input_selection == "LHS":
         df_raw = st.session_state.get("model_results_LATIN_filtered")
+        if isinstance(df_raw, tuple) and len(df_raw) >= 1:
+            df_raw = df_raw[1] if len(df_raw) > 1 and getattr(df_raw[1], "shape", (0, 0))[0] > 0 else df_raw[0]
         if df_raw is None:
             df_raw = st.session_state.get("model_results_LATIN")
+            if isinstance(df_raw, tuple) and len(df_raw) >= 1:
+                df_raw = df_raw[1] if len(df_raw) > 1 and getattr(df_raw[1], "shape", (0, 0))[0] > 0 else df_raw[0]
         if df_raw is None:
             try:
                 project = str(st.session_state.get("project", "") or "")
@@ -61,18 +65,30 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
             except Exception:
                 df_raw = None
 
-            parameter_lookup = st.session_state.get("parameter_lookup_LATIN")
-            if parameter_lookup is None:
-                try:
-                    project = str(st.session_state.get("project", "") or "")
-                    parameter_lookup = upload.get_default_parameter_lookup(project, "LHS")
-                except Exception:
-                    parameter_lookup = None
-        parameter_space = st.session_state.get('parameter_space_LATIN')
+        # Always load parameter lookup (used by prepare_results). Keep it out of session_state when possible.
+        parameter_lookup = st.session_state.get("parameter_lookup_LATIN")
+        if parameter_lookup is None:
+            try:
+                project = str(st.session_state.get("project", "") or "")
+                parameter_lookup = upload.get_default_parameter_lookup(project, "LHS")
+            except Exception:
+                parameter_lookup = None
+        parameter_space = st.session_state.get("parameter_space_LATIN")
+        if parameter_space is None:
+            try:
+                project = str(st.session_state.get("project", "") or "")
+                # Needed for PRIM bars/limits; keep heavy tables out of session_state.
+                parameter_space = upload.get_default_parameter_space(project, "LHS")
+            except Exception:
+                parameter_space = None
     else:
         df_raw = st.session_state.get("model_results_MORRIS_filtered")
+        if isinstance(df_raw, tuple) and len(df_raw) >= 1:
+            df_raw = df_raw[1] if len(df_raw) > 1 and getattr(df_raw[1], "shape", (0, 0))[0] > 0 else df_raw[0]
         if df_raw is None:
             df_raw = st.session_state.get("model_results_MORRIS")
+            if isinstance(df_raw, tuple) and len(df_raw) >= 1:
+                df_raw = df_raw[1] if len(df_raw) > 1 and getattr(df_raw[1], "shape", (0, 0))[0] > 0 else df_raw[0]
         if df_raw is None:
             try:
                 project = str(st.session_state.get("project", "") or "")
@@ -80,14 +96,33 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
             except Exception:
                 df_raw = None
 
-            parameter_lookup = st.session_state.get("parameter_lookup_MORRIS")
-            if parameter_lookup is None:
-                try:
-                    project = str(st.session_state.get("project", "") or "")
-                    parameter_lookup = upload.get_default_parameter_lookup(project, "Morris")
-                except Exception:
-                    parameter_lookup = None
-        parameter_space = st.session_state.get('parameter_space_MORRIS')
+        # Always load parameter lookup (used by prepare_results). Keep it out of session_state when possible.
+        parameter_lookup = st.session_state.get("parameter_lookup_MORRIS")
+        if parameter_lookup is None:
+            try:
+                project = str(st.session_state.get("project", "") or "")
+                parameter_lookup = upload.get_default_parameter_lookup(project, "Morris")
+            except Exception:
+                parameter_lookup = None
+        parameter_space = st.session_state.get("parameter_space_MORRIS")
+        if parameter_space is None:
+            try:
+                project = str(st.session_state.get("project", "") or "")
+                parameter_space = upload.get_default_parameter_space(project, "Morris")
+            except Exception:
+                parameter_space = None
+
+    # Some older loaders return (unfiltered, filtered) tuples. Normalize to a DataFrame.
+    if isinstance(df_raw, tuple) and len(df_raw) >= 1:
+        # Prefer the filtered part when present and non-empty.
+        try:
+            df_raw_filtered = df_raw[1] if len(df_raw) > 1 else None
+            if df_raw_filtered is not None and getattr(df_raw_filtered, "shape", (0, 0))[0] > 0:
+                df_raw = df_raw_filtered
+            else:
+                df_raw = df_raw[0]
+        except Exception:
+            df_raw = df_raw[0]
 
     # Check if data exists
     if df_raw is None or len(df_raw) == 0:
@@ -101,7 +136,35 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
         st.error(f"Failed to prepare results: {e}")
         return
 
-    # Filter has already been applied if precomputed filtered results are loaded.
+    # Track which preparation path we're on *before* plotting.
+    try:
+        if df is None or getattr(df, "empty", False) or df.shape[0] == 0:
+            # Don't overwrite a fallback marker if it was already set earlier in the session.
+            if not str(st.session_state.get("prim_prepared_mode", "")).startswith("fallback"):
+                st.session_state["prim_prepared_mode"] = "prepare_results_empty"
+        else:
+            st.session_state["prim_prepared_mode"] = "prepare_results"
+    except Exception:
+        st.session_state["prim_prepared_mode"] = "prepare_results_unknown"
+
+    # Fallback: if parameter_lookup is missing/invalid (or prepare_results can't merge it),
+    # prepare_results can return an empty df.
+    # In that case, build a minimal wide dataframe directly from df_raw (variant × Outcome pivot)
+    # so scatter plots still show points. PRIM parameter ranges will be limited without params.
+    if df is None or getattr(df, "empty", False) or df.shape[0] == 0:
+        # Defer fallback pivot until after the controls expander has provided the selected outcomes.
+        st.session_state["prim_prepared_mode"] = "prepare_results_empty_deferred_fallback"
+
+    # (Diagnostics removed)
+
+    # Filter has already been applied if precomputed filtered results are loaded, but if
+    # we fell back to unfiltered model results, apply the same filter here.
+    if enable_filter and df_raw is not None:
+        df_raw = apply_default_data_filter(df_raw)
+        try:
+            df, param_cols = prepare_results(df_raw, parameter_lookup)
+        except Exception:
+            pass
 
     # Get available outcomes and parameters (exact same logic as PRIM tab)
     all_available_outcomes = set()
@@ -109,15 +172,45 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
         model_results_key = f'model_results_{sample_type}'
         if model_results_key in st.session_state and st.session_state[model_results_key] is not None:
             model_data = st.session_state[model_results_key]
-            if 'Outcome' in model_data.columns:
+            # Some code paths still store (unfiltered, filtered) tuples in session_state.
+            if isinstance(model_data, tuple) and len(model_data) >= 1:
+                try:
+                    filtered = model_data[1] if len(model_data) > 1 else None
+                    if filtered is not None and getattr(filtered, "shape", (0, 0))[0] > 0:
+                        model_data = filtered
+                    else:
+                        model_data = model_data[0]
+                except Exception:
+                    model_data = model_data[0]
+
+            if hasattr(model_data, "columns") and 'Outcome' in model_data.columns:
                 all_available_outcomes.update(model_data['Outcome'].dropna().unique())
 
     # If we found outcomes in the model results, use them
     if all_available_outcomes:
         outcome_options = sorted(list(all_available_outcomes))
-    elif df_raw is not None and 'display_name' in df_raw.columns:
-        # Fallback to display names from raw data
-        outcome_options = sorted(df_raw['display_name'].unique())
+    elif df_raw is not None:
+        # Defensive: some legacy paths can still leave df_raw as (unfiltered, filtered).
+        if isinstance(df_raw, tuple) and len(df_raw) >= 1:
+            try:
+                filtered = df_raw[1] if len(df_raw) > 1 else None
+                if filtered is not None and getattr(filtered, "shape", (0, 0))[0] > 0:
+                    df_raw = filtered
+                else:
+                    df_raw = df_raw[0]
+            except Exception:
+                df_raw = df_raw[0]
+
+    # IMPORTANT: keep outcome_options as canonical keys that exist in df_raw['Outcome'] and/or df columns.
+    # Using display_name as option values breaks PRIM lookups because display_name often omits the year
+    # suffix (e.g., 'CO2 Price' vs 'CO2 Price 2050'). We'll only use display_name for display.
+    if (
+        (not all_available_outcomes)
+        and df_raw is not None
+        and hasattr(df_raw, "columns")
+        and 'Outcome' in df_raw.columns
+    ):
+        outcome_options = sorted(df_raw['Outcome'].dropna().astype(str).unique().tolist())
     else:
         # Final fallback to prepared results columns
         all_cols = df.columns.tolist()
@@ -125,6 +218,97 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
 
     parameter_options = param_cols.copy()
     axis_options = outcome_options + parameter_options
+
+    # Map canonical outcome key -> nice display label (prefer df_raw.display_name when available)
+    outcome_display = {}
+    try:
+        if df_raw is not None and hasattr(df_raw, "columns") and "Outcome" in df_raw.columns and "display_name" in df_raw.columns:
+            # Build a stable mapping by picking the most frequent display_name per Outcome.
+            _m = (
+                df_raw[["Outcome", "display_name"]]
+                .dropna()
+                .astype(str)
+                .groupby(["Outcome", "display_name"])  # counts
+                .size()
+                .reset_index(name="n")
+                .sort_values(["Outcome", "n"], ascending=[True, False])
+            )
+            for o, sub in _m.groupby("Outcome"):
+                outcome_display[o] = sub.iloc[0]["display_name"]
+    except Exception:
+        outcome_display = {}
+
+    def _axis_format_func(val: str) -> str:
+        # Parameters are already human-readable via format_column_label
+        if val in parameter_options:
+            return format_column_label(val)
+        # Outcomes: show display_name (nice) but keep value canonical
+        nice = outcome_display.get(val)
+        return nice if nice else format_column_label(val)
+
+    # Map user-friendly/legacy labels back to an actual underlying outcome key.
+    # PRIM used to show nicer labels, and Streamlit can keep old selections in
+    # session_state even when the raw `Outcome` strings differ.
+    def _resolve_axis_label(label: str) -> str:
+        try:
+            if label in outcome_options or label in parameter_options:
+                return label
+
+            s = str(label or "").strip()
+            if not s:
+                return label
+
+            s_low = s.lower()
+
+            # If the UI selection corresponds to a display_name, map it back to the
+            # canonical raw Outcome key (which often includes the year suffix).
+            # Example: display_name 'CO2 Price' -> Outcome 'CO2 Price 2050'.
+            try:
+                if (
+                    df_raw is not None
+                    and hasattr(df_raw, "columns")
+                    and "display_name" in df_raw.columns
+                    and "Outcome" in df_raw.columns
+                ):
+                    # Find all Outcomes tied to this display_name.
+                    matches = df_raw.loc[
+                        df_raw["display_name"].astype(str).str.strip().str.lower() == s_low,
+                        "Outcome",
+                    ].dropna()
+                    if len(matches) > 0:
+                        uniq = sorted(set(matches.astype(str).tolist()))
+                        # Prefer 2050 when available.
+                        for u in uniq:
+                            if "2050" in u:
+                                return u
+                        return uniq[0]
+            except Exception:
+                pass
+
+            # Special-case: CO2 price labels.
+            if "co2" in s_low and "price" in s_low:
+                # Prefer the canonical dataset key when present.
+                if "CO2 Price 2050" in outcome_options:
+                    return "CO2 Price 2050"
+                for o in outcome_options:
+                    o_low = str(o).lower()
+                    if "co2" in o_low and "price" in o_low:
+                        return o
+
+            # If the label is missing the year suffix but a year-suffixed outcome exists,
+            # prefer the 2050 key (matches the generated datasets).
+            if "2050" not in s_low:
+                candidate = f"{s} 2050"
+                if candidate in outcome_options:
+                    return candidate
+
+            # Generic fallback: contains match (case-insensitive) against any outcome label.
+            for o in outcome_options:
+                if s_low in str(o).lower():
+                    return o
+        except Exception:
+            pass
+        return label
 
     if not axis_options:
         st.warning("No available columns to plot.")
@@ -149,24 +333,59 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
     # NOTE: Must be defined BEFORE any UI blocks that use it (e.g., box defaults).
     def _get_data_series(col_name, df_prepared, df_raw_data, param_lookup):
         """Get data series and return (series, actual_column_used, data_source_type)"""
+        # Normalize common aliases / shortened labels.
+        # (PRIM UI sometimes stores shorter names in session_state, while the raw outcome
+        # strings include a year suffix.)
+        alias_map = {
+            "CO2 Price": "CO2 Price 2050",
+            "CO2 price": "CO2 Price 2050",
+            "CO2_price": "CO2 Price 2050",
+        }
+        col_name = alias_map.get(col_name, col_name)
+
         # First check if it's available directly in prepared data
         if col_name in df_prepared.columns:
             return df_prepared[col_name], col_name, "exact_match"
 
         # If not found in prepared data, check if it's an outcome in raw data
-        if df_raw_data is not None and 'Outcome' in df_raw_data.columns and 'variant' in df_raw_data.columns:
-            outcome_data = df_raw_data[df_raw_data['Outcome'] == col_name]
+        if df_raw_data is not None and hasattr(df_raw_data, "columns") and "Outcome" in df_raw_data.columns:
+            # Raw result exports sometimes use Variant/variant (case) and value/Value.
+            variant_col = None
+            for c in ("variant", "Variant"):
+                if c in df_raw_data.columns:
+                    variant_col = c
+                    break
+            value_col = None
+            for c in ("value", "Value"):
+                if c in df_raw_data.columns:
+                    value_col = c
+                    break
 
-            if not outcome_data.empty:
-                # Group by variant and take mean value
-                variant_means = outcome_data.groupby('variant')['value'].mean()
+            if variant_col and value_col and "variant" in df_prepared.columns:
+                # Normalize strings for comparison (defensive against trailing spaces)
+                _needle = str(col_name).strip()
+                outcome_data = df_raw_data[df_raw_data["Outcome"].astype(str).str.strip() == _needle]
 
-                # Ensure we use the SAME variant order as the prepared dataframe
-                if 'variant' in df_prepared.columns:
-                    df_variants = df_prepared['variant'].copy()
+                if not outcome_data.empty:
+                    # Group by variant and take mean value
+                    variant_means = outcome_data.groupby(variant_col, sort=False)[value_col].mean()
+
+                    # Normalize index dtype for mapping
+                    try:
+                        variant_means.index = variant_means.index.astype(str).str.strip()
+                    except Exception:
+                        pass
+
+                    df_variants = df_prepared["variant"].copy()
+                    try:
+                        df_variants = df_variants.astype(str).str.strip()
+                    except Exception:
+                        pass
+
                     aligned_series = df_variants.map(variant_means).fillna(0)
                     aligned_series.index = df_prepared.index
-                    return aligned_series, col_name, "raw_data_mapping"
+                    if aligned_series.notna().any() and float(aligned_series.abs().sum()) != 0.0:
+                        return aligned_series, col_name, "raw_data_mapping"
 
         # Final fallback: return zeros
         return pd.Series([0] * len(df_prepared), dtype=float, index=df_prepared.index), col_name, "not_found"
@@ -216,7 +435,7 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
                     options=axis_options,
                     index=axis_options.index(default_x) if default_x in axis_options else 0,
                     key=f"prim_no_cart_x_{i}",
-                    format_func=lambda x: format_column_label(x),
+                    format_func=_axis_format_func,
                 )
             with col_y:
                 y_col = st.selectbox(
@@ -224,9 +443,83 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
                     options=axis_options,
                     index=axis_options.index(default_y) if default_y in axis_options else 0,
                     key=f"prim_no_cart_y_{i}",
-                    format_func=lambda x: format_column_label(x),
+                    format_func=_axis_format_func,
                 )
-            xy_pairs.append((x_col, y_col))
+
+            # Normalize/stabilize selections: Streamlit can keep old labels in session_state
+            # even when the underlying outcome keys changed.
+            x_col_resolved = _resolve_axis_label(x_col)
+            y_col_resolved = _resolve_axis_label(y_col)
+
+            # IMPORTANT: don't write into the widget keys after instantiation.
+            # Keep resolved values in separate (non-widget) keys.
+            st.session_state[f"prim_no_cart_x_resolved_{i}"] = x_col_resolved
+            st.session_state[f"prim_no_cart_y_resolved_{i}"] = y_col_resolved
+
+            xy_pairs.append((x_col_resolved, y_col_resolved))
+
+        # If prepare_results produced an empty df, build a minimal wide df now using the selected outcomes.
+        if df is None or getattr(df, "empty", False) or df.shape[0] == 0:
+            try:
+                if df_raw is not None and hasattr(df_raw, "columns") and "variant" in df_raw.columns and "Outcome" in df_raw.columns:
+                    vcol = "variant" if "variant" in df_raw.columns else ("Variant" if "Variant" in df_raw.columns else None)
+                    valcol = "value" if "value" in df_raw.columns else ("Value" if "Value" in df_raw.columns else None)
+
+                    wanted_outcomes = {str(a or "").strip() for pair in xy_pairs for a in pair}
+                    wanted_outcomes = {w for w in wanted_outcomes if w and w not in param_cols and w != "variant"}
+
+                    if vcol and valcol and wanted_outcomes:
+                        df_raw_min = df_raw[[vcol, "Outcome", valcol]].dropna(subset=[vcol, "Outcome"])
+                        df_raw_min = df_raw_min[df_raw_min["Outcome"].astype(str).str.strip().isin(wanted_outcomes)]
+                        df_wide = (
+                            df_raw_min
+                            .assign(
+                                Outcome=lambda d: d["Outcome"].astype(str).str.strip(),
+                                _variant=lambda d: d[vcol].astype(str).str.strip(),
+                            )
+                            .groupby(["_variant", "Outcome"], sort=False)[valcol]
+                            .mean()
+                            .unstack("Outcome")
+                            .reset_index()
+                            .rename(columns={"_variant": "variant"})
+                        )
+                        cols = ["variant"] + [c for c in df_wide.columns if c != "variant"]
+                        df = df_wide[cols]
+
+                        # Merge parameters if parameter_lookup is available so PRIM ranges/bars work.
+                        merged_params = False
+                        try:
+                            if parameter_lookup is not None and hasattr(parameter_lookup, "columns"):
+                                # Find the variant id column in parameter_lookup (case-insensitive)
+                                param_variant_col = None
+                                for c in parameter_lookup.columns:
+                                    if str(c).lower() == "variant":
+                                        param_variant_col = c
+                                        break
+
+                                if param_variant_col is not None:
+                                    df = df.merge(
+                                        parameter_lookup,
+                                        left_on="variant",
+                                        right_on=param_variant_col,
+                                        how="left",
+                                    )
+                                    if param_variant_col in df.columns:
+                                        df = df.drop(columns=[param_variant_col])
+                                    param_cols = [c for c in parameter_lookup.columns if c != param_variant_col]
+                                    merged_params = True
+                        except Exception:
+                            merged_params = False
+
+                        if merged_params and param_cols:
+                            st.session_state["prim_prepared_mode"] = "fallback_with_params"
+                        else:
+                            param_cols = []
+                            st.session_state["prim_prepared_mode"] = "fallback_outcomes_only"
+                    else:
+                        st.session_state["prim_prepared_mode"] = "fallback_unavailable_no_wanted_outcomes"
+            except Exception as _fallback_e2:
+                st.session_state["prim_prepared_mode"] = f"fallback_failed:{type(_fallback_e2).__name__}"
 
         # PRIM parameters
         st.markdown("### PRIM Parameters")
@@ -331,13 +624,26 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
         for i in range(int(n_pairs)):
             xy_pairs.append(
                 (
-                    st.session_state.get(f"prim_no_cart_x_{i}", default_x),
-                    st.session_state.get(f"prim_no_cart_y_{i}", default_y),
+                    st.session_state.get(
+                        f"prim_no_cart_x_resolved_{i}",
+                        _resolve_axis_label(st.session_state.get(f"prim_no_cart_x_{i}", default_x)),
+                    ),
+                    st.session_state.get(
+                        f"prim_no_cart_y_resolved_{i}",
+                        _resolve_axis_label(st.session_state.get(f"prim_no_cart_y_{i}", default_y)),
+                    ),
                 )
             )
     else:
         # First run: fall back to defaults
         xy_pairs = [(default_x, default_y)] * int(n_pairs)
+
+    # Final normalization step: make sure all axis labels are resolved to actual keys
+    # before plotting and PRIM computations.
+    try:
+        xy_pairs = [(_resolve_axis_label(x), _resolve_axis_label(y)) for (x, y) in xy_pairs]
+    except Exception:
+        pass
 
     mass_min = float(st.session_state.get("prim_no_cart_mass_min", 0.05))
     peel_alpha = float(st.session_state.get("prim_no_cart_peel_alpha", 0.05))
@@ -378,9 +684,24 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
     for pair_idx, (x_col, y_col) in enumerate(xy_pairs):
         col = pair_idx + 1
 
+        # Always resolve legacy/nice labels to real keys before data lookup
+        x_col_resolved = _resolve_axis_label(x_col)
+        y_col_resolved = _resolve_axis_label(y_col)
+
         # Get data for this pair using helper function
-        x_series, _, _ = _get_data_series(x_col, df, df_raw, parameter_lookup)
-        y_series, _, _ = _get_data_series(y_col, df, df_raw, parameter_lookup)
+        x_series, x_actual, x_source = _get_data_series(x_col_resolved, df, df_raw, parameter_lookup)
+        y_series, y_actual, y_source = _get_data_series(y_col_resolved, df, df_raw, parameter_lookup)
+
+        # High-visibility message (page top) when data can't be found.
+        if pair_idx == 0:
+            try:
+                raw_has_outcome = bool(df_raw is not None and hasattr(df_raw, "columns") and "Outcome" in df_raw.columns)
+                raw_has_variant = bool(df_raw is not None and hasattr(df_raw, "columns") and "variant" in df_raw.columns)
+            except Exception:
+                raw_has_outcome = False
+                raw_has_variant = False
+
+            # (Diagnostics removed)
 
         x_data = x_series.values
         y_data = y_series.values
@@ -541,12 +862,12 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
             borderpad=5
         )
 
-    # Row 1: Empty space + Scatter plots in 4 columns
-    scatter_row_cols = st.columns([3] + [2.2] * int(n_pairs))  # Increased label column from 3 to 3.5 for longer labels with units
+    # Row 1: Small spacer + scatter plots in N columns
+    scatter_row_cols = st.columns([1.2] + ([2.2] * int(n_pairs)))
 
-    # Place the scatter plots in their respective columns (skip the first empty column)
+    # Place the scatter plots in their respective columns (skip spacer)
     for i in range(int(n_pairs)):
-        with scatter_row_cols[i + 1]:  # Skip first column (index 0)
+        with scatter_row_cols[i + 1]:
             # Create individual scatter plot for this pair
             pair_fig = go.Figure()
 
@@ -554,6 +875,8 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
             result = prim_results_list[i]
             x_col = result['x_col']
             y_col = result['y_col']
+            x_col_resolved = _resolve_axis_label(x_col)
+            y_col_resolved = _resolve_axis_label(y_col)
             mask = result['mask']
             stats = result['stats']
             inverse_prim = result['inverse_prim']
@@ -568,6 +891,40 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
 
             def _get_data_series(col_name, df_prepared, df_raw_data, param_lookup):
                 """Get data series and return (series, actual_column_used, data_source_type)"""
+                # Normalize common aliases / shortened labels.
+                alias_map = {
+                    "CO2 Price": "CO2 Price 2050",
+                    "CO2 price": "CO2 Price 2050",
+                    "CO2_price": "CO2 Price 2050",
+                }
+                col_name = alias_map.get(col_name, col_name)
+
+                # If the selection is actually a display_name, map it back to the
+                # canonical raw Outcome label.
+                try:
+                    if (
+                        df_raw_data is not None
+                        and hasattr(df_raw_data, "columns")
+                        and "display_name" in df_raw_data.columns
+                        and "Outcome" in df_raw_data.columns
+                    ):
+                        s_low = str(col_name or "").strip().lower()
+                        if s_low:
+                            matches = df_raw_data.loc[
+                                df_raw_data["display_name"].astype(str).str.strip().str.lower() == s_low,
+                                "Outcome",
+                            ].dropna()
+                            if len(matches) > 0:
+                                uniq = sorted(set(matches.astype(str).tolist()))
+                                for u in uniq:
+                                    if "2050" in u:
+                                        col_name = u
+                                        break
+                                else:
+                                    col_name = uniq[0]
+                except Exception:
+                    pass
+
                 # First check if it's available directly in prepared data
                 if col_name in df_prepared.columns:
                     return _first_series(df_prepared, col_name), col_name, "exact_match"
@@ -599,18 +956,57 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
                     return _first_series(df_prepared, best_match), best_match, "fuzzy_match"
 
                 # If still not found in prepared data, check if it's an outcome in raw data
-                if df_raw_data is not None:
-                    if 'Outcome' in df_raw_data.columns and 'variant' in df_raw_data.columns:
+                # (matches legacy PRIM behavior: only attempt this when the selected column
+                # is known to be an outcome label).
+                if col_name in outcome_options and df_raw_data is not None:
+                    if 'Outcome' in df_raw_data.columns:
+                        variant_col = None
+                        for c in ("variant", "Variant"):
+                            if c in df_raw_data.columns:
+                                variant_col = c
+                                break
+                        value_col = None
+                        for c in ("value", "Value"):
+                            if c in df_raw_data.columns:
+                                value_col = c
+                                break
+
+                        if not variant_col or not value_col:
+                            return pd.Series([0] * len(df_prepared), dtype=float, index=df_prepared.index), col_name, "not_found"
+
                         outcome_data = df_raw_data[df_raw_data['Outcome'] == col_name]
+
+                        # If the exact label isn't present (common with year suffixes or
+                        # slightly different naming), fall back to a contains-match.
+                        if outcome_data.empty:
+                            try:
+                                _needle = str(col_name).strip().lower()
+                                if _needle:
+                                    outcome_data = df_raw_data[
+                                        df_raw_data['Outcome']
+                                        .astype(str)
+                                        .str.lower()
+                                        .str.contains(_needle, na=False)
+                                    ]
+                            except Exception:
+                                outcome_data = outcome_data
 
                         if not outcome_data.empty:
                             # Group by variant and take mean value
-                            variant_means = outcome_data.groupby('variant')['value'].mean()
+                            variant_means = outcome_data.groupby(variant_col)[value_col].mean()
+                            try:
+                                variant_means.index = variant_means.index.astype(str)
+                            except Exception:
+                                pass
 
                             # CRITICAL: Ensure we use the SAME variant order as the prepared dataframe
                             if 'variant' in df_prepared.columns:
                                 # Use the exact variant order from the prepared data
                                 df_variants = df_prepared['variant'].copy()
+                                try:
+                                    df_variants = df_variants.astype(str)
+                                except Exception:
+                                    pass
                                 aligned_series = df_variants.map(variant_means).fillna(0)
                                 # Reset index to match prepared data exactly
                                 aligned_series.index = df_prepared.index
@@ -624,15 +1020,10 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
                 return pd.Series([0] * len(df_prepared), dtype=float, index=df_prepared.index), col_name, "not_found"
 
             # Get the actual data series using PRIM tab logic
-            x_series, x_actual_col, x_source = _get_data_series(x_col, df, df_raw, parameter_lookup)
-            y_series, y_actual_col, y_source = _get_data_series(y_col, df, df_raw, parameter_lookup)
+            x_series, x_actual_col, x_source = _get_data_series(x_col_resolved, df, df_raw, parameter_lookup)
+            y_series, y_actual_col, y_source = _get_data_series(y_col_resolved, df, df_raw, parameter_lookup)
 
-            # Show warnings only if data wasn't found at all (not for fuzzy matches)
-            if x_source == "not_found":
-                st.warning(f"⚠️ **X-axis**: Could not find data for '{x_col}'. Using zeros.")
-
-            if y_source == "not_found":
-                st.warning(f"⚠️ **Y-axis**: Could not find data for '{y_col}'. Using zeros.")
+            # (Diagnostics removed)
 
             # Set colors based on inverse PRIM setting for this individual plot
             if inverse_prim:
@@ -745,7 +1136,8 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
     if int(n_pairs) > 0:
         # Row 1: Empty space + Scatter plots (already displayed above)
         # Row 2: Parameter labels + Bar charts
-        bar_row_cols = st.columns([3.5] + [2.2] * int(n_pairs))  # Increased label column from 3 to 3.5 units for longer labels with units
+        # Make the parameter-labels column narrower to avoid a large empty interactive area.
+        bar_row_cols = st.columns([1.6] + [2.2] * int(n_pairs))
 
         # First, prepare all bar data to determine parameter order (reversed to match GSA tab)
         first_result = prim_results_list[0] if prim_results_list else None
@@ -944,7 +1336,9 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
                 height=max(400, len(unified_bar_data) * 16.3 + 100),  # Reduced from 18 to 16 for tighter spacing
                 showlegend=False,
                 font=dict(size=9),
-                margin=dict(l=0, r=0, t=0, b=0)
+                # Keep the plot itself as skinny as possible; the text lives in y-axis ticks.
+                margin=dict(l=0, r=0, t=0, b=0),
+                width=10,
             )
 
             labels_fig.update_xaxes(
@@ -952,7 +1346,8 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
                 showgrid=False,
                 zeroline=False,
                 showline=False,
-                range=[0, 1]
+                range=[0, 1],
+                fixedrange=True,
             )
 
             labels_fig.update_yaxes(
@@ -963,7 +1358,8 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
                 zeroline=False,
                 showline=False,
                 side='right',  # Labels on the right side of this column
-                range=[-0.5, len(unified_bar_data) - 0.5]
+                range=[-0.5, len(unified_bar_data) - 0.5],
+                fixedrange=True,
             )
 
             # Display labels plot with no menu
