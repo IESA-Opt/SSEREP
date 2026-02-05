@@ -1,6 +1,7 @@
 from Code.Dashboard import tab_histograms_paper
 from Code.Dashboard import utils
 import streamlit as st
+from Code.Dashboard.utils import page_loading
 
 # Wide layout even when entering directly on this page
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
@@ -38,4 +39,5 @@ try:
 except Exception:
     use_1031_ssp = False
 
-tab_histograms_paper.render(use_1031_ssp=use_1031_ssp)
+with page_loading("Loading…"):
+    tab_histograms_paper.render(use_1031_ssp=use_1031_ssp)

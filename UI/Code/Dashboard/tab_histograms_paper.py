@@ -40,13 +40,9 @@ def render_histogram_analysis_tab(use_1031_ssp=False):
     except Exception:
         pass
 
-    # Home-first UX: if defaults aren't ready yet, start loading and show a friendly message.
-    try:
-        from Code.Dashboard import data_loading as upload
-        upload.ensure_defaults_loading_started()
-        upload.require_defaults_ready("Loading datasets for Histograms…")
-    except Exception:
-        pass
+    # Defaults loading is handled by the page wrapper (shows a single spinner).
+    from Code.Dashboard import data_loading as upload
+    upload.ensure_defaults_loading_started()
 
     # Import required function for unit handling
     from Code.Dashboard.utils import get_unit_for_column

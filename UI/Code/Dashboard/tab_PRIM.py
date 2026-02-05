@@ -28,13 +28,9 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
     except Exception:
         pass
 
-    # Home-first UX: if defaults aren't ready yet, start loading and show a friendly message.
-    try:
-        from Code.Dashboard import data_loading as upload
-        upload.ensure_defaults_loading_started()
-        upload.require_defaults_ready("Loading datasets for PRIM…")
-    except Exception:
-        pass
+    # Defaults loading is handled by the page wrapper (shows a single spinner).
+    from Code.Dashboard import data_loading as upload
+    upload.ensure_defaults_loading_started()
 
     # Intentionally omit page header/caption: the PRIM page should start with the plots.
 
@@ -45,8 +41,7 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
 
     # Read control values from session state (controls are rendered inside the expander below)
     input_selection = st.session_state.get("prim_no_cart_data_source", "LHS")
-    if "prim_no_cart_enable_filter" not in st.session_state:
-        st.session_state["prim_no_cart_enable_filter"] = True
+    # Don't pre-set session_state for widget-owned keys (Streamlit warns if you do).
     enable_filter = bool(st.session_state.get("prim_no_cart_enable_filter", True))
     n_pairs = int(st.session_state.get("prim_no_cart_n_pairs", 3))
 
@@ -162,6 +157,20 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
     df = None
     param_cols = []
     st.session_state["prim_prepared_mode"] = "deferred_selected_outcomes_pivot"
+
+    # Cloud RAM guardrails: scatter plots don't need millions of points.
+    # Keep this configurable via session_state for power users.
+    if "prim_no_cart_max_scatter_points" not in st.session_state:
+        st.session_state["prim_no_cart_max_scatter_points"] = 25_000
+    max_scatter_points = int(st.session_state.get("prim_no_cart_max_scatter_points", 25_000) or 25_000)
+
+    # For 1108 SSP on Community Cloud, keep the *initial* PRIM view minimal:
+    # show all variants but only for the default outcomes (totalCosts vs CO2 Price 2050).
+    project_name = str(st.session_state.get("project", "") or "")
+    is_1108_ssp = project_name.strip().lower() in {"1108 ssp", "1108_ssp", "1108"}
+    if "prim_no_cart_default_outcomes_only" not in st.session_state:
+        st.session_state["prim_no_cart_default_outcomes_only"] = bool(is_1108_ssp)
+    default_outcomes_only = bool(st.session_state.get("prim_no_cart_default_outcomes_only", False))
 
     # (Diagnostics removed)
 
@@ -524,6 +533,17 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
 
             xy_pairs.append((x_col_resolved, y_col_resolved))
 
+        # Force the initial/default view to only the two default outcomes when enabled.
+        # Only do this on the first render before axis widgets exist, so user changes persist.
+        if default_outcomes_only and ("prim_no_cart_x_0" not in st.session_state and "prim_no_cart_y_0" not in st.session_state):
+            try:
+                xy_pairs = [(default_x, default_y)] * int(n_pairs)
+                for i in range(int(n_pairs)):
+                    st.session_state[f"prim_no_cart_x_resolved_{i}"] = default_x
+                    st.session_state[f"prim_no_cart_y_resolved_{i}"] = default_y
+            except Exception:
+                pass
+
         # If prepare_results produced an empty df, build a minimal wide df now using the selected outcomes.
         if df is None or getattr(df, "empty", False) or df.shape[0] == 0:
             try:
@@ -535,6 +555,10 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
 
                     wanted_outcomes = {str(a or "").strip() for pair in xy_pairs for a in pair}
                     wanted_outcomes = {w for w in wanted_outcomes if w and w not in param_cols and w != "variant"}
+
+                    # Minimal default: only pivot the two default outcomes.
+                    if default_outcomes_only:
+                        wanted_outcomes = {default_x, default_y}
 
                     if vcol and valcol and wanted_outcomes:
                         df_raw_min = df_raw[[vcol, "Outcome", valcol]].dropna(subset=[vcol, "Outcome"])
@@ -771,8 +795,26 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
 
             # (Diagnostics removed)
 
-        x_data = x_series.values
-        y_data = y_series.values
+        # Avoid eager copies: keep NumPy views when possible.
+        try:
+            x_data = np.asarray(x_series)
+            y_data = np.asarray(y_series)
+        except Exception:
+            x_data = x_series.values
+            y_data = y_series.values
+
+        # Subsample for plotting to cap memory and plotly payload.
+        # Keep mask/y_binary computed on the *full* arrays so PRIM selection is consistent.
+        n_total = int(len(x_data))
+        if max_scatter_points > 0 and n_total > max_scatter_points:
+            try:
+                rng = np.random.default_rng(42)
+                plot_idx = rng.choice(n_total, size=max_scatter_points, replace=False)
+                plot_idx.sort()
+            except Exception:
+                plot_idx = np.linspace(0, n_total - 1, num=max_scatter_points, dtype=int)
+        else:
+            plot_idx = None
 
         # Get box definition
         box = box_definitions[pair_idx]
@@ -801,11 +843,11 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
             box_color = '#006400'       # Very dark green for box border
             box_fill_color = "rgba(34, 139, 34, 0.1)"
 
-        # Add scatter plot for points outside box
+    # Add scatter plot for points outside box (subsampled)
         scatter_fig.add_trace(
             go.Scatter(
-                x=x_data[outside_mask],
-                y=y_data[outside_mask],
+        x=(x_data[outside_mask] if plot_idx is None else x_data[plot_idx][outside_mask[plot_idx]]),
+        y=(y_data[outside_mask] if plot_idx is None else y_data[plot_idx][outside_mask[plot_idx]]),
                 mode='markers',
                 marker=dict(size=4, color='#8B8B8B', opacity=0.6),
                 name=f"Outside Box {pair_idx+1}",
@@ -815,11 +857,11 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
             col=col
         )
 
-        # Add scatter plot for points inside box
+    # Add scatter plot for points inside box (subsampled)
         scatter_fig.add_trace(
             go.Scatter(
-                x=x_data[inside_mask],
-                y=y_data[inside_mask],
+        x=(x_data[inside_mask] if plot_idx is None else x_data[plot_idx][inside_mask[plot_idx]]),
+        y=(y_data[inside_mask] if plot_idx is None else y_data[plot_idx][inside_mask[plot_idx]]),
                 mode='markers',
                 marker=dict(size=5, color=selected_color, opacity=0.8),
                 name=f"Inside Box {pair_idx+1}",
@@ -854,7 +896,7 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
         else:
             scatter_fig.update_yaxes(title_text="", row=1, col=col)
 
-        # Run PRIM if we have selected points
+    # Run PRIM if we have selected points
         if mask.sum() > 0:
             # Prepare data for PRIM
             # Check if Inverse PRIM is enabled for this pair

@@ -13,8 +13,10 @@ st.title("About")
 
 # Keep this page intentionally simple: no expanders/boxes so it reads like a paper-style note.
 
+
+
 st.markdown(
-	"""
+"""
 ## Scenario Space Exploration for Robust Energy Planning
 
 Energy and climate assessments often contrast a few narrative scenarios, limiting insight into interacting uncertainties. This dashboard is built to support **scenario space exploration** for a whole energy system model by mapping a large ensemble of **4,500+ cost-optimal runs** and enabling interactive analysis of the results.
@@ -23,21 +25,21 @@ It brings together global sensitivity analysis, scatter plot diagnostics, and sc
 
 By shifting emphasis from point comparisons to distributions, interactions and condition sets, the approach supports exploration of trade-offs and risks and helps prioritise where higher-fidelity follow-up analysis is most valuable. Compared with conventional scenario studies, scenario space substantially increases robustness and exposes boundary conditions that are typically hidden by narrative comparisons—turning energy models into stress tests that delineate where policy performs reliably, and where it becomes brittle.
 """
-)
+	)
 
 st.markdown(
-	"""
+"""
 ---
 
 ## Reference (under review)
 
 **Scenario Space Exploration for Robust Energy Planning** (*Nature Energy*, under review)
 """
-)
+	)
 
 # Use HTML for reliable formatting of superscripts and the corresponding-author marker.
 st.markdown(
-	"""
+"""
 <div style="line-height:1.6; margin-top: 0.25rem;">
 	<div><b>Authors:</b>
 		Amir Fattahi<sup>1,2</sup><span style="font-weight:600;">*</span>,
@@ -57,7 +59,7 @@ st.markdown(
 </div>
 """,
 	unsafe_allow_html=True,
-)
+	)
 
 
 st.markdown("---")
@@ -92,14 +94,15 @@ for p, name in logo_paths:
 	else:
 		items.append(f"<div style='text-align:center; font-size:0.9rem'>Missing logo: {p.name}</div>")
 
+
 if items:
 	st.markdown(
-		"""
-		<div style="display:flex; gap:1.5rem; flex-wrap:wrap; justify-content:center; align-items:center; padding: 0.5rem 0 0;">
-		%s
-		</div>
-		"""
-		% "\n".join(items),
-		unsafe_allow_html=True,
+	"""
+	<div style="display:flex; gap:1.5rem; flex-wrap:wrap; justify-content:center; align-items:center; padding: 0.5rem 0 0;">
+	%s
+	</div>
+	"""
+	% "\n".join(items),
+	unsafe_allow_html=True,
 	)
 

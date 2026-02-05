@@ -545,10 +545,18 @@ def get_default_model_results_filtered_minimal(
 
         repo_root = Path(__file__).resolve().parents[3]
         pp_dir = repo_root / "UI" / "data" / "Generated_data" / "PPResults" / str(project) / str(sample)
-        candidates = [
+
+        # Optional tiny Parquet used to keep PRIM alive on Streamlit Community Cloud.
+        # If present, it contains only Variant/Outcome/Value for the default PRIM outcomes.
+        prim_defaults = pp_dir / "Model_Results_filtered_PRIM_defaults.parquet"
+
+        candidates = []
+        if prim_defaults.exists():
+            candidates.append(prim_defaults)
+        candidates.extend([
             pp_dir / "Model_Results_filtered.parquet",
             pp_dir / "Model_Results.parquet",
-        ]
+        ])
         p = next((x for x in candidates if x.exists()), None)
 
         if p is not None:

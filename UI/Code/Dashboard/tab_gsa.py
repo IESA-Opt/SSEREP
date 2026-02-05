@@ -288,12 +288,16 @@ def combined_heatmap(data, x, y, z_list, colorscale="Oranges", show_colorbar_fir
     """
     # allow caller to supply human-friendly subplot titles (e.g. 'mu_star_norm' -> 'μ* (normalized)')
     titles = subplot_titles if subplot_titles is not None else z_list
-    fig = make_subplots(rows=1, cols=len(z_list), shared_yaxes=True, subplot_titles=titles,
-                        horizontal_spacing=0.04)
-    
-    # Make subplot titles normal weight (not bold)
-    for annotation in fig['layout']['annotations']:
-        annotation['font'] = dict(size=16, family='Arial')
+
+    # NOTE: Plotly's built-in subplot titles reserve a lot of top space.
+    # We disable them here and add our own compact title annotations later.
+    fig = make_subplots(
+        rows=1,
+        cols=len(z_list),
+        shared_yaxes=True,
+        subplot_titles=[""] * len(z_list),
+        horizontal_spacing=0.04,
+    )
 
     # Track if we need horizontal colorbars (for adjusting top margin later)
     has_horizontal_colorbars = False
@@ -551,8 +555,9 @@ def combined_heatmap(data, x, y, z_list, colorscale="Oranges", show_colorbar_fir
     # Increase left margin for better label visibility
     left_margin = 150 if num_y_items <= 10 else 120
     
-    # Adjust top margin if we have horizontal colorbars
-    top_margin = 150 if has_horizontal_colorbars else 100
+    # Adjust top margin if we have horizontal colorbars.
+    # Keep it tight when there are no horizontal colorbars.
+    top_margin = 120 if has_horizontal_colorbars else 40
     
     # Check if all metrics are normalized - if so, we'll have a vertical colorbar on the right
     all_metrics_normalized = all(metric.endswith('_norm') for metric in z_list)
@@ -564,6 +569,32 @@ def combined_heatmap(data, x, y, z_list, colorscale="Oranges", show_colorbar_fir
         font=dict(size=16),  # Larger font for paper publication
         showlegend=False  # Remove any legend that might appear
     )
+
+    # Add compact subplot titles as annotations, positioned just above the plot area.
+    # This avoids Plotly reserving excessive headroom.
+    try:
+        ncols = max(1, len(z_list))
+        # Use a slightly higher y if we have horizontal colorbars.
+        title_y = 1.02 if has_horizontal_colorbars else 1.005
+        for idx, title in enumerate(titles, start=1):
+            if not title:
+                continue
+            # x location at the center of each subplot domain.
+            x = (idx - 0.5) / ncols
+            fig.add_annotation(
+                x=x,
+                y=title_y,
+                xref="paper",
+                yref="paper",
+                text=str(title),
+                showarrow=False,
+                xanchor="center",
+                yanchor="bottom",
+                font=dict(size=16, family="Arial"),
+            )
+    except Exception:
+        # If anything goes wrong, fail silently; the heatmap itself is more important.
+        pass
     
     # Ensure y-axis labels are properly configured
     # Show labels only on the first subplot to avoid repetition
@@ -1628,7 +1659,6 @@ def render():
                 selected_outcomes.append(actual_outcome)
 
     with plot_col:
-        
         if selected_methods and selected_metrics and selected_outcomes:
 
             # Identify which outcomes need dynamic computation for missing methods
@@ -2242,14 +2272,14 @@ def render():
                             # Wider left margin to accommodate driver and sub-driver labels
                             fig.update_layout(
                                 font=dict(size=14),  # Parameter font size (base)
-                                margin=dict(l=350, r=120, t=100, b=100),  # Extra wide left margin for labels
+                                margin=dict(l=250, r=120, t=40, b=100),  # Extra wide left margin for labels
                                 showlegend=False
                             )
                         else:
                             # Standard layout
                             fig.update_layout(
                                 font=dict(size=16),
-                                margin=dict(l=200, r=120, t=100, b=100),
+                                margin=dict(l=200, r=120, t=40, b=100),
                                 showlegend=False
                             )
                         
@@ -2280,7 +2310,7 @@ def render():
                                     type="rect",
                                     xref="paper",
                                     yref="y",
-                                    x0=-0.32,  # Start of label area
+                                    x0=-0.45,  # Start of label area
                                     x1=0,   # End at heatmap edge
                                     y0=y0,
                                     y1=y1,
@@ -2376,7 +2406,7 @@ def render():
                                 # Get the darker color for this driver (matches the shaded area but darker)
                                 label_color = driver_label_colors[idx % len(driver_label_colors)]
                     
-                                x_pos = -0.3 if label_info['index'] % 2 == 0 else -0.3
+                                x_pos = -0.4 if label_info['index'] % 2 == 0 else -0.4
                                 
                                 fig.add_annotation(
                                     x=x_pos,  # Alternating position for readability

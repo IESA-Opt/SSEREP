@@ -162,13 +162,8 @@ def render_technology_analysis_tab(use_1031_ssp=False):
     # Keep the sidebar button (data loader) but remove debug/diagnostics UI.
     project = str(st.session_state.get("project", getattr(Hardcoded_values, "project", "")) or "")
 
-    # Home-first UX: if defaults aren't ready yet, start loading and show a friendly message.
-    try:
-        upload.ensure_defaults_loading_started()
-        upload.require_defaults_ready("Loading datasets for Technology…")
-    except Exception:
-        # Defaults are loaded via the central two-tier loader; avoid forcing full loads here.
-        pass
+    # Defaults loading is handled by the page wrapper (shows a single spinner).
+    upload.ensure_defaults_loading_started()
 
 
     # Base scenario tables (Cloud defaults-only: may live in cache, not session_state).

@@ -5,6 +5,21 @@ import base64
 import numpy as np
 
 
+# --------------------------------------------------------------------------------------
+# UI helpers
+# --------------------------------------------------------------------------------------
+
+
+from contextlib import contextmanager
+
+
+@contextmanager
+def page_loading(message: str = "Loading…"):
+    """Show a transient page-level spinner while the enclosing page render runs."""
+    with st.spinner(message):
+        yield
+
+
 def render_data_loading_sidebar() -> None:
     """Render the global data-loading controls in the sidebar.
 

@@ -25,3 +25,6 @@ sqlalchemy
 requests
 tqdm
 dill
+
+# Local profiling / diagnostics
+psutil

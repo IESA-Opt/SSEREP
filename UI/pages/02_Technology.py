@@ -6,6 +6,7 @@ st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 from Code.Dashboard import tab_technology
 from Code.Dashboard import data_loading
 from Code.Dashboard import utils
+from Code.Dashboard.utils import page_loading
 
 utils.add_sidebar_tweaks()
 
@@ -37,4 +38,5 @@ try:
 except Exception:
     use_1031_ssp = False
 
-tab_technology.render_technology_analysis_tab(use_1031_ssp=use_1031_ssp)
+with page_loading("Loading…"):
+    tab_technology.render_technology_analysis_tab(use_1031_ssp=use_1031_ssp)
