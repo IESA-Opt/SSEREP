@@ -516,6 +516,215 @@ def get_default_model_results_filtered(project: str, sample: str):
 
 
 @st.cache_data(show_spinner=False)
+def get_default_model_results_filtered_minimal(
+    project: str,
+    sample: str,
+    columns: tuple[str, ...] = (
+        "Variant",
+        "Outcome",
+        "Value",
+    ),
+) -> pd.DataFrame:
+    """Return a *minimal* filtered default results table (column-pruned when possible).
+
+    Goal: keep Streamlit Cloud RSS down by avoiding loading unnecessary object
+    columns from the large long-form results table.
+
+    Implementation notes:
+    - Prefer reading from `UI/data/Generated_data/Defaults/.../Model_Results_default_filtered.parquet`
+      (or `_default.parquet`) with `columns=` so pyarrow can prune at IO.
+    - Fall back to the existing CSV-based loader if Parquet isn't present or
+      a Parquet engine isn't available in the environment.
+    - Always returns a DataFrame containing at least Variant/Outcome/Value when
+      present in the source.
+    """
+
+    # Try cached Parquet first (PPResults layout shipped with the UI).
+    try:
+        from pathlib import Path
+
+        repo_root = Path(__file__).resolve().parents[3]
+        pp_dir = repo_root / "UI" / "data" / "Generated_data" / "PPResults" / str(project) / str(sample)
+        candidates = [
+            pp_dir / "Model_Results_filtered.parquet",
+            pp_dir / "Model_Results.parquet",
+        ]
+        p = next((x for x in candidates if x.exists()), None)
+
+        if p is not None:
+            # Defaults Parquet schemas have changed over time; support a few common
+            # variants by reading the schema first, then requesting only available
+            # columns.
+            rename_map: dict[str, str] = {}
+
+            try:
+                import pyarrow.parquet as pq  # type: ignore
+
+                schema_names = set(pq.ParquetFile(p).schema.names)
+            except Exception:
+                schema_names = None
+
+            if schema_names is not None:
+                # Variant
+                if "Variant" not in schema_names:
+                    for cand in ("variant", "VariantId", "variant_id", "Scenario", "Run", "ID"):
+                        if cand in schema_names:
+                            rename_map[cand] = "Variant"
+                            break
+                # Value
+                if "Value" not in schema_names:
+                    for cand in ("value", "Result", "result", "Output", "output", "Val"):
+                        if cand in schema_names:
+                            rename_map[cand] = "Value"
+                            break
+
+                # Request the canonical columns plus whatever columns the caller asked.
+                wanted = set(columns) | {"Variant", "Outcome", "Value"}
+                # Also request any source columns we'll rename.
+                wanted |= set(rename_map.keys())
+                read_cols = [c for c in wanted if c in schema_names]
+
+                df = pd.read_parquet(p, columns=read_cols, engine="pyarrow")
+            else:
+                # Fallback when pyarrow isn't available: read and prune.
+                df = pd.read_parquet(p, engine="pyarrow")
+                for src, dst in list(rename_map.items()):
+                    if src in df.columns and dst not in df.columns:
+                        df = df.rename(columns={src: dst})
+                keep = [c for c in set(columns) | {"Variant", "Outcome", "Value"} if c in df.columns]
+                if keep:
+                    df = df[keep]
+
+            if rename_map:
+                try:
+                    df = df.rename(columns=rename_map)
+                except Exception:
+                    pass
+
+            df = _optimize_df_memory_categories(df, label=f"{sample}:minimal")
+            # Value is numeric and usually doesn't need float64 precision here.
+            # Keep best-effort: never raise if conversion fails.
+            try:
+                if "Value" in df.columns:
+                    df["Value"] = pd.to_numeric(df["Value"], errors="coerce", downcast="float")
+                    # If downcast didn't change dtype (common when already float64),
+                    # force float32 for RAM savings (PRIM/scatter don't need float64).
+                    try:
+                        if str(df["Value"].dtype) != "float32":
+                            df["Value"] = df["Value"].astype("float32")
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+            # Strongly encourage compact dtypes for the two big string columns.
+            try:
+                if "Variant" in df.columns and str(df["Variant"].dtype) != "category":
+                    df["Variant"] = df["Variant"].astype("category")
+            except Exception:
+                pass
+            try:
+                if "Outcome" in df.columns and str(df["Outcome"].dtype) != "category":
+                    df["Outcome"] = df["Outcome"].astype("category")
+            except Exception:
+                pass
+            return df
+    except Exception:
+        # Best-effort: fall back below.
+        pass
+
+    # Fallback: filtered-only loader (may be heavier). Keep this best-effort,
+    # but also fail with a clear message if neither Defaults Parquet nor PPResults
+    # exists for the requested project.
+    try:
+        df = get_default_model_results_filtered(project, sample)
+    except FileNotFoundError as e:
+        raise FileNotFoundError(
+            "No default results found for minimal load. Looked for PPResults Parquet at: "
+            f"UI/data/Generated_data/PPResults/{project}/{sample}/Model_Results_filtered.parquet "
+            f"(or Model_Results.parquet), then PPResults/CSV. Details: {e}"
+        )
+
+    try:
+        keep = [c for c in columns if c in df.columns]
+        if keep:
+            df = df[keep]
+    except Exception:
+        pass
+    df = _optimize_df_memory_categories(df, label=f"{sample}:minimal_fallback")
+    try:
+        if "Value" in df.columns:
+            df["Value"] = pd.to_numeric(df["Value"], errors="coerce", downcast="float")
+            try:
+                if str(df["Value"].dtype) != "float32":
+                    df["Value"] = df["Value"].astype("float32")
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    try:
+        if "Variant" in df.columns and str(df["Variant"].dtype) != "category":
+            df["Variant"] = df["Variant"].astype("category")
+    except Exception:
+        pass
+    try:
+        if "Outcome" in df.columns and str(df["Outcome"].dtype) != "category":
+            df["Outcome"] = df["Outcome"].astype("category")
+    except Exception:
+        pass
+    return df
+
+
+@st.cache_data(show_spinner=False)
+def get_default_outcome_metadata(project: str, sample: str) -> pd.DataFrame:
+    """Return a small (Outcome -> display_name, Unit) lookup for the default dataset.
+
+    This allows PRIM to show friendly labels/units while keeping `df_raw` minimal
+    (Variant/Outcome/Value only).
+    """
+    try:
+        from pathlib import Path
+
+        repo_root = Path(__file__).resolve().parents[3]
+        pp_dir = repo_root / "UI" / "data" / "Generated_data" / "PPResults" / str(project) / str(sample)
+        candidates = [
+            pp_dir / "Model_Results_filtered.parquet",
+            pp_dir / "Model_Results.parquet",
+        ]
+        p = next((x for x in candidates if x.exists()), None)
+        if p is None:
+            return pd.DataFrame(columns=["Outcome", "display_name", "Unit"])
+
+        # Column-prune read.
+        try:
+            df = pd.read_parquet(p, columns=["Outcome", "display_name", "Unit"], engine="pyarrow")
+        except Exception:
+            df = pd.read_parquet(p, engine="pyarrow")
+            keep = [c for c in ("Outcome", "display_name", "Unit") if c in df.columns]
+            df = df[keep] if keep else pd.DataFrame()
+
+        if df is None or getattr(df, "empty", True):
+            return pd.DataFrame(columns=["Outcome", "display_name", "Unit"])
+
+        # Keep it tiny and stable.
+        for c in ["Outcome", "display_name", "Unit"]:
+            if c in df.columns:
+                df[c] = df[c].astype(str).str.strip()
+
+        # One row per Outcome (prefer first non-empty unit/name).
+        out = (
+            df.dropna(subset=["Outcome"])
+            .drop_duplicates(subset=["Outcome"], keep="first")
+            .reset_index(drop=True)
+        )
+        out = _optimize_df_memory_categories(out, label=f"{sample}:outcome_meta", max_unique=50000, max_unique_ratio=1.0)
+        return out
+    except Exception:
+        return pd.DataFrame(columns=["Outcome", "display_name", "Unit"])
+
+
+@st.cache_data(show_spinner=False)
 def get_default_parameter_lookup(project: str, sample: str) -> pd.DataFrame:
     """Return the default parameter sample table for the given sample."""
     try:
