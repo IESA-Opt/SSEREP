@@ -2,12 +2,39 @@
 # data_loading.py  ─────────────────────────────────────────────────
 import os
 import time
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
 from Code import Hardcoded_values, helpers
 from Code.PostProcessing.file_chunking import read_chunked_csv
+
+
+_DEFAULTS_LOADING_STALE_AFTER_SECONDS = 30.0
+
+
+def _clear_defaults_loading_state() -> None:
+    """Clear transient loading flags without touching cached/default data."""
+    try:
+        st.session_state["defaults_loading"] = False
+        st.session_state.pop("defaults_loading_started_at", None)
+    except Exception:
+        pass
+
+
+def _defaults_loading_is_stale(now: float | None = None) -> bool:
+    """Return True when a previous loading flag outlived a normal rerun."""
+    try:
+        if not bool(st.session_state.get("defaults_loading", False)):
+            return False
+        started_at = float(st.session_state.get("defaults_loading_started_at", 0.0) or 0.0)
+        if started_at <= 0.0:
+            return True
+        current_time = time.time() if now is None else float(now)
+        return (current_time - started_at) > _DEFAULTS_LOADING_STALE_AFTER_SECONDS
+    except Exception:
+        return True
 
 
 def _optimize_df_memory_categories(
@@ -71,7 +98,10 @@ def _optimize_df_memory_categories(
 def defaults_ready() -> bool:
     """Return True if the default datasets have been loaded."""
     try:
-        return bool(st.session_state.get("defaults_loaded", False))
+        ready = bool(st.session_state.get("defaults_loaded", False))
+        if ready:
+            _clear_defaults_loading_state()
+        return ready
     except Exception:
         return False
 
@@ -82,6 +112,124 @@ def full_data_ready() -> bool:
         return defaults_ready()
     except Exception:
         return False
+
+
+def _ppresults_dir(project: str, sample: str) -> Path:
+    repo_root = Path(__file__).resolve().parents[3]
+    return repo_root / "UI" / "data" / "Generated_data" / "PPResults" / str(project) / str(sample)
+
+
+def _ppresults_parquet_candidates(project: str, sample: str, *, filtered_first: bool = True) -> list[Path]:
+    base_dir = _ppresults_dir(project, sample)
+    if filtered_first:
+        names = ["Model_Results_filtered.parquet", "Model_Results.parquet"]
+    else:
+        names = ["Model_Results.parquet", "Model_Results_filtered.parquet"]
+    return [base_dir / name for name in names]
+
+
+def _first_existing_path(paths: list[Path]) -> Path | None:
+    for path in paths:
+        try:
+            if path.exists():
+                return path
+        except Exception:
+            continue
+    return None
+
+
+def _available_parquet_columns(path: Path) -> set[str] | None:
+    try:
+        import pyarrow.parquet as pq  # type: ignore
+
+        return set(pq.ParquetFile(path).schema.names)
+    except Exception:
+        return None
+
+
+def _canonical_result_columns(columns: tuple[str, ...], schema_names: set[str] | None) -> list[str]:
+    requested = list(dict.fromkeys(str(column) for column in columns))
+    aliases = {
+        "variant": ["variant", "Variant"],
+        "Variant": ["Variant", "variant"],
+        "value": ["value", "Value"],
+        "Value": ["Value", "value"],
+    }
+
+    read_columns: list[str] = []
+    available = schema_names or set(requested)
+    for column in requested:
+        candidates = aliases.get(column, [column])
+        for candidate in candidates:
+            if candidate in available and candidate not in read_columns:
+                read_columns.append(candidate)
+                break
+
+    return read_columns
+
+
+def _normalize_result_frame(df: pd.DataFrame, *, label: str = "results") -> pd.DataFrame:
+    if df is None or getattr(df, "empty", True):
+        return df
+
+    rename_map = {}
+    if "Variant" in df.columns and "variant" not in df.columns:
+        rename_map["Variant"] = "variant"
+    if "Value" in df.columns and "value" not in df.columns:
+        rename_map["Value"] = "value"
+    if rename_map:
+        df = df.rename(columns=rename_map)
+
+    try:
+        if "value" in df.columns:
+            df["value"] = pd.to_numeric(df["value"], errors="coerce", downcast="float")
+    except Exception:
+        pass
+
+    return _optimize_df_memory_categories(df, label=label)
+
+
+def _read_ppresults_parquet_filtered(
+    project: str,
+    sample: str,
+    *,
+    filter_column: str | None,
+    filter_values: tuple[str, ...] = (),
+    columns: tuple[str, ...],
+    filtered_first: bool = True,
+) -> pd.DataFrame | None:
+    parquet_path = _first_existing_path(
+        _ppresults_parquet_candidates(project, sample, filtered_first=filtered_first)
+    )
+    if parquet_path is None:
+        return None
+
+    schema_names = _available_parquet_columns(parquet_path)
+    read_columns = _canonical_result_columns(columns, schema_names)
+    if not read_columns:
+        return pd.DataFrame()
+
+    normalized_values = tuple(dict.fromkeys(str(value) for value in filter_values if str(value).strip()))
+    try:
+        if filter_column and normalized_values and schema_names is not None and filter_column in schema_names:
+            import pyarrow.dataset as ds  # type: ignore
+
+            dataset = ds.dataset(str(parquet_path), format="parquet")
+            table = dataset.to_table(
+                columns=read_columns,
+                filter=ds.field(filter_column).isin(list(normalized_values)),
+            )
+            return table.to_pandas()
+
+        return pd.read_parquet(parquet_path, columns=read_columns, engine="pyarrow")
+    except Exception:
+        try:
+            df = pd.read_parquet(parquet_path, columns=read_columns, engine="pyarrow")
+            if filter_column and normalized_values and filter_column in df.columns:
+                df = df[df[filter_column].astype(str).isin(normalized_values)]
+            return df
+        except Exception:
+            return None
 
 
 def _read_ppresults_filtered_first(project: str, sample: str) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -131,6 +279,28 @@ def _read_ppresults_filtered_only(project: str, sample: str) -> pd.DataFrame:
     This is the safest option for Streamlit Cloud RAM usage because it avoids
     temporarily loading the unfiltered dataset at all.
     """
+    parquet_df = _read_ppresults_parquet_filtered(
+        project,
+        sample,
+        filter_column=None,
+        filter_values=(),
+        columns=(
+            "variant",
+            "Variable",
+            "period",
+            "technology",
+            "commodity",
+            "value",
+            "Unit",
+            "Technology_name",
+            "Outcome",
+            "display_name",
+        ),
+        filtered_first=True,
+    )
+    if parquet_df is not None and getattr(parquet_df, "shape", (0, 0))[0] > 0:
+        return parquet_df
+
     base_path = helpers.get_path(Hardcoded_values.pp_results_file, project=project, sample=sample)
     base_dir = os.path.dirname(base_path)
     base_stem = os.path.splitext(os.path.basename(base_path))[0]
@@ -335,7 +505,7 @@ def _read_default_files_light(project: str | None):
     def _safe_read_gsa_csv(path: str) -> pd.DataFrame:
         try:
             if path and os.path.exists(path):
-                return pd.read_csv(path, low_memory=False)
+                return _optimize_df_memory_categories(pd.read_csv(path, low_memory=False), label="gsa")
         except Exception:
             return pd.DataFrame()
         return pd.DataFrame()
@@ -412,61 +582,39 @@ def _read_default_files_light(project: str | None):
 
 
 def ensure_defaults_loading_started() -> None:
-    """Load PPResults (filtered preferred) once per Streamlit session."""
+    """Prime small default metadata once per Streamlit session.
+
+    The result tables are loaded lazily by each page through cached, sample-specific
+    getters. This keeps Home/page navigation responsive and avoids warming both
+    LHS and Morris multi-million-row tables before the user needs them.
+    """
     if defaults_ready():
         return
 
     # Prevent re-entrancy: if already loading in this session/run, just return.
     if st.session_state.get("defaults_loading", False):
-        return
+        if not _defaults_loading_is_stale():
+            return
+        _clear_defaults_loading_state()
 
     # Mark loading before any heavy IO.
     st.session_state["defaults_loading"] = True
+    st.session_state["defaults_loading_started_at"] = time.time()
 
     try:
-            project = st.session_state.get("project", getattr(Hardcoded_values, "project", None))
-            if project:
-                Hardcoded_values.project = project
-            project = getattr(Hardcoded_values, "project", None) or str(project or "")
+        project = st.session_state.get("project", getattr(Hardcoded_values, "project", None))
+        if project:
+            Hardcoded_values.project = project
+        project = getattr(Hardcoded_values, "project", None) or str(project or "")
 
-            # Memory-safety: load ONLY the filtered datasets from disk.
-            #
-            # IMPORTANT (Streamlit Cloud): do NOT place these large DataFrames into
-            # `st.session_state`. Storing large DataFrames in session_state can trigger
-            # serialization/copy spikes and crash the process.
-            #
-            # Instead, keep them in Streamlit's cache and let pages fetch them via
-            # `get_default_model_results_filtered()`.
-            mr_morris_filtered = get_default_model_results_filtered(project, "Morris")
-            mr_latin_filtered = get_default_model_results_filtered(project, "LHS")
+        # Prime only small metadata. Avoid reading any Model_Results table here.
+        get_default_parameter_lookup(project, "LHS")
+        get_default_parameter_space(project, "LHS")
+        get_default_base_scenario_tables(project)
 
-            # Memory optimization: compress repeated string columns.
-            # Category optimization happens inside the cached getter.
-
-            # Backward compatibility: `model_results_*` points to the filtered DF.
-            mr_morris = mr_morris_filtered
-            mr_latin = mr_latin_filtered
-
-            if mr_latin is None or getattr(mr_latin, "shape", (0, 0))[0] == 0:
-                raise FileNotFoundError(
-                    "No LHS results found in PPResults. Expected Parquet/CSV under "
-                    f"UI/data/Generated_data/PPResults/{project}/LHS (Model_Results*_filtered.*)."
-                )
-
-            # Parameters + scenario tables
-            # Read via cached getters so we don't store these in session_state.
-            par_morris = get_default_parameter_lookup(project, "Morris")
-            par_latin = get_default_parameter_lookup(project, "LHS")
-            par_morris_space = get_default_parameter_space(project, "Morris")
-            par_latin_space = get_default_parameter_space(project, "LHS")
-            tech, activities = get_default_base_scenario_tables(project)
-
-            # Cloud defaults-only: do NOT load/store GSA results here.
-            # Tabs that need GSA should call `get_default_gsa_results(project)`.
-
-            # Store only small flags.
-            st.session_state.defaults_loaded = True
-            st.session_state.defaults_project = project
+        # Store only small flags.
+        st.session_state.defaults_loaded = True
+        st.session_state.defaults_project = project
     except Exception as e:
         # Best-effort: detect memory pressure and present a clear message.
         _raw = f"{type(e).__name__}: {e}"
@@ -489,7 +637,7 @@ def ensure_defaults_loading_started() -> None:
         # Streamlit Cloud health checks to see "connection reset by peer".
         return
     finally:
-        st.session_state["defaults_loading"] = False
+        _clear_defaults_loading_state()
 
 
 def ensure_full_data_loaded() -> None:
@@ -516,6 +664,128 @@ def get_default_model_results_filtered(project: str, sample: str):
 
 
 @st.cache_data(show_spinner=False)
+def get_default_result_display_names(project: str, sample: str) -> list[str]:
+    """Return available display names without loading the full result table."""
+    parquet_df = _read_ppresults_parquet_filtered(
+        project,
+        sample,
+        filter_column=None,
+        filter_values=(),
+        columns=("display_name",),
+        filtered_first=True,
+    )
+    if parquet_df is not None and "display_name" in parquet_df.columns:
+        try:
+            return sorted(parquet_df["display_name"].dropna().astype(str).unique().tolist())
+        except Exception:
+            pass
+
+    fallback_df = get_default_model_results_filtered(project, sample)
+    if fallback_df is not None and "display_name" in fallback_df.columns:
+        return sorted(fallback_df["display_name"].dropna().astype(str).unique().tolist())
+    return []
+
+
+@st.cache_data(show_spinner=False)
+def get_default_result_outcomes(project: str, sample: str) -> list[str]:
+    """Return available raw outcome names without loading the full result table."""
+    parquet_df = _read_ppresults_parquet_filtered(
+        project,
+        sample,
+        filter_column=None,
+        filter_values=(),
+        columns=("Outcome",),
+        filtered_first=True,
+    )
+    if parquet_df is not None and "Outcome" in parquet_df.columns:
+        try:
+            return sorted(parquet_df["Outcome"].dropna().astype(str).unique().tolist())
+        except Exception:
+            pass
+
+    fallback_df = get_default_model_results_filtered(project, sample)
+    if fallback_df is not None and "Outcome" in fallback_df.columns:
+        return sorted(fallback_df["Outcome"].dropna().astype(str).unique().tolist())
+    return []
+
+
+@st.cache_data(show_spinner=False)
+def get_default_model_results_for_display_names(
+    project: str,
+    sample: str,
+    display_names: tuple[str, ...],
+    columns: tuple[str, ...] = ("variant", "Outcome", "display_name", "value", "Unit"),
+) -> pd.DataFrame:
+    """Return filtered results for selected display names using Parquet row pruning."""
+    selected_display_names = tuple(
+        dict.fromkeys(str(name) for name in display_names if str(name).strip())
+    )
+    if not selected_display_names:
+        return pd.DataFrame(columns=list(columns))
+
+    requested_columns = tuple(dict.fromkeys(tuple(columns) + ("display_name",)))
+    parquet_df = _read_ppresults_parquet_filtered(
+        project,
+        sample,
+        filter_column="display_name",
+        filter_values=selected_display_names,
+        columns=requested_columns,
+        filtered_first=True,
+    )
+    if parquet_df is not None:
+        return _normalize_result_frame(parquet_df, label=f"{sample}:display_names")
+
+    fallback_df = get_default_model_results_filtered(project, sample)
+    if fallback_df is None or getattr(fallback_df, "empty", True):
+        return pd.DataFrame(columns=list(requested_columns))
+    if "display_name" not in fallback_df.columns:
+        return pd.DataFrame(columns=list(requested_columns))
+
+    filtered_df = fallback_df[fallback_df["display_name"].astype(str).isin(selected_display_names)]
+    keep_columns = [column for column in requested_columns if column in filtered_df.columns]
+    if keep_columns:
+        filtered_df = filtered_df[keep_columns]
+    return _normalize_result_frame(filtered_df.copy(), label=f"{sample}:display_names_fallback")
+
+
+@st.cache_data(show_spinner=False)
+def get_default_model_results_for_outcomes(
+    project: str,
+    sample: str,
+    outcomes: tuple[str, ...],
+    columns: tuple[str, ...] = ("variant", "Outcome", "value", "Unit", "display_name"),
+) -> pd.DataFrame:
+    """Return filtered results for selected raw outcome names using Parquet row pruning."""
+    selected_outcomes = tuple(dict.fromkeys(str(outcome) for outcome in outcomes if str(outcome).strip()))
+    if not selected_outcomes:
+        return pd.DataFrame(columns=list(columns))
+
+    requested_columns = tuple(dict.fromkeys(tuple(columns) + ("Outcome",)))
+    parquet_df = _read_ppresults_parquet_filtered(
+        project,
+        sample,
+        filter_column="Outcome",
+        filter_values=selected_outcomes,
+        columns=requested_columns,
+        filtered_first=True,
+    )
+    if parquet_df is not None:
+        return _normalize_result_frame(parquet_df, label=f"{sample}:outcomes")
+
+    fallback_df = get_default_model_results_filtered(project, sample)
+    if fallback_df is None or getattr(fallback_df, "empty", True):
+        return pd.DataFrame(columns=list(requested_columns))
+    if "Outcome" not in fallback_df.columns:
+        return pd.DataFrame(columns=list(requested_columns))
+
+    filtered_df = fallback_df[fallback_df["Outcome"].astype(str).isin(selected_outcomes)]
+    keep_columns = [column for column in requested_columns if column in filtered_df.columns]
+    if keep_columns:
+        filtered_df = filtered_df[keep_columns]
+    return _normalize_result_frame(filtered_df.copy(), label=f"{sample}:outcomes_fallback")
+
+
+@st.cache_data(show_spinner=False)
 def get_default_model_results_filtered_minimal(
     project: str,
     sample: str,
@@ -524,6 +794,7 @@ def get_default_model_results_filtered_minimal(
         "Outcome",
         "Value",
     ),
+    prefer_prim_defaults: bool = True,
 ) -> pd.DataFrame:
     """Return a *minimal* filtered default results table (column-pruned when possible).
 
@@ -551,7 +822,7 @@ def get_default_model_results_filtered_minimal(
         prim_defaults = pp_dir / "Model_Results_filtered_PRIM_defaults.parquet"
 
         candidates = []
-        if prim_defaults.exists():
+        if prefer_prim_defaults and prim_defaults.exists():
             candidates.append(prim_defaults)
         candidates.extend([
             pp_dir / "Model_Results_filtered.parquet",
@@ -799,7 +1070,7 @@ def get_default_gsa_results(project: str):
     def _safe_read_gsa_csv(path: str) -> _pd.DataFrame:
         try:
             if path and os.path.exists(path):
-                return _pd.read_csv(path, low_memory=False)
+                return _optimize_df_memory_categories(_pd.read_csv(path, low_memory=False), label="gsa")
         except Exception:
             return _pd.DataFrame()
         return _pd.DataFrame()

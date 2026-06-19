@@ -737,22 +737,130 @@ def get_gsa_engine():
 @st.cache_resource(show_spinner=False)
 def get_problem_X(parameter_space, parameter_lookup):
     """Get problem and X values for GSA, handling empty DataFrames."""
+    empty_problem = {'num_vars': 0, 'names': [], 'bounds': []}
+
     # Check if parameter_space is empty or missing required column
     if parameter_space.empty or 'Parameter' not in parameter_space.columns:
         # Return empty/default values to prevent crashes
-        problem = {'num_vars': 0, 'names': [], 'bounds': []}
-        X = None
-        return problem, X
+        return empty_problem, None
     
     # Check if parameter_lookup is empty
     if parameter_lookup.empty:
         # Return empty/default values to prevent crashes  
-        problem = {'num_vars': 0, 'names': [], 'bounds': []}
-        X = None
+        return empty_problem, None
+
+    try:
+        parameter_col = _find_case_insensitive_column(parameter_space, "Parameter") or "Parameter"
+        min_col = _find_case_insensitive_column(parameter_space, "Min")
+        max_col = _find_case_insensitive_column(parameter_space, "Max")
+
+        lookup_columns_by_lower = {str(column).lower(): column for column in parameter_lookup.columns}
+
+        names: list[str] = []
+        bounds: list[list[float]] = []
+        lookup_columns: list[str] = []
+
+        for raw_name in parameter_space[parameter_col].dropna().astype(str).drop_duplicates().tolist():
+            name = raw_name.strip()
+            if not name:
+                continue
+
+            lookup_col = name if name in parameter_lookup.columns else lookup_columns_by_lower.get(name.lower())
+            if lookup_col is None:
+                continue
+
+            row = parameter_space[parameter_space[parameter_col].astype(str).str.strip() == name].iloc[0]
+
+            lower = row[min_col] if min_col and min_col in row.index else None
+            upper = row[max_col] if max_col and max_col in row.index else None
+
+            if pd.isna(lower) or pd.isna(upper):
+                values = pd.to_numeric(parameter_lookup[lookup_col], errors="coerce")
+                lower = values.min()
+                upper = values.max()
+
+            if pd.isna(lower) or pd.isna(upper):
+                continue
+
+            names.append(name)
+            bounds.append([float(lower), float(upper)])
+            lookup_columns.append(lookup_col)
+
+        if not names:
+            return empty_problem, None
+
+        X = parameter_lookup[lookup_columns].apply(pd.to_numeric, errors="coerce").to_numpy(dtype=float)
+        problem = {
+            'num_vars': len(names),
+            'names': names,
+            'bounds': bounds,
+        }
         return problem, X
-    
-    gsa = get_gsa_engine()
-    return gsa.import_problem_X_values(parameter_space, parameter_lookup)
+    except Exception:
+        return empty_problem, None
+
+
+def _find_case_insensitive_column(frame: pd.DataFrame, target_name: str) -> str | None:
+    for column in getattr(frame, "columns", []):
+        if str(column).lower() == target_name.lower():
+            return column
+    return None
+
+
+def _prepare_selected_outcome_wide(
+    df_raw: pd.DataFrame,
+    parameter_lookup: pd.DataFrame,
+    outcomes: tuple[str, ...],
+) -> tuple[pd.DataFrame, list[str]]:
+    """Build a wide table for selected outcomes only.
+
+    This is the low-RAM alternative to `prepare_results()` for GSA scatter and
+    correlation signs. It pivots only the requested Outcome rows, then merges the
+    small parameter lookup table.
+    """
+    if df_raw is None or getattr(df_raw, "empty", True):
+        return pd.DataFrame(), []
+    if parameter_lookup is None or getattr(parameter_lookup, "empty", True):
+        return pd.DataFrame(), []
+
+    variant_col = _find_case_insensitive_column(df_raw, "variant")
+    outcome_col = _find_case_insensitive_column(df_raw, "Outcome")
+    value_col = _find_case_insensitive_column(df_raw, "value")
+    param_variant_col = _find_case_insensitive_column(parameter_lookup, "variant")
+    selected_outcomes = tuple(dict.fromkeys(str(outcome) for outcome in outcomes if str(outcome).strip()))
+
+    if not variant_col or not outcome_col or not value_col or not param_variant_col or not selected_outcomes:
+        return pd.DataFrame(), []
+
+    try:
+        result_subset = df_raw[[variant_col, outcome_col, value_col]].copy()
+        result_subset[outcome_col] = result_subset[outcome_col].astype(str).str.strip()
+        result_subset = result_subset[result_subset[outcome_col].isin(selected_outcomes)]
+        if result_subset.empty:
+            return pd.DataFrame(), []
+
+        result_subset["_variant"] = result_subset[variant_col].astype(str).str.strip()
+        result_subset[value_col] = pd.to_numeric(result_subset[value_col], errors="coerce")
+
+        result_wide = (
+            result_subset
+            .groupby(["_variant", outcome_col], sort=False)[value_col]
+            .mean()
+            .unstack(outcome_col)
+            .reset_index()
+            .rename(columns={"_variant": "Variant"})
+        )
+
+        params = parameter_lookup.copy()
+        params[param_variant_col] = params[param_variant_col].astype(str).str.strip()
+        merged = result_wide.merge(params, left_on="Variant", right_on=param_variant_col, how="left")
+        if param_variant_col in merged.columns and param_variant_col != "Variant":
+            merged = merged.drop(columns=[param_variant_col])
+
+        param_cols = [column for column in parameter_lookup.columns if column != param_variant_col]
+        return merged, param_cols
+    except Exception:
+        return pd.DataFrame(), []
 
 def compute_gsa_dynamic(outcome, methods, progress_callback=None):
     """
@@ -1360,45 +1468,40 @@ def render():
             )
             show_values_mode = "Show Norm Values" if show_values else "Off"
 
+            browse_all_outcomes = st.toggle(
+                "Browse all model outputs",
+                value=bool(st.session_state.get("gsa_browse_all_outcomes", False)),
+                help="Keep off to use precomputed/default GSA outputs only; turn on to expose every raw model outcome.",
+                key="gsa_browse_all_outcomes",
+            )
+
             # Removed user control: Hide NaN Outcomes (keep current default True)
             hide_nan_outcomes = True
             
-            # Get ALL available outcomes from model results, not just precomputed ones
+            # Defaults-first: start with precomputed/default outcomes. Only scan the
+            # full raw outcome catalog when the user explicitly asks to browse it.
             all_available_outcomes = set()
             precomputed_outcomes = set()
         
-            # Get all outcomes from model results CSV files
-            try:
-                # Try to get outcomes from session state model results
-                for sample_type in ['MORRIS', 'LATIN']:
-                    model_results_key = f'model_results_{sample_type}'
-                    if model_results_key in st.session_state and st.session_state[model_results_key] is not None:
-                        model_data = st.session_state[model_results_key]
-                        if 'Outcome' in model_data.columns:
-                            all_available_outcomes.update(model_data['Outcome'].dropna().unique())
-                
-                # If no outcomes from session state, try to load from CSV files directly
-                if not all_available_outcomes:
-                    from Code import Hardcoded_values, helpers
-                    from Code.PostProcessing.file_chunking import read_chunked_csv
-                    try:
-                        # Try to load from processed results using chunked reading
-                        results_file = helpers.get_path(Hardcoded_values.pp_results_file)
-                        if os.path.exists(results_file):
-                            # Load just the Outcome column for efficiency using chunked reading
-                            outcome_data = read_chunked_csv(results_file, usecols=['Outcome'], low_memory=False)
-                            all_available_outcomes.update(outcome_data['Outcome'].dropna().unique())
-                        else:
-                            # Check if chunks exist
-                            from Code.PostProcessing.file_chunking import get_metadata_path
-                            metadata_path = get_metadata_path(results_file)
-                            if os.path.exists(metadata_path):
-                                outcome_data = read_chunked_csv(results_file, usecols=['Outcome'], low_memory=False)
-                                all_available_outcomes.update(outcome_data['Outcome'].dropna().unique())
-                    except Exception:
-                        pass
-            except Exception:
-                pass
+            if browse_all_outcomes:
+                try:
+                    # Try uploaded/session results first.
+                    for sample_type in ['MORRIS', 'LATIN']:
+                        model_results_key = f'model_results_{sample_type}'
+                        if model_results_key in st.session_state and st.session_state[model_results_key] is not None:
+                            model_data = st.session_state[model_results_key]
+                            if hasattr(model_data, 'columns') and 'Outcome' in model_data.columns:
+                                all_available_outcomes.update(model_data['Outcome'].dropna().astype(str).unique())
+
+                    # Otherwise read just the Outcome column from default PPResults.
+                    if not all_available_outcomes and _dl is not None:
+                        for sample_name in ("Morris", "LHS"):
+                            try:
+                                all_available_outcomes.update(_dl.get_default_result_outcomes(_project, sample_name))
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
         
             # Get precomputed outcomes from existing GSA files
             if not combined_gsa_data.empty and 'Outcome' in combined_gsa_data.columns:
@@ -1815,24 +1918,42 @@ def render():
                 # Apply correlation signs if enabled (without changing magnitudes)
                 if add_correlation:
                     try:
-                        # `prepare_results` lives in the shared dashboard utils.
-                        # (Historically it was in tab_scenario_discovery, which is now archived.)
-                        from Code.Dashboard.utils import prepare_results
-                        
-                        def build_corr_dict(df_raw_local, param_lookup_local):
+                        outcomes_in_plot = tuple(
+                            dict.fromkeys(plot_df['Outcome'].dropna().astype(str).tolist())
+                        )
+
+                        def build_corr_dict(df_raw_local, param_lookup_local, sample_name: str):
+                            if param_lookup_local is None or getattr(param_lookup_local, 'empty', True):
+                                if _dl is not None:
+                                    try:
+                                        param_lookup_local = _dl.get_default_parameter_lookup(_project, sample_name)
+                                    except Exception:
+                                        param_lookup_local = None
+
+                            if df_raw_local is None or getattr(df_raw_local, 'empty', True):
+                                if _dl is not None:
+                                    try:
+                                        df_raw_local = _dl.get_default_model_results_for_outcomes(
+                                            _project,
+                                            sample_name,
+                                            outcomes_in_plot,
+                                            columns=("variant", "Outcome", "value"),
+                                        )
+                                    except Exception:
+                                        df_raw_local = None
+
                             if df_raw_local is None or param_lookup_local is None:
                                 return None
-                            
-                            try:
-                                df_piv, param_cols_local = prepare_results(df_raw_local, param_lookup_local)
-                            except Exception:
-                                return None
-                                
+
+                            df_piv, param_cols_local = _prepare_selected_outcome_wide(
+                                df_raw_local,
+                                param_lookup_local,
+                                outcomes_in_plot,
+                            )
                             if df_piv is None or df_piv.empty:
                                 return None
                                 
                             params_in_plot = set(plot_df['Parameter'].unique())
-                            outcomes_in_plot = set(plot_df['Outcome'].unique())
                             outcome_cols_in_pivot = [c for c in df_piv.columns if c not in param_cols_local and c != 'Variant']
                             
                             outcome_matches_local = {}
@@ -1894,37 +2015,16 @@ def render():
                             return corr_map
 
                         # Get correlation maps from both datasets.
-                        # In Cloud defaults-only mode, large frames may not be stored in session_state,
-                        # so fall back to cached default getters.
+                        # In Cloud defaults-only mode, large frames are not stored in
+                        # session_state; build_corr_dict falls back to selected-outcome
+                        # cached getters instead of loading the full result table.
                         df_lhs = st.session_state.get('model_results_LATIN')
                         pl_lhs = st.session_state.get('parameter_lookup_LATIN')
                         df_morris = st.session_state.get('model_results_MORRIS')
                         pl_morris = st.session_state.get('parameter_lookup_MORRIS')
 
-                        if _dl is not None:
-                            try:
-                                if df_lhs is None or getattr(df_lhs, 'empty', True):
-                                    df_lhs = _dl.get_default_model_results_filtered(_project, "LHS")
-                            except Exception:
-                                pass
-                            try:
-                                if df_morris is None or getattr(df_morris, 'empty', True):
-                                    df_morris = _dl.get_default_model_results_filtered(_project, "Morris")
-                            except Exception:
-                                pass
-                            try:
-                                if pl_lhs is None or getattr(pl_lhs, 'empty', True):
-                                    pl_lhs = _dl.get_default_parameter_lookup(_project, "LHS")
-                            except Exception:
-                                pass
-                            try:
-                                if pl_morris is None or getattr(pl_morris, 'empty', True):
-                                    pl_morris = _dl.get_default_parameter_lookup(_project, "Morris")
-                            except Exception:
-                                pass
-
-                        corr_lhs = build_corr_dict(df_lhs, pl_lhs)
-                        corr_morris = build_corr_dict(df_morris, pl_morris)
+                        corr_lhs = build_corr_dict(df_lhs, pl_lhs, "LHS")
+                        corr_morris = build_corr_dict(df_morris, pl_morris, "Morris")
 
                         # Apply correlation signs to normalized metrics only (preserve magnitudes)
                         norm_metrics = [col for col in plot_df.columns if '_norm' in col]
@@ -1932,8 +2032,8 @@ def render():
                         for metric in norm_metrics:
                             if metric in plot_df.columns:
                                 # Apply sign based on correlation, keeping original magnitude
-                                for idx, row in plot_df.iterrows():
-                                    key = (row['Parameter'], row['Outcome'])
+                                for row_index, row_data in plot_df.iterrows():
+                                    key = (row_data['Parameter'], row_data['Outcome'])
                                     
                                     # Try LHS correlation first
                                     sign = corr_lhs.get(key) if corr_lhs else None
@@ -1944,11 +2044,11 @@ def render():
                                     
                                     # Apply sign if correlation found
                                     if sign is not None:
-                                        original_value = plot_df.at[idx, metric]
+                                        original_value = plot_df.at[row_index, metric]
                                         if pd.notna(original_value):
                                             # Keep magnitude, apply correlation sign
                                             magnitude = abs(original_value)
-                                            plot_df.at[idx, metric] = magnitude * sign
+                                            plot_df.at[row_index, metric] = magnitude * sign
                                             
                     except Exception as e:
                         st.warning(f"Could not apply correlation signs: {e}")
@@ -2584,9 +2684,6 @@ def render():
         with plot_col:
             try:
                 # Load parameter lookup and model results for scatter plots
-                # `prepare_results` lives in the shared dashboard utils.
-                # (Historically it was in tab_scenario_discovery, which is now archived.)
-                from Code.Dashboard.utils import prepare_results
                 import plotly.graph_objects as go
                 import numpy as np
                 
@@ -2614,7 +2711,12 @@ def render():
                 if _dl is not None:
                     try:
                         if df_raw is None or getattr(df_raw, 'empty', True):
-                            df_raw = _dl.get_default_model_results_filtered(_project, "LHS")
+                            df_raw = _dl.get_default_model_results_for_outcomes(
+                                _project,
+                                "LHS",
+                                tuple(scatter_selected_outcomes),
+                                columns=("variant", "Outcome", "value", "Unit", "display_name"),
+                            )
                     except Exception:
                         pass
                     try:
@@ -2624,8 +2726,16 @@ def render():
                         pass
 
                 if df_raw is not None and not getattr(df_raw, 'empty', True) and parameter_lookup is not None and not getattr(parameter_lookup, 'empty', True):
-                        # Prepare pivoted data
-                        df_pivoted, param_cols = prepare_results(df_raw, parameter_lookup)
+                        # Prepare pivoted data for selected outcomes only.
+                        df_pivoted, param_cols = _prepare_selected_outcome_wide(
+                            df_raw,
+                            parameter_lookup,
+                            tuple(scatter_selected_outcomes),
+                        )
+                        if df_pivoted is None or getattr(df_pivoted, 'empty', True):
+                            st.warning("No selected outcome data found for scatter plot generation.")
+                            df_pivoted = pd.DataFrame()
+                            param_cols = []
                         
                         # Collect all outcome data first
                         valid_outcomes_data = []

@@ -6,14 +6,12 @@ import side-effects here can re-introduce old tab-based navigation.
 
 import streamlit as st
 from pathlib import Path
-import os
 
 # Use the full browser width (the legacy dashboard did this in its old Home module).
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
 try:
 	from Code.Dashboard import utils
-	from Code.Dashboard import data_loading
 
 	utils.add_sidebar_tweaks()
 
@@ -98,23 +96,9 @@ else:
 
 
 # ----------------------------
-# Data loading status + trigger defaults loading AFTER full Home body is rendered
+# Data loading status + lightweight metadata warm-up after Home renders
 # ----------------------------
 
-# Pass 1: render the full Home content, then rerun once.
-# Pass 2: start loading defaults.
-if "home_bootstrap_done" not in st.session_state:
-	st.session_state["home_bootstrap_done"] = True
-	# Short warm-up window: lets the sidebar show Loading… immediately after rerun.
-	try:
-		import time as _time
-		st.session_state["loading_warmup_until"] = float(_time.time() + 10.0)
-	except Exception:
-		st.session_state["loading_warmup_until"] = 0.0
-	st.rerun()
-
-
-# In-page status (requested): turn green once defaults are loaded.
 try:
 	from Code.Dashboard import data_loading as _dl
 	_defaults_loaded = bool(_dl.defaults_ready())
@@ -128,15 +112,11 @@ else:
 		st.error(f"Default data failed to load: {err}")
 
 
-# Now that the Home page is fully rendered, trigger defaults loading.
+# Now that the Home page is fully rendered, prime small metadata only. Result
+# tables stay lazy and are fetched by the page that needs them.
 if not _defaults_loaded and _dl is not None:
 	try:
-		_before = bool(st.session_state.get("defaults_loaded", False))
 		_dl.ensure_defaults_loading_started()
-		_after = bool(st.session_state.get("defaults_loaded", False))
-		# Only rerun after a successful transition to loaded.
-		if (not _before) and _after:
-			st.rerun()
 	except Exception as e:
 		msg = f"{type(e).__name__}: {e}"
 		st.session_state["defaults_load_error"] = msg

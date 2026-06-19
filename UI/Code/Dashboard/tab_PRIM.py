@@ -28,9 +28,8 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
     except Exception:
         pass
 
-    # Defaults loading is handled by the page wrapper (shows a single spinner).
+    # Default data is loaded lazily below by sample-specific cached getters.
     from Code.Dashboard import data_loading as upload
-    upload.ensure_defaults_loading_started()
 
     # Intentionally omit page header/caption: the PRIM page should start with the plots.
 
@@ -44,6 +43,7 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
     # Don't pre-set session_state for widget-owned keys (Streamlit warns if you do).
     enable_filter = bool(st.session_state.get("prim_no_cart_enable_filter", True))
     n_pairs = int(st.session_state.get("prim_no_cart_n_pairs", 3))
+    browse_all_outcomes = bool(st.session_state.get("prim_no_cart_browse_all_outcomes", False))
 
     # Get data based on selection.
     # If filter is enabled, prefer the precomputed filtered long results.
@@ -58,9 +58,13 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
         if df_raw is None:
             try:
                 project = str(st.session_state.get("project", "") or "")
-                # Load a minimal, column-pruned default dataset when available
-                # (Defaults Parquet preferred; falls back safely).
-                df_raw = upload.get_default_model_results_filtered_minimal(project, "LHS")
+                # Defaults-first: use the tiny PRIM defaults slice unless the user
+                # explicitly opens the full outcome browser.
+                df_raw = upload.get_default_model_results_filtered_minimal(
+                    project,
+                    "LHS",
+                    prefer_prim_defaults=not browse_all_outcomes,
+                )
             except Exception:
                 df_raw = None
 
@@ -100,9 +104,13 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
         if df_raw is None:
             try:
                 project = str(st.session_state.get("project", "") or "")
-                # Load a minimal, column-pruned default dataset when available
-                # (Defaults Parquet preferred; falls back safely).
-                df_raw = upload.get_default_model_results_filtered_minimal(project, "Morris")
+                # Defaults-first: use the tiny PRIM defaults slice unless the user
+                # explicitly opens the full outcome browser.
+                df_raw = upload.get_default_model_results_filtered_minimal(
+                    project,
+                    "Morris",
+                    prefer_prim_defaults=not browse_all_outcomes,
+                )
             except Exception:
                 df_raw = None
 
@@ -169,8 +177,8 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
     project_name = str(st.session_state.get("project", "") or "")
     is_1108_ssp = project_name.strip().lower() in {"1108 ssp", "1108_ssp", "1108"}
     if "prim_no_cart_default_outcomes_only" not in st.session_state:
-        st.session_state["prim_no_cart_default_outcomes_only"] = bool(is_1108_ssp)
-    default_outcomes_only = bool(st.session_state.get("prim_no_cart_default_outcomes_only", False))
+        st.session_state["prim_no_cart_default_outcomes_only"] = bool(is_1108_ssp and not browse_all_outcomes)
+    default_outcomes_only = bool(st.session_state.get("prim_no_cart_default_outcomes_only", False)) and not browse_all_outcomes
 
     # (Diagnostics removed)
 
@@ -472,7 +480,7 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
         # Data + filter controls
         st.markdown("### Data & layout")
 
-        col1, col2, col3 = st.columns([1, 1, 1])
+        col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
 
         with col1:
             input_selection = st.selectbox(
@@ -496,6 +504,14 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
                 max_value=10,
                 value=3,
                 key="prim_no_cart_n_pairs",
+            )
+
+        with col4:
+            browse_all_outcomes = st.checkbox(
+                "Browse all outcomes",
+                value=browse_all_outcomes,
+                help="Keep off for the tiny defaults-only result slice; turn on to load the full minimal outcome table.",
+                key="prim_no_cart_browse_all_outcomes",
             )
 
         # Select X-Y pairs
@@ -769,6 +785,7 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
 
     # Store PRIM results for each pair to display parameter ranges below
     prim_results_list = []
+    prim_warning_messages = []
 
     import plotly.graph_objects as go
 
@@ -928,6 +945,9 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
 
             # Run PRIM
             prim_ranges, stats, df_boxes = run_prim(x_clean, y_binary, mass_min, peel_alpha, paste_alpha)
+            prim_error = str(stats.get('error', '') or '') if isinstance(stats, dict) else ''
+            if prim_error:
+                prim_warning_messages.append(f"Pair {pair_idx + 1}: {prim_error}")
 
             # Store results for parameter ranges display below
             prim_results_list.append({
@@ -950,6 +970,13 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
                 'x_col': x_col,
                 'y_col': y_col
             })
+
+    if prim_warning_messages:
+        st.warning(
+            "PRIM ranges were not calculated for some selections. "
+            + " ".join(prim_warning_messages[:3])
+            + ("" if len(prim_warning_messages) <= 3 else " ...")
+        )
 
     # Update scatter plot layout
     scatter_fig.update_layout(
@@ -1579,11 +1606,15 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
 
                         prim_min_norm = (item['prim_min'] - item['data_min']) / span
                         prim_max_norm = (item['prim_max'] - item['data_min']) / span
+                        prim_min_plot = max(0.0, min(1.0, prim_min_norm))
+                        prim_max_plot = max(0.0, min(1.0, prim_max_norm))
+                        if prim_min_plot > prim_max_plot:
+                            prim_min_plot, prim_max_plot = prim_max_plot, prim_min_plot
 
                         # PRIM range line (overlay) - dark blue color (same as scatter dots)
                         bar_fig.add_trace(
                             go.Scatter(
-                                x=[prim_min_norm, prim_max_norm],
+                                x=[prim_min_plot, prim_max_plot],
                                 y=[y_pos, y_pos],
                                 mode='lines',
                                 line=dict(color=selected_color, width=8),  # Dark blue overlay bars
@@ -1594,12 +1625,12 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
                         )
 
                         # Add value annotations INSIDE the bars but with original orange color and style
-                        bar_center_x = (prim_min_norm + prim_max_norm) / 2
+                        bar_center_x = (prim_min_plot + prim_max_plot) / 2
 
                         # Individual annotations for min and max values inside the bar
                         bar_fig.add_annotation(
                             text=f"<b>{item['prim_min']:.2f}</b>",
-                            x=max(0.02, prim_min_norm + 0.05),  # Inside bar, near left edge
+                            x=max(0.02, min(0.98, prim_min_plot + 0.05)),  # Inside bar, near left edge
                             y=y_pos,
                             xanchor='left',
                             yanchor='middle',
@@ -1609,7 +1640,7 @@ def render_prim_without_cart_tab(use_1031_ssp=False):
 
                         bar_fig.add_annotation(
                             text=f"<b>{item['prim_max']:.2f}</b>",
-                            x=min(0.98, prim_max_norm - 0.05),  # Inside bar, near right edge
+                            x=min(0.98, max(0.02, prim_max_plot - 0.05)),  # Inside bar, near right edge
                             y=y_pos,
                             xanchor='right',
                             yanchor='middle',

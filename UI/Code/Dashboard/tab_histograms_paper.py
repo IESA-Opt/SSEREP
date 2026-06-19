@@ -40,83 +40,53 @@ def render_histogram_analysis_tab(use_1031_ssp=False):
     except Exception:
         pass
 
-    # Defaults loading is handled by the page wrapper (shows a single spinner).
+    # Default data is loaded lazily below by sample-specific cached getters.
     from Code.Dashboard import data_loading as upload
-    upload.ensure_defaults_loading_started()
 
     # Import required function for unit handling
     from Code.Dashboard.utils import get_unit_for_column
 
     # NOTE: The controls (data source, data filter, outcomes, bins) are rendered
     # below the plots. We still need their *values* here to load/filter data.
+    project = str(st.session_state.get("project", "") or "")
     input_selection = st.session_state.get("histogram_data_source", "LHS")
+    sample_name = "LHS" if input_selection == "LHS" else "Morris"
+    session_results_key = "model_results_LATIN" if input_selection == "LHS" else "model_results_MORRIS"
+    session_filtered_key = "model_results_LATIN_filtered" if input_selection == "LHS" else "model_results_MORRIS_filtered"
+    session_params_key = "parameter_lookup_LATIN" if input_selection == "LHS" else "parameter_lookup_MORRIS"
 
     # Community Cloud stability: default-filtering should be ON.
     # IMPORTANT: don't set session_state directly for a widget key; that triggers
     # Streamlit's warning when the widget is also created with a `value=`.
     enable_filter = bool(st.session_state.get("histogram_enable_filter", True))
+    browse_all_outputs = bool(st.session_state.get("histogram_browse_all_outputs", False))
 
-    # Get data based on selection.
-    # Cloud safety: defaults loader may keep large frames in cache (not session_state).
-    if input_selection == "LHS":
-        df_raw = st.session_state.get("model_results_LATIN")
-        if df_raw is None:
-            try:
-                from Code.Dashboard import data_loading as _dl
-                project = str(st.session_state.get("project", "") or "")
-                df_raw = _dl.get_default_model_results_filtered(project, "LHS")
-            except Exception:
-                df_raw = None
-        parameter_lookup = st.session_state.get("parameter_lookup_LATIN")
-        if parameter_lookup is None:
-            try:
-                from Code.Dashboard import data_loading as _dl
-                parameter_lookup = _dl.get_default_parameter_lookup(project, "LHS")
-            except Exception:
-                parameter_lookup = None
+    # Prefer uploaded/session results when present. Otherwise keep default results
+    # lazy and start with a single-column Parquet read for available display names.
+    df_raw = st.session_state.get(session_results_key)
+    using_session_results = df_raw is not None and getattr(df_raw, 'shape', (0, 0))[0] > 0
+
+    parameter_lookup = st.session_state.get(session_params_key)
+    if parameter_lookup is None:
+        try:
+            parameter_lookup = upload.get_default_parameter_lookup(project, sample_name)
+        except Exception:
+            parameter_lookup = None
+
+    if using_session_results and 'display_name' in df_raw.columns:
+        available_display_names = sorted(df_raw['display_name'].dropna().astype(str).unique().tolist())
     else:
-        df_raw = st.session_state.get("model_results_MORRIS")
-        if df_raw is None:
-            try:
-                from Code.Dashboard import data_loading as _dl
-                project = str(st.session_state.get("project", "") or "")
-                df_raw = _dl.get_default_model_results_filtered(project, "Morris")
-            except Exception:
-                df_raw = None
-        parameter_lookup = st.session_state.get("parameter_lookup_MORRIS")
-        if parameter_lookup is None:
-            try:
-                from Code.Dashboard import data_loading as _dl
-                parameter_lookup = _dl.get_default_parameter_lookup(project, "Morris")
-            except Exception:
-                parameter_lookup = None
+        try:
+            available_display_names = upload.get_default_result_display_names(project, sample_name)
+        except Exception:
+            available_display_names = []
 
-    # Guard: if the raw data is empty, show error
-    if df_raw is None or getattr(df_raw, 'shape', (0, 0))[0] == 0:
-        st.error('No model results found for the selected dataset. Please upload results on the Upload page or select a project with generated results.')
+    if not available_display_names:
+        st.error('No model result display names found for the selected dataset. Please check the generated PPResults files.')
         return
 
     # Apply current filter toggle (value is set by the Settings container below).
     enable_filter = bool(st.session_state.get("histogram_enable_filter", enable_filter))
-
-    # Apply default data filter.
-    # Community Cloud stability: do NOT pivot at runtime to compute filtering.
-    # Instead, use the precomputed filtered dataset (same long schema).
-    if enable_filter:
-        if input_selection == "LHS":
-            df_filtered = st.session_state.get("model_results_LATIN_filtered")
-        else:
-            df_filtered = st.session_state.get("model_results_MORRIS_filtered")
-
-        if df_filtered is not None and getattr(df_filtered, 'shape', (0, 0))[0] > 0:
-            df_raw = df_filtered
-        else:
-            # Silent fallback: filtered results aren't available for some datasets.
-            # (This used to warn, but it is noisy/confusing for default-only usage.)
-            pass
-
-    # Get available display names
-    available_display_names = sorted(df_raw['display_name'].unique())
 
     # Define default outcomes in the *exact order requested by the user*.
     # The results' `display_name` strings vary between projects (e.g. include "2050",
@@ -344,6 +314,8 @@ def render_histogram_analysis_tab(use_1031_ssp=False):
     if not default_selection and available_display_names:
         default_selection = [available_display_names[0]]
 
+    output_options = available_display_names if browse_all_outputs else default_selection
+
     # Streamlit widget state note:
     # If a widget has a `key`, Streamlit will prefer the persisted value in
     # `st.session_state[key]` over the `default=` argument on reruns.
@@ -352,14 +324,14 @@ def render_histogram_analysis_tab(use_1031_ssp=False):
     # We sync the widget state to defaults when it is missing or no longer valid
     # for the current dataset.
     _ms_key = "histogram_display_names"
-    if available_display_names:
+    if output_options:
         _current = st.session_state.get(_ms_key, None)
         # Treat as invalid if empty, not a list-like, or contains names not in current options.
         _current_list = list(_current) if isinstance(_current, (list, tuple, set)) else None
         _current_valid = (
             _current_list is not None
             and len(_current_list) > 0
-            and all(v in available_display_names for v in _current_list)
+            and all(v in output_options for v in _current_list)
         )
         if not _current_valid:
             st.session_state[_ms_key] = default_selection
@@ -375,6 +347,30 @@ def render_histogram_analysis_tab(use_1031_ssp=False):
     group_by_weather = True
     combine_weather = True
     group_by_emission = False
+
+    if using_session_results:
+        # Uploaded/session data may include an explicit filtered counterpart.
+        if enable_filter:
+            session_filtered_df = st.session_state.get(session_filtered_key)
+            if session_filtered_df is not None and getattr(session_filtered_df, 'shape', (0, 0))[0] > 0:
+                df_raw = session_filtered_df
+    else:
+        try:
+            df_raw = upload.get_default_model_results_for_display_names(
+                project,
+                sample_name,
+                tuple(selected_display_names),
+            )
+        except Exception:
+            df_raw = None
+
+    if df_raw is None or getattr(df_raw, 'shape', (0, 0))[0] == 0:
+        st.error('No model results found for the selected outputs. Please choose different outputs or check the generated PPResults files.')
+        return
+
+    if parameter_lookup is None or getattr(parameter_lookup, 'shape', (0, 0))[0] == 0:
+        st.error(f"No {input_selection} parameter data available. Please upload data first.")
+        return
 
     # Bins: use stored value if present; otherwise a reasonable Sturges-based default.
     _n_samples_for_bins = max(1, int(len(df_raw)))
@@ -675,10 +671,11 @@ def render_histogram_analysis_tab(use_1031_ssp=False):
         rows, cols = 1, 3
     elif n_outcomes == 4:
         rows, cols = 1, 4
-    else:
-        # For more than 4 subplots, use 4 columns
-        cols = 4
-        rows = int(np.ceil(n_outcomes / cols))
+    if n_outcomes > 0:
+        if n_outcomes > 4:
+            # For more than 4 subplots, use 4 columns
+            cols = 4
+            rows = int(np.ceil(n_outcomes / cols))
 
         # Calculate normalization factor for combined weather years
         normalization_factor = 1.0
@@ -1057,9 +1054,16 @@ def render_histogram_analysis_tab(use_1031_ssp=False):
 
                 st.multiselect(
                     "Select Output Variables",
-                    options=available_display_names,
+                    options=output_options,
                     default=default_selection,
                     key="histogram_display_names",
+                )
+
+                st.checkbox(
+                    "Browse all output variables",
+                    value=browse_all_outputs,
+                    help="Keep off to load only the default plotting outputs; turn on to expose the full result catalog.",
+                    key="histogram_browse_all_outputs",
                 )
 
                 st.number_input(

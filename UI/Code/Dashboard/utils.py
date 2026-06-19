@@ -25,8 +25,7 @@ def render_data_loading_sidebar() -> None:
 
     Requirements:
     - Visible on each page.
-    - Provides a "Load complete data" button.
-    - Shows a status pill: loading / default loaded / complete loaded.
+    - Shows a status pill for lightweight metadata readiness.
     """
 
     try:
@@ -50,6 +49,17 @@ def render_data_loading_sidebar() -> None:
             now = _time.time()
         except Exception:
             now = 0.0
+        if loading_flags:
+            try:
+                started_at = float(st.session_state.get("defaults_loading_started_at", 0.0) or 0.0)
+                stale_after = float(getattr(data_loading, "_DEFAULTS_LOADING_STALE_AFTER_SECONDS", 30.0))
+                if started_at <= 0.0 or (now > 0.0 and (now - started_at) > stale_after):
+                    st.session_state["defaults_loading"] = False
+                    st.session_state.pop("defaults_loading_started_at", None)
+                    loading_flags = False
+            except Exception:
+                st.session_state["defaults_loading"] = False
+                loading_flags = False
         loading_warmup_active = (now > 0.0 and now < loading_warmup_until and not default_ready and not full_ready)
         loading = bool(loading_flags or loading_warmup_active)
         err = str(st.session_state.get("defaults_load_error", "") or "")
@@ -62,7 +72,7 @@ def render_data_loading_sidebar() -> None:
                 <div style="display:flex;align-items:center;gap:.5rem;padding:.35rem .6rem;border-radius:.6rem;"
                             background:#E8F5E9;border:1px solid #2E7D32;">
                     <span style="font-weight:700;color:#1B5E20;">●</span>
-                    <span style="color:#1B5E20;font-weight:600;">Data loaded</span>
+                    <span style="color:#1B5E20;font-weight:600;">Ready</span>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -85,17 +95,10 @@ def render_data_loading_sidebar() -> None:
                 <div style="display:flex;align-items:center;gap:.5rem;padding:.35rem .6rem;border-radius:.6rem;"
                             background:#FFF3E0;border:1px solid #FF8C00;">
                     <span class="sserep-spinner"></span>
-                    <span style="color:#8A4B00;font-weight:600;">Loading data…</span>
+                    <span style="color:#8A4B00;font-weight:600;">Preparing…</span>
                 </div>
                 """,
                 unsafe_allow_html=True,
-            )
-
-            # Navigation guidance: leaving the Home page while the defaults loader
-            # is still running can trigger extra reruns / repeated reads.
-            st.warning(
-                "Please wait until data loading is complete before navigating to other tabs.",
-                icon="⚠️",
             )
         else:
             st.markdown(
@@ -103,7 +106,7 @@ def render_data_loading_sidebar() -> None:
                 <div style="display:flex;align-items:center;gap:.5rem;padding:.35rem .6rem;border-radius:.6rem;"
                             background:#FFF3E0;border:1px solid #FF8C00;">
                     <span style="font-weight:700;color:#FF8C00;">●</span>
-                    <span style="color:#8A4B00;font-weight:600;">Data not loaded</span>
+                    <span style="color:#8A4B00;font-weight:600;">Loads on demand</span>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -251,6 +254,7 @@ def get_unit_for_column(column_name, parameter_lookup=None, outcome_options=None
     return "[-]"
 
 
+@st.cache_data(show_spinner=False, max_entries=64)
 def run_prim(
     x_clean: pd.DataFrame,
     y_clean: np.ndarray,
@@ -264,7 +268,7 @@ def run_prim(
 
     Notes:
     - We import `ema_workbench` lazily so the dashboard can still start without it.
-    - On any failure, we return empty results instead of raising (UI-friendly).
+    - On any failure, we return empty ranges plus an explanatory `stats["error"]`.
     """
 
     try:
@@ -278,51 +282,76 @@ def run_prim(
     try:
         if ema_prim is None:
             raise ImportError("ema_workbench.prim not available")
+
+        x_numeric = x_clean.apply(pd.to_numeric, errors="coerce")
+        keep_cols = [c for c in x_numeric.columns if x_numeric[c].notna().any()]
+        x_numeric = x_numeric[keep_cols]
+        if x_numeric.empty:
+            return {}, {"error": "No numeric PRIM parameter columns available."}, pd.DataFrame()
+
+        y_array = np.asarray(y_clean).astype(int)
+        n = min(len(y_array), len(x_numeric))
+        if n <= 0:
+            return {}, {"error": "No aligned PRIM rows available."}, pd.DataFrame()
+
+        x_numeric = x_numeric.iloc[:n].reset_index(drop=True)
+        y_array = y_array[:n]
+        if int(y_array.sum()) <= 0:
+            return {}, {"n_boxes": 0, "mass_fraction": 0.0, "density": 0.0, "coverage": 0.0}, pd.DataFrame()
+
         p = ema_prim.Prim(
-            x_clean,
-            y_clean,
+            x_numeric,
+            y_array,
             0.5,
             peel_alpha=peel_alpha,
             paste_alpha=paste_alpha,
             mass_min=mass_min,
             threshold_type=ema_prim.ABOVE,
         )
-        p.find_box()
+        box = p.find_box()
         df_boxes = p.boxes_to_dataframe()
-    except Exception:
-        return {}, {}, pd.DataFrame()
+    except Exception as e:
+        return {}, {"error": f"PRIM failed: {type(e).__name__}: {e}"}, pd.DataFrame()
 
     prim_ranges = {}
     stats = {}
     try:
-        box_labels = [c[0] for c in df_boxes.columns]
-        first_box = sorted(set(box_labels))[0]
-        for unc in df_boxes.index:
-            try:
-                vmin = df_boxes.loc[unc, (first_box, "min")]
-                vmax = df_boxes.loc[unc, (first_box, "max")]
-                prim_ranges[str(unc)] = (float(vmin), float(vmax))
-            except Exception:
-                continue
+        if df_boxes is not None and not df_boxes.empty:
+            box_labels = [c[0] for c in df_boxes.columns]
+            selected_box = sorted(set(box_labels))[-1]
+            for unc in df_boxes.index:
+                try:
+                    vmin = float(df_boxes.loc[unc, (selected_box, "min")])
+                    vmax = float(df_boxes.loc[unc, (selected_box, "max")])
+                    if np.isfinite(vmin) and np.isfinite(vmax):
+                        prim_ranges[str(unc)] = (vmin, vmax)
+                except Exception:
+                    continue
 
-        n_boxes = len(set([c[0] for c in df_boxes.columns])) if not df_boxes.empty else 0
-        stats["n_boxes"] = n_boxes
-        if prim_ranges:
-            mask = pd.Series(True, index=x_clean.index)
-            for unc, (vmin, vmax) in prim_ranges.items():
-                if unc in x_clean.columns:
-                    mask &= (pd.to_numeric(x_clean[unc], errors="coerce") >= float(vmin)) & (
-                        pd.to_numeric(x_clean[unc], errors="coerce") <= float(vmax)
-                    )
-            mass_count = int(mask.sum())
-            stats["mass_fraction"] = float(mass_count) / float(x_clean.shape[0]) if x_clean.shape[0] > 0 else 0.0
-            if mass_count > 0:
-                positives = int(np.asarray(y_clean)[mask.values].sum())
-                stats["density"] = float(positives) / float(mass_count)
-            else:
-                stats["density"] = 0.0
-    except Exception:
-        pass
+        if not prim_ranges and hasattr(box, "box_lim"):
+            full_min = x_numeric.min(numeric_only=True)
+            full_max = x_numeric.max(numeric_only=True)
+            box_lim = box.box_lim
+            for unc in box_lim.columns:
+                try:
+                    vmin = float(box_lim.loc[0, unc])
+                    vmax = float(box_lim.loc[1, unc])
+                    fmin = float(full_min[unc])
+                    fmax = float(full_max[unc])
+                    if not (np.isfinite(vmin) and np.isfinite(vmax)):
+                        continue
+                    if abs(vmin - fmin) > 1e-12 or abs(vmax - fmax) > 1e-12:
+                        prim_ranges[str(unc)] = (vmin, vmax)
+                except Exception:
+                    continue
+
+        stats["n_boxes"] = 1 if prim_ranges else 0
+        stats["mass_fraction"] = float(getattr(box, "mass", 0.0) or 0.0)
+        stats["density"] = float(getattr(box, "density", 0.0) or 0.0)
+        stats["coverage"] = float(getattr(box, "coverage", 0.0) or 0.0)
+        stats["mode"] = "ema_workbench"
+    except Exception as e:
+        stats["error"] = f"Could not extract PRIM box ranges: {type(e).__name__}: {e}"
 
     return prim_ranges, stats, df_boxes
 

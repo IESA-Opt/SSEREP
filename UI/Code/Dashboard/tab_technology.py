@@ -56,6 +56,32 @@ def _read_technology_wide_parquet_columns(project: str, sample: str, columns: tu
 
 
 @st.cache_data(show_spinner=False)
+def _read_technology_wide_parquet_slice(
+    project: str,
+    sample: str,
+    columns: tuple[str, ...],
+    period: int,
+    technologies: tuple[str, ...],
+) -> pd.DataFrame:
+    """Read only selected technology rows/columns from Technology_Wide.parquet."""
+    path = _tech_wide_parquet_path(project=project, sample=sample)
+    filters = [("period", "==", period)]
+    selected_technologies = tuple(dict.fromkeys(str(t) for t in technologies if str(t).strip()))
+    if selected_technologies:
+        filters.append(("technology", "in", list(selected_technologies)))
+
+    try:
+        return pd.read_parquet(path, columns=list(columns), filters=filters)
+    except Exception:
+        df = pd.read_parquet(path, columns=list(columns))
+        if "period" in df.columns:
+            df = df[df["period"] == period]
+        if selected_technologies and "technology" in df.columns:
+            df = df[df["technology"].astype(str).isin(selected_technologies)]
+        return df
+
+
+@st.cache_data(show_spinner=False)
 def _prepare_results_cached(
     project: str,
     sample: str,
@@ -162,8 +188,7 @@ def render_technology_analysis_tab(use_1031_ssp=False):
     # Keep the sidebar button (data loader) but remove debug/diagnostics UI.
     project = str(st.session_state.get("project", getattr(Hardcoded_values, "project", "")) or "")
 
-    # Defaults loading is handled by the page wrapper (shows a single spinner).
-    upload.ensure_defaults_loading_started()
+    # Default data is loaded lazily below by sample-specific cached getters.
 
 
     # Base scenario tables (Cloud defaults-only: may live in cache, not session_state).
@@ -329,16 +354,9 @@ def render_technology_analysis_tab(use_1031_ssp=False):
                     st.warning("Please select at least one activity.")
                     return
 
-            # Get data based on selection to access parameter_lookup
+            # Load only the small parameter lookup here; model results are loaded
+            # later only if the precomputed Technology_Wide parquet is missing.
             if input_selection == "LHS":
-                df_raw = st.session_state.get("model_results_LATIN")
-                if df_raw is None:
-                    try:
-                        from Code.Dashboard import data_loading as _dl
-                        df_raw = _dl.get_default_model_results_filtered(project, "LHS")
-                    except Exception:
-                        df_raw = None
-
                 parameter_lookup = st.session_state.get("parameter_lookup_LATIN")
                 if parameter_lookup is None:
                     try:
@@ -347,14 +365,6 @@ def render_technology_analysis_tab(use_1031_ssp=False):
                     except Exception:
                         parameter_lookup = None
             else:  # Morris
-                df_raw = st.session_state.get("model_results_MORRIS")
-                if df_raw is None:
-                    try:
-                        from Code.Dashboard import data_loading as _dl
-                        df_raw = _dl.get_default_model_results_filtered(project, "Morris")
-                    except Exception:
-                        df_raw = None
-
                 parameter_lookup = st.session_state.get("parameter_lookup_MORRIS")
                 if parameter_lookup is None:
                     try:
@@ -387,15 +397,9 @@ def render_technology_analysis_tab(use_1031_ssp=False):
                     key="tech_analysis_parameter_select"
                 )
 
-    # Get data based on selection
+    # Get parameter lookup based on selection. Keep the long result table lazy;
+    # the common path uses Technology_Wide.parquet below.
     if input_selection == "LHS":
-        df_raw = st.session_state.get("model_results_LATIN")
-        if df_raw is None:
-            try:
-                df_raw = upload.get_default_model_results_filtered(project, "LHS")
-            except Exception:
-                df_raw = None
-
         parameter_lookup = st.session_state.get("parameter_lookup_LATIN")
         if parameter_lookup is None:
             try:
@@ -403,13 +407,6 @@ def render_technology_analysis_tab(use_1031_ssp=False):
             except Exception:
                 parameter_lookup = None
     else:  # Morris
-        df_raw = st.session_state.get("model_results_MORRIS")
-        if df_raw is None:
-            try:
-                df_raw = upload.get_default_model_results_filtered(project, "Morris")
-            except Exception:
-                df_raw = None
-
         parameter_lookup = st.session_state.get("parameter_lookup_MORRIS")
         if parameter_lookup is None:
             try:
@@ -417,14 +414,57 @@ def render_technology_analysis_tab(use_1031_ssp=False):
             except Exception:
                 parameter_lookup = None
 
-    if df_raw is None or parameter_lookup is None:
-        st.error(f"No {input_selection} data available. Please upload data first.")
+    if parameter_lookup is None:
+        st.error(f"No {input_selection} parameter data available. Please upload data first.")
         return
 
-    # Guard: if the raw data is empty, avoid calling prepare_results
-    if df_raw is None or getattr(df_raw, 'shape', (0, 0))[0] == 0:
-        st.error('No model results found for the selected dataset. Please upload results on the Upload page or select a project with generated results.')
+    if len(technologies_df.columns) >= 6:
+        main_activity_col = technologies_df.columns[5]
+    else:
+        st.error("Technologies sheet does not have enough columns. Expected column F for main activity.")
         return
+
+    excluded_tech_ids = {'ICH01_08', 'ICH01_09', 'ICH01_10', 'ICH01_13', 'ICH01_15'}
+    activity_technology_info = {}
+    selected_tech_ids_all = []
+
+    for activity in selected_activity:
+        filtered_tech = technologies_df[technologies_df[main_activity_col] == activity]
+        if filtered_tech.empty:
+            continue
+
+        tech_name_col = 'Name' if 'Name' in filtered_tech.columns else (
+            filtered_tech.columns[0] if len(filtered_tech.columns) > 0 else None
+        )
+        if tech_name_col is None:
+            continue
+
+        tech_names = filtered_tech[tech_name_col].tolist()
+
+        unit_text = ""
+        if metric_type == "techStock":
+            if 'UoC' in filtered_tech.columns and not filtered_tech.empty:
+                unit_text = filtered_tech['UoC'].iloc[0] if not pd.isna(filtered_tech['UoC'].iloc[0]) else ""
+        else:
+            if len(activities_df.columns) >= 2:
+                unit_col = activities_df.columns[1]
+                activity_col = activities_df.columns[0]
+                activity_rows = activities_df[activities_df[activity_col] == activity]
+                if not activity_rows.empty and unit_col in activity_rows.columns:
+                    unit_text = activity_rows[unit_col].iloc[0] if not pd.isna(activity_rows[unit_col].iloc[0]) else ""
+
+        tech_ids = filtered_tech['Tech_ID'].dropna().astype(str).tolist() if 'Tech_ID' in filtered_tech.columns else []
+        tech_ids = [tech_id for tech_id in tech_ids if tech_id not in excluded_tech_ids]
+        selected_tech_ids_all.extend(tech_ids)
+
+        activity_technology_info[activity] = {
+            'tech_ids': tech_ids,
+            'tech_names': tech_names,
+            'unit_text': unit_text,
+            'filtered_tech': filtered_tech,
+        }
+
+    selected_tech_ids_tuple = tuple(dict.fromkeys(selected_tech_ids_all))
 
     # For technology analysis, we need to work with the raw data directly
     # because prepare_results pivots the data and loses the Variable/technology structure we need.
@@ -447,14 +487,20 @@ def render_technology_analysis_tab(use_1031_ssp=False):
             metric_col_name = "techStocks" if metric_type == "techStock" else "techUseNet"
             wanted_cols = ("variant", "period", "technology", metric_col_name)
             try:
+                wide_df = _read_technology_wide_parquet_slice(
+                    project=project,
+                    sample=input_selection,
+                    columns=wanted_cols,
+                    period=2050,
+                    technologies=selected_tech_ids_tuple,
+                )
+            except Exception:
+                # Fallback: column-pruned read (older engines may not support row filters)
                 wide_df = _read_technology_wide_parquet_columns(
                     project=project,
                     sample=input_selection,
                     columns=wanted_cols,
                 )
-            except Exception:
-                # Fallback: full read (older engines may not support column pruning)
-                wide_df = _read_technology_wide_parquet(project=project, sample=input_selection)
         except Exception:
             wide_df = None
     if wide_df is not None and getattr(wide_df, "shape", (0, 0))[0] > 0:
@@ -464,6 +510,25 @@ def render_technology_analysis_tab(use_1031_ssp=False):
         param_cols = [c for c in parameter_lookup.columns if str(c).lower() != 'variant']
     else:
         # Fallback (legacy): merge parameters into the long dataframe.
+        if input_selection == "LHS":
+            df_raw = st.session_state.get("model_results_LATIN")
+            if df_raw is None:
+                try:
+                    df_raw = upload.get_default_model_results_filtered(project, "LHS")
+                except Exception:
+                    df_raw = None
+        else:
+            df_raw = st.session_state.get("model_results_MORRIS")
+            if df_raw is None:
+                try:
+                    df_raw = upload.get_default_model_results_filtered(project, "Morris")
+                except Exception:
+                    df_raw = None
+
+        if df_raw is None or getattr(df_raw, 'shape', (0, 0))[0] == 0:
+            st.error('No model results found for the selected dataset. Please upload results on the Upload page or select a project with generated results.')
+            return
+
         df_filtered_long = None
         if input_selection == "LHS":
             df_filtered_long = st.session_state.get("model_results_LATIN_filtered")

@@ -264,6 +264,13 @@ def read_chunked_csv(filepath: str, **kwargs) -> pd.DataFrame:
     Returns:
         Combined DataFrame from all chunks, or original file if not chunked
     """
+    def _read_parquet_with_csv_columns(parquet_path: str) -> pd.DataFrame:
+        """Read Parquet while honoring CSV-style usecols when possible."""
+        requested_columns = kwargs.get("columns", kwargs.get("usecols"))
+        if isinstance(requested_columns, (list, tuple, set)):
+            return pd.read_parquet(parquet_path, columns=list(requested_columns))
+        return pd.read_parquet(parquet_path)
+
     # Parquet fast-path:
     # If a Parquet sibling exists next to the requested CSV, prefer it. This keeps
     # existing code (which calls read_chunked_csv('.../something.csv')) working
@@ -279,7 +286,7 @@ def read_chunked_csv(filepath: str, **kwargs) -> pd.DataFrame:
             base_no_ext = os.path.splitext(filepath)[0]
             parquet_path = base_no_ext + '.parquet'
             if os.path.exists(parquet_path):
-                return pd.read_parquet(parquet_path)
+                return _read_parquet_with_csv_columns(parquet_path)
 
             # If the path is pointing at a non-canonical CSV name (e.g. the
             # hardcoded expects 'Model_Results.csv'), probe for canonical Parquet
@@ -289,11 +296,11 @@ def read_chunked_csv(filepath: str, **kwargs) -> pd.DataFrame:
             if 'model_results_filtered' in fname_lower:
                 alt = os.path.join(dir_path, 'Model_Results_filtered.parquet')
                 if os.path.exists(alt):
-                    return pd.read_parquet(alt)
+                    return _read_parquet_with_csv_columns(alt)
             if 'model_results' in fname_lower:
                 alt = os.path.join(dir_path, 'Model_Results.parquet')
                 if os.path.exists(alt):
-                    return pd.read_parquet(alt)
+                    return _read_parquet_with_csv_columns(alt)
     except Exception:
         # If parquet loading fails for any reason, fall back to CSV logic.
         pass
@@ -329,7 +336,7 @@ def read_chunked_csv(filepath: str, **kwargs) -> pd.DataFrame:
 
             parquet_chunk_path = os.path.splitext(chunk_path)[0] + '.parquet'
             if os.path.exists(parquet_chunk_path):
-                chunk_df = pd.read_parquet(parquet_chunk_path)
+                chunk_df = _read_parquet_with_csv_columns(parquet_chunk_path)
             else:
                 chunk_df = pd.read_csv(chunk_path, **kwargs)
             chunk_dfs.append(chunk_df)
