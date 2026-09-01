@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scenario-space exploration &middot; figures and data</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>Scenario-space exploration for energy-system optimisation models</h1>
+    <p class="sub">Interactive companion to the paper. Every figure below is the
+      one printed in the article, redrawn from the same numbers so it can be
+      zoomed, hovered and read off directly.</p>
+  </div>
+</header>
+
+<nav id="nav"><div class="wrap" id="tabs"></div></nav>
+
+<main class="wrap">
+  <section id="panel"></section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Ensemble of 10,000 Latin hypercube evaluations and 3,200 Morris
+       evaluations over 31 uncertain inputs, solved with IESA-Opt at 3-hourly
+       resolution for the Netherlands in 2050.</p>
+    <p>Data behind every panel is in <code>results/</code>; the model is in
+       <code>model/</code>. Drag to zoom, double-click to reset, hover for values.</p>
+  </div>
+</footer>
+
+<script src="assets/lib/plotly-cartesian.min.js"></script>
+<script>
+if (typeof Plotly === "undefined") {
+  document.write('<script src="https://cdn.plot.ly/plotly-cartesian-2.35.2.min.js"><\/script>');
+}
+</script>
+<script src="assets/figures.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

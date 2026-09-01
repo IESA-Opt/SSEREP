@@ -1,0 +1,3 @@
+# Gurobi 13 HPD8 tuning result; ScaleFlag=0 validated with identical objectives.
+# Four-thread production smoke: 126.7 s solve, 5.3 s build, 11.2 s compact export.
+ScaleFlag 0

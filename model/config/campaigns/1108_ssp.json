@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "name": "1108 SSP global sensitivity analysis",
+  "input_workbook": "Input/1108 SSP.xlsx",
+  "input_sha256": "a8fb0bf41fb72012d318e3386960fc79934c0abd2c3c58b1176db5e0d9ee8ef2",
+  "seed": 12345,
+  "campaigns": {
+    "lhs_smoke_200": {
+      "method": "lhs",
+      "n_variants": 200,
+      "analyses": ["sanity_check", "delta_preview"]
+    },
+    "lhs_smoke_1000": {
+      "method": "lhs",
+      "n_variants": 1000,
+      "analyses": ["sanity_check", "delta_preview"]
+    },
+    "lhs_smoke_2000": {
+      "method": "lhs",
+      "n_variants": 2000,
+      "analyses": ["sanity_check", "delta"]
+    },
+    "lhs": {
+      "method": "lhs",
+      "n_variants": 10000,
+      "analyses": ["delta", "convergence"]
+    },
+    "morris_smoke_20": {
+      "method": "morris",
+      "seed": 630001,
+      "n_trajectories": 20,
+      "n_variants": 20,
+      "n_evaluations": 640,
+      "analyses": ["sanity_check", "morris_preview"]
+    },
+    "morris": {
+      "method": "morris",
+      "seed": 630001,
+      "n_trajectories": 100,
+      "n_variants": 100,
+      "n_evaluations": 3200,
+      "analyses": ["morris", "trajectory_convergence"]
+    },
+    "range_narrow_2000": {
+      "method": "lhs",
+      "n_variants": 2000,
+      "analyses": ["delta", "range_robustness"],
+      "range_arm": "narrow",
+      "weather_treatment": "baseline_pending_additional_weather_years",
+      "range_overrides": {
+        "Electricity Trade Volume": [38, 182],
+        "Electricity Trade Ratio": [-8, 8],
+        "Electricity Trade Price": [0.6, 1.4],
+        "WACC": [0.036, 0.084],
+        "Biomass Import Price": [6, 22],
+        "Bunker Emission Reduction": [72, 88]
+      }
+    },
+    "range_wide_2000": {
+      "method": "lhs",
+      "n_variants": 2000,
+      "analyses": ["delta", "range_robustness"],
+      "range_arm": "wide",
+      "weather_treatment": "baseline_pending_additional_weather_years",
+      "range_overrides": {
+        "Electricity Trade Volume": [2, 218],
+        "Electricity Trade Ratio": [-12, 12],
+        "Electricity Trade Price": [0.4, 1.6],
+        "WACC": [0.024, 0.096],
+        "Biomass Import Price": [2, 26],
+        "Bunker Emission Reduction": [68, 92]
+      }
+    }
+  },
+  "parameter_space": {
+    "columns": ["parameter", "subparameter", "sheet", "cell", "type", "min", "max", "step", "unit", "driver", "subdriver"],
+    "rows": [
+      ["CO2 Cap", "CO2 Cap", "NodeParameters", "H5", "set", 0, 10, null, "Mton CO2 eq.", "Policy", "International policy"],
+      ["Buildings demand", "Residential electricity", "Activities", "I9", "multiply", 0.9, 1.3, null, "%", "Social", "Consumption behavior"],
+      ["Buildings demand", "Residential Flats", "Activities", "I10", "multiply", 0.9, 1.3, null, "%", "Social", "Consumption behavior"],
+      ["Buildings demand", "Residential Terrace", "Activities", "I11", "multiply", 0.9, 1.3, null, "%", "Social", "Consumption behavior"],
+      ["Buildings demand", "Residential Dwellings", "Activities", "I12", "multiply", 0.9, 1.3, null, "%", "Social", "Consumption behavior"],
+      ["Buildings demand", "Services electricity", "Activities", "I13", "multiply", 0.9, 1.3, null, "%", "Social", "Consumption behavior"],
+      ["Buildings demand", "Services space", "Activities", "I14", "multiply", 0.9, 1.3, null, "%", "Social", "Consumption behavior"],
+      ["Steel Production", "Steel production - Basic Metals Industry", "Activities", "I18", "set", 3, 8, null, "Mton Steel", "Economy", "Commodity markets"],
+      ["Chemical Production", "Ethylene production", "Activities", "I22", "multiply", 0.5, 1.2, null, "%", "Economy", "Commodity markets"],
+      ["Chemical Production", "Propylene production", "Activities", "I23", "multiply", 0.5, 1.2, null, "%", "Economy", "Commodity markets"],
+      ["Chemical Production", "Butadiene production", "Activities", "I24", "multiply", 0.5, 1.2, null, "%", "Economy", "Commodity markets"],
+      ["Chemical Production", "BTX production", "Activities", "I25", "multiply", 0.5, 1.2, null, "%", "Economy", "Commodity markets"],
+      ["Chemical Production", "Chlorine production", "Activities", "I26", "multiply", 0.5, 1.2, null, "%", "Economy", "Commodity markets"],
+      ["Chemical Production", "Other Chemicals production", "Activities", "I27", "multiply", 0.5, 1.2, null, "%", "Economy", "Commodity markets"],
+      ["Passenger Cars", "Passenger Cars", "Activities", "I37", "set", 90, 120, null, "Gvkm", "Social", "Consumption behavior"],
+      ["Bunker aviation", "Bunker aviation", "Activities", "I44", "set", 520, 640, null, "Mvkm", "Social", "Consumption behavior"],
+      ["Bunker navigation", "Bunker navigation", "Activities", "I45", "set", 80, 120, null, "Mvkm", "Economy", "International policy"],
+      ["Agriculture neGHG CH4", "neGHG - Agriculture - CH4", "Activities", "I49", "set", 3, 8, null, "Mton CO2 eq.", "Social", "Consumption behavior"],
+      ["Agriculture neGHG N2O", "neGHG - Agriculture - N2O", "Activities", "I50", "set", 1.5, 3.5, null, "Mton CO2 eq.", "Social", "Consumption behavior"],
+      ["Wind offshore Costs", "Offshore Capex", "Technologies", "O190", "set", 1400, 2800, null, "M\u20ac/GW", "Technology", "Technology learning"],
+      ["Wind offshore Potential", "Offshore potential", "Technologies", "CH190", "set", 30, 70, null, "GW", "Policy", "International policy"],
+      ["Solar PV Costs", "Solar PV - Residential", "Technologies", "O191", "set", 250, 450, null, "M\u20ac/GW", "Technology", "Technology learning"],
+      ["Solar PV Costs", "Solar PV - Rest", "Technologies", "O192", "set", 250, 450, null, "M\u20ac/GW", "Technology", "Technology learning"],
+      ["Solar PV Potential", "Solar PV potential", "Parameters", "B44", "set", 90, 130, null, "GW", "Policy", "Domestic policy"],
+      ["Nuclear Costs", "Nuclear Gen III", "Technologies", "O185", "set", 3000, 14000, null, "M\u20ac/GW", "Technology", "Technology learning"],
+      ["Nuclear Costs", "Nuclear SMR", "Technologies", "O186", "set", 3000, 14000, null, "M\u20ac/GW", "Technology", "Technology learning"],
+      ["Nuclear Potential", "Nuclear maxStock", "Parameters", "B45", "set", 3, 12, null, "GW", "Policy", "Domestic policy"],
+      ["Hydrogen Import Potential", "Hydrogen Import maxUse", "Technologies", "CH323", "set", 0, 400, null, "PJ", "Policy", "Energy Security"],
+      ["Hydrogen Import Price", "Hydrogen Import price", "Parameters", "B43", "set", 2, 8, null, "\u20ac/Kg", "Market", "Commodity markets"],
+      ["Biomass Import Potential", "Biomass Import maxStock", "Technologies", "CH343", "set", 400, 800, null, "PJ", "Policy", "Energy Security"],
+      ["Biomass Import Price", "Biomass Import VOM", "Technologies", "AD343", "set", 4, 24, null, "M\u20ac/PJ", "Market", "Commodity markets"],
+      ["Ammonia Import Potential", "Ammonia Import maxStock", "Technologies", "CH333", "set", 0, 400, null, "PJ", "Policy", "Energy Security"],
+      ["Ammonia Import Price", "Ammonia Import VOM", "Technologies", "AD333", "set", 15, 45, null, "M\u20ac/PJ", "Market", "Commodity markets"],
+      ["CCS potential", "CCUS network maxStock", "Technologies", "CH399", "set", 20, 50, null, "Mton CO2 eq.", "Policy", "Domestic policy"],
+      ["Flexibility Costs", "CAES-a", "Technologies", "O195", "multiply", 0.5, 1.5, null, "%", "Technology", "Technology learning"],
+      ["Flexibility Costs", "CAES-u", "Technologies", "O196", "multiply", 0.5, 1.5, null, "%", "Technology", "Technology learning"],
+      ["Flexibility Costs", "Daily Li-ion battery", "Technologies", "O197", "multiply", 0.5, 1.5, null, "%", "Technology", "Technology learning"],
+      ["Flexibility Costs", "Weekly Li-ion battery", "Technologies", "O198", "multiply", 0.5, 1.5, null, "%", "Technology", "Technology learning"],
+      ["Flexibility Costs", "H2 SOFC", "Technologies", "O182", "multiply", 0.5, 1.5, null, "%", "Technology", "Technology learning"],
+      ["Flexibility Costs", "H2 CCGT", "Technologies", "O183", "multiply", 0.5, 1.5, null, "%", "Technology", "Technology learning"],
+      ["Flexibility Costs", "Alkaline Electrolyzer", "Technologies", "O317", "multiply", 0.5, 1.5, null, "%", "Technology", "Technology learning"],
+      ["Flexibility Costs", "PEM Electrolyzer", "Technologies", "O318", "multiply", 0.5, 1.5, null, "%", "Technology", "Technology learning"],
+      ["Flexibility Costs", "Solid Oxide Electrolyzer", "Technologies", "O319", "multiply", 0.5, 1.5, null, "%", "Technology", "Technology learning"],
+      ["LNG Price", "Liquified Natural Gas", "Technologies", "AD313", "set", 3, 27, null, "M\u20ac/PJ", "Market", "Commodity markets"],
+      ["Electricity Trade Price", "E-hourly price", "Parameters", "B39", "multiply", 0.5, 1.5, null, "%", "Market", "Weather conditions"],
+      ["Weather Conditions", "Weather year", "Parameters", "B38", "set", 1, 8, null, "-", "Atmosphere", "Weather conditions"],
+      ["Electricity Trade Ratio", "(exp-imp)/imp", "Parameters", "B40", "set", -10, 10, null, "-", "Policy", "International policy"],
+      ["Electricity Trade Volume", "Annual imp/exp cap", "Parameters", "B41", "set", 20, 200, null, "PJ", "Policy", "Energy Security"],
+      ["WACC", "WACC", "Parameters", "B42", "set", 0.03, 0.09, null, "%", "Market", "Finance"],
+      ["Bunker Emission Reduction", "Bunker Emission Reduction", "Parameters", "B47", "set", 70, 90, null, "%", "Policy", "International policy"],
+      ["End-of-Life Emission Reduction", "End-of-Life Emission Reduction", "Parameters", "B48", "set", 0, 100, null, "%", "Policy", "International policy"]
+    ]
+  }
+}

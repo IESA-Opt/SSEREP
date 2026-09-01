@@ -1,0 +1,7 @@
+Method 2
+Crossover 0
+ScaleFlag 0
+BarHomogeneous 1
+FeasibilityTol 1e-7
+OptimalityTol 1e-7
+BarConvTol 1e-7

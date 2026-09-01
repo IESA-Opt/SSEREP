@@ -1,0 +1,113 @@
+driver,kpi,n_narrow,overlap_narrowed,overlap_random,delta_vs_control,verdict
+Weather Conditions,total_system_cost,4993,1.0,0.975,0.025000000000000022,stable
+Weather Conditions,co2_price,4993,1.0,0.95,0.050000000000000044,stable
+Weather Conditions,elec_generation,4993,0.8,0.8999999999999999,-0.09999999999999987,stable
+Weather Conditions,vre_share,4993,0.8,0.925,-0.125,stable
+Weather Conditions,import_dependency,4993,1.0,1.0,0.0,stable
+Weather Conditions,self_sufficiency,4993,1.0,0.975,0.025000000000000022,stable
+Weather Conditions,biomass_imports,4993,1.0,0.95,0.050000000000000044,stable
+Weather Conditions,net_h2_imports,4993,0.8,0.875,-0.07499999999999996,stable
+Weather Conditions,fossil_imports,4993,1.0,0.975,0.025000000000000022,stable
+Weather Conditions,net_elec_imports,4993,1.0,0.8999999999999999,0.10000000000000009,stable
+Weather Conditions,ccs_volume,4993,0.6,0.375,0.22499999999999998,stable
+Weather Conditions,res_share_primary,4993,0.8,0.9249999999999999,-0.12499999999999989,stable
+Weather Conditions,flex_use_total,4993,0.8,0.975,-0.17499999999999993,SHIFTS
+Weather Conditions,unserved_energy,4993,1.0,0.8999999999999999,0.10000000000000009,stable
+Weather Conditions,wind_capacity,4993,0.8,0.7999999999999999,1.1102230246251565e-16,stable
+Weather Conditions,solar_capacity,4993,0.8,0.975,-0.17499999999999993,SHIFTS
+Electricity Trade Volume,total_system_cost,4993,1.0,1.0,0.0,stable
+Electricity Trade Volume,co2_price,4993,1.0,1.0,0.0,stable
+Electricity Trade Volume,elec_generation,4993,0.8,0.8999999999999999,-0.09999999999999987,stable
+Electricity Trade Volume,vre_share,4993,0.8,0.8999999999999999,-0.09999999999999987,stable
+Electricity Trade Volume,import_dependency,4993,1.0,0.975,0.025000000000000022,stable
+Electricity Trade Volume,self_sufficiency,4993,1.0,1.0,0.0,stable
+Electricity Trade Volume,biomass_imports,4993,1.0,1.0,0.0,stable
+Electricity Trade Volume,net_h2_imports,4993,0.8,0.875,-0.07499999999999996,stable
+Electricity Trade Volume,fossil_imports,4993,1.0,0.9249999999999999,0.07500000000000007,stable
+Electricity Trade Volume,net_elec_imports,4993,1.0,0.85,0.15000000000000002,stable
+Electricity Trade Volume,ccs_volume,4993,0.2,0.425,-0.22499999999999998,SHIFTS
+Electricity Trade Volume,res_share_primary,4993,0.8,0.85,-0.04999999999999993,stable
+Electricity Trade Volume,flex_use_total,4993,0.8,0.875,-0.07499999999999996,stable
+Electricity Trade Volume,unserved_energy,4993,0.8,0.9249999999999999,-0.12499999999999989,stable
+Electricity Trade Volume,wind_capacity,4993,0.8,0.9249999999999999,-0.12499999999999989,stable
+Electricity Trade Volume,solar_capacity,4993,0.8,0.8749999999999999,-0.07499999999999984,stable
+Electricity Trade Ratio,total_system_cost,4993,1.0,0.95,0.050000000000000044,stable
+Electricity Trade Ratio,co2_price,4993,0.8,1.0,-0.19999999999999996,SHIFTS
+Electricity Trade Ratio,elec_generation,4993,0.8,0.975,-0.17499999999999993,SHIFTS
+Electricity Trade Ratio,vre_share,4993,1.0,0.9249999999999999,0.07500000000000007,stable
+Electricity Trade Ratio,import_dependency,4993,1.0,1.0,0.0,stable
+Electricity Trade Ratio,self_sufficiency,4993,1.0,1.0,0.0,stable
+Electricity Trade Ratio,biomass_imports,4993,1.0,0.8999999999999999,0.10000000000000009,stable
+Electricity Trade Ratio,net_h2_imports,4993,0.8,0.825,-0.02499999999999991,stable
+Electricity Trade Ratio,fossil_imports,4993,1.0,0.9249999999999999,0.07500000000000007,stable
+Electricity Trade Ratio,net_elec_imports,4993,1.0,0.8749999999999999,0.1250000000000001,stable
+Electricity Trade Ratio,ccs_volume,4993,0.2,0.32499999999999996,-0.12499999999999994,stable
+Electricity Trade Ratio,res_share_primary,4993,0.8,0.9249999999999999,-0.12499999999999989,stable
+Electricity Trade Ratio,flex_use_total,4993,0.8,0.8749999999999999,-0.07499999999999984,stable
+Electricity Trade Ratio,unserved_energy,4993,1.0,0.95,0.050000000000000044,stable
+Electricity Trade Ratio,wind_capacity,4993,1.0,0.9249999999999999,0.07500000000000007,stable
+Electricity Trade Ratio,solar_capacity,4993,1.0,0.95,0.050000000000000044,stable
+Electricity Trade Price,total_system_cost,4993,1.0,0.9249999999999999,0.07500000000000007,stable
+Electricity Trade Price,co2_price,4993,1.0,0.95,0.050000000000000044,stable
+Electricity Trade Price,elec_generation,4993,1.0,0.95,0.050000000000000044,stable
+Electricity Trade Price,vre_share,4993,0.8,0.85,-0.04999999999999993,stable
+Electricity Trade Price,import_dependency,4993,1.0,1.0,0.0,stable
+Electricity Trade Price,self_sufficiency,4993,1.0,1.0,0.0,stable
+Electricity Trade Price,biomass_imports,4993,1.0,0.95,0.050000000000000044,stable
+Electricity Trade Price,net_h2_imports,4993,0.8,0.8749999999999999,-0.07499999999999984,stable
+Electricity Trade Price,fossil_imports,4993,1.0,1.0,0.0,stable
+Electricity Trade Price,net_elec_imports,4993,0.8,0.9249999999999999,-0.12499999999999989,stable
+Electricity Trade Price,ccs_volume,4993,0.2,0.35000000000000003,-0.15000000000000002,SHIFTS
+Electricity Trade Price,res_share_primary,4993,1.0,0.8999999999999999,0.10000000000000009,stable
+Electricity Trade Price,flex_use_total,4993,0.8,0.9249999999999999,-0.12499999999999989,stable
+Electricity Trade Price,unserved_energy,4993,0.8,0.8749999999999999,-0.07499999999999984,stable
+Electricity Trade Price,wind_capacity,4993,1.0,0.8749999999999999,0.1250000000000001,stable
+Electricity Trade Price,solar_capacity,4993,0.8,0.975,-0.17499999999999993,SHIFTS
+WACC,total_system_cost,4993,0.8,0.95,-0.1499999999999999,stable
+WACC,co2_price,4993,1.0,0.95,0.050000000000000044,stable
+WACC,elec_generation,4993,0.8,0.9,-0.09999999999999998,stable
+WACC,vre_share,4993,0.8,0.85,-0.04999999999999993,stable
+WACC,import_dependency,4993,1.0,1.0,0.0,stable
+WACC,self_sufficiency,4993,1.0,1.0,0.0,stable
+WACC,biomass_imports,4993,1.0,0.95,0.050000000000000044,stable
+WACC,net_h2_imports,4993,1.0,0.85,0.15000000000000002,stable
+WACC,fossil_imports,4993,1.0,0.975,0.025000000000000022,stable
+WACC,net_elec_imports,4993,0.8,0.8999999999999999,-0.09999999999999987,stable
+WACC,ccs_volume,4993,0.4,0.5,-0.09999999999999998,stable
+WACC,res_share_primary,4993,1.0,0.9249999999999999,0.07500000000000007,stable
+WACC,flex_use_total,4993,0.8,0.875,-0.07499999999999996,stable
+WACC,unserved_energy,4993,0.8,0.875,-0.07499999999999996,stable
+WACC,wind_capacity,4993,0.8,0.85,-0.04999999999999993,stable
+WACC,solar_capacity,4993,0.8,0.8999999999999999,-0.09999999999999987,stable
+Biomass Import Price,total_system_cost,4993,0.8,0.95,-0.1499999999999999,stable
+Biomass Import Price,co2_price,4993,0.8,0.9249999999999999,-0.12499999999999989,stable
+Biomass Import Price,elec_generation,4993,0.8,0.9249999999999999,-0.12499999999999989,stable
+Biomass Import Price,vre_share,4993,0.8,0.85,-0.04999999999999993,stable
+Biomass Import Price,import_dependency,4993,0.8,0.975,-0.17499999999999993,SHIFTS
+Biomass Import Price,self_sufficiency,4993,0.8,1.0,-0.19999999999999996,SHIFTS
+Biomass Import Price,biomass_imports,4993,0.8,0.95,-0.1499999999999999,stable
+Biomass Import Price,net_h2_imports,4993,0.8,0.8999999999999999,-0.09999999999999987,stable
+Biomass Import Price,fossil_imports,4993,1.0,0.975,0.025000000000000022,stable
+Biomass Import Price,net_elec_imports,4993,0.8,0.85,-0.04999999999999993,stable
+Biomass Import Price,ccs_volume,4993,0.4,0.425,-0.024999999999999967,stable
+Biomass Import Price,res_share_primary,4993,0.8,0.95,-0.1499999999999999,stable
+Biomass Import Price,flex_use_total,4993,1.0,0.8749999999999999,0.1250000000000001,stable
+Biomass Import Price,unserved_energy,4993,1.0,0.8999999999999999,0.10000000000000009,stable
+Biomass Import Price,wind_capacity,4993,0.8,0.975,-0.17499999999999993,SHIFTS
+Biomass Import Price,solar_capacity,4993,1.0,0.8999999999999999,0.10000000000000009,stable
+Bunker Emission Reduction,total_system_cost,4993,1.0,0.975,0.025000000000000022,stable
+Bunker Emission Reduction,co2_price,4993,1.0,0.975,0.025000000000000022,stable
+Bunker Emission Reduction,elec_generation,4993,0.8,0.9,-0.09999999999999998,stable
+Bunker Emission Reduction,vre_share,4993,0.8,0.85,-0.04999999999999993,stable
+Bunker Emission Reduction,import_dependency,4993,1.0,1.0,0.0,stable
+Bunker Emission Reduction,self_sufficiency,4993,1.0,0.95,0.050000000000000044,stable
+Bunker Emission Reduction,biomass_imports,4993,0.8,0.9249999999999999,-0.12499999999999989,stable
+Bunker Emission Reduction,net_h2_imports,4993,0.8,0.875,-0.07499999999999996,stable
+Bunker Emission Reduction,fossil_imports,4993,0.8,0.975,-0.17499999999999993,SHIFTS
+Bunker Emission Reduction,net_elec_imports,4993,1.0,0.9,0.09999999999999998,stable
+Bunker Emission Reduction,ccs_volume,4993,0.4,0.375,0.025000000000000022,stable
+Bunker Emission Reduction,res_share_primary,4993,1.0,1.0,0.0,stable
+Bunker Emission Reduction,flex_use_total,4993,0.8,0.9249999999999999,-0.12499999999999989,stable
+Bunker Emission Reduction,unserved_energy,4993,1.0,0.825,0.17500000000000004,stable
+Bunker Emission Reduction,wind_capacity,4993,0.8,0.875,-0.07499999999999996,stable
+Bunker Emission Reduction,solar_capacity,4993,0.8,0.925,-0.125,stable

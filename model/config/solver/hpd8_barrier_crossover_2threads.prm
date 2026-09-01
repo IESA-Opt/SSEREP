@@ -1,0 +1,3 @@
+# Gurobi 13 HPD8 tuning result, validated on LHS variants 1, 5000, and 10000.
+# Method, Crossover, Threads, and tolerances remain authoritative in the campaign CLI.
+ScaleFlag 0

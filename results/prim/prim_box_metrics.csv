@@ -1,0 +1,4 @@
+panel,kind,target,mass,density,held,coverage,base,alpha
+a,seek,at least 10% cheaper and 25% lower CO₂ price than the reference case,0.0208,0.9903,0.9455,0.0636,0.323,0.35
+b,seek,CO₂ stored below 30 Mt with a CO₂ price below 190 €/t,0.0208,0.8696,0.8359,0.1824,0.099,0.35
+c,avoid,"fossil imports 20% above the reference or supplier concentration above 0.5, the level of two equal suppliers",0.0208,0.8599,0.8223,0.1969,0.0906,0.35

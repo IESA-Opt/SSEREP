@@ -1,0 +1,69 @@
+# Target AC-to-AC round-trip efficiencies for flexibility/storage technologies.
+#
+# Applies to the post-"Storage upgraded" formulation, where the loss is charged
+# on BOTH charge and discharge, i.e. round_trip = (1 - one_way_loss)^2. The model
+# therefore derives one_way_loss = 1 - sqrt(round_trip) from the values below.
+#
+# The workbook column Technologies!BD holds a ROUND-TRIP loss (calibrated for the
+# pre-upgrade formulation, where it was applied once). Feeding it unchanged into
+# the new formulation squares it and produces unphysical efficiencies (e.g. a
+# 56% round-trip Li-ion battery), so these explicit targets take precedence.
+#
+# Ranges are the commonly cited AC-to-AC figures (NREL ATB, IEA/IRENA storage
+# reviews). Where a range exists the mid-point is used.
+
+[roundtrip]
+# --- Electricity storage -----------------------------------------------------
+# Adiabatic / above-ground CAES: literature 60-70%
+PNL03_01 = 0.65
+# Diabatic / underground CAES: literature 42-55%
+PNL03_02 = 0.55
+# Li-ion grid battery, daily cycling: literature 85-92% AC-AC
+PNL03_03 = 0.88
+# Conceptual weekly-balancing battery (Li-ion class); self-discharge over a week
+# is ~1%, so it sits marginally below the daily unit
+PNL03_04 = 0.85
+# Vehicle-to-grid: charger + battery + inverter, literature 75-85%
+TRC01_10 = 0.80
+
+# --- Thermal storage ---------------------------------------------------------
+# Large insulated hot-water/pit store. This is the CONVERSION efficiency only
+# (heat exchangers + pumping); the dominant seasonal loss is standing heat loss
+# over months and is modelled separately under [standing_loss_per_hour].
+LTN01_06 = 0.97
+
+# --- Demand response / load shifting ----------------------------------------
+# These are rescheduling penalties (rebound), not true storage round trips.
+# Ground-source heat pump, multi-day shift
+LTR02_05 = 0.92
+# Air-source heat pump, intra-day (4 h) shift
+LTR02_04 = 0.99
+# Industrial process shifting - paper and board
+IPP01_01 = 0.95
+IPP01_02 = 0.95
+IPP01_03 = 0.95
+IPP01_04 = 0.95
+IPP01_05 = 0.95
+# Residential / services flexible electricity consumption, intra-day
+Res01_02 = 0.98
+Ser01_02 = 0.98
+
+# EV smart charging -------------------------------------------------------
+# Shifts WHEN the vehicle charges; there is no discharge leg, so no round-trip
+# penalty. Charger losses belong to the vehicle's energy demand.
+TRC01_09 = 1.00
+TRH01_07 = 1.00
+TRL01_07 = 1.00
+
+# Standing (self-discharge) loss as a fraction of stored energy lost per hour.
+# Applied as (1 - loss)^slice_width_hours on the storage state, so it compounds
+# with residence time - which is what makes it the right representation for
+# seasonal stores. The model caps the effective value at 1.855e-5/h, i.e.
+# (1-1.855e-5)^8760 = 0.85, or ~15%/year.
+#
+# Large pit/tank seasonal heat stores lose roughly 10-20% of stored heat per
+# year. At 1.7e-5/h retention is ~86%/yr and ~93% over a typical 6-month
+# charge-to-discharge interval, giving ~90% seasonal efficiency once the 97%
+# conversion efficiency above is included.
+[standing_loss_per_hour]
+LTN01_06 = 1.7e-5

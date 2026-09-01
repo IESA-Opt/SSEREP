@@ -1,0 +1,7 @@
+case,box,mass,density,lift,dims
+affordable,1,0.04766196054871333,0.6050420168067226,6.553746878360888,Biomass Import Price (p=0.000); CCS potential (p=0.000); WACC (p=0.000)
+affordable,2,0.04525883648743367,0.413716814159292,6.206404762569442,Biomass Import Price (p=0.000); WACC (p=0.000); Ammonia Import Price (p=0.000)
+security,1,0.04756183037949334,0.8863157894736842,4.430248142879722,Electricity Trade Ratio (p=0.000); Electricity Trade Volume (p=0.000); Nuclear Costs (p=0.000)
+security,2,0.04535896665665365,0.7637969094922737,4.606998226436594,Electricity Trade Ratio (p=0.000); Electricity Trade Volume (p=0.000); Weather Conditions (p=0.000)
+adequacy,1,0.04756183037949334,0.4652631578947368,4.651234392287024,Electricity Trade Ratio (p=0.000); Electricity Trade Volume (p=0.000); Flexibility Costs (p=0.000)
+adequacy,2,0.046460398518073494,0.33189655172413796,4.0578406169665815,Electricity Trade Ratio (p=0.000); Electricity Trade Volume (p=0.000); Flexibility Costs (p=0.002)

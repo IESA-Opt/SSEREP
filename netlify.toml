@@ -1,0 +1,12 @@
+[build]
+  publish = "."
+
+[[headers]]
+  for = "/*.parquet"
+  [headers.values]
+    content-type = "application/octet-stream"
+
+[[headers]]
+  for = "/*.gz"
+  [headers.values]
+    content-type = "application/gzip"

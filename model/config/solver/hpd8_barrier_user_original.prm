@@ -1,0 +1,6 @@
+# Barrier-only HPD8 settings, per user-provided prior tuning (no crossover).
+AggFill 5
+ScaleFlag 1
+PrePasses 2
+Presolve 2
+NormAdjust 2

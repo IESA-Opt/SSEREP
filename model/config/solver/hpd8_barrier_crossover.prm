@@ -1,0 +1,12 @@
+# Default HPD8 settings selected from exact-runtime parallel tuning.
+# Fixed by campaign CLI: Method=2, Crossover=-1, Threads=<campaign threads>.
+AggFill 10
+Aggregate 2
+BarCorrectors 4
+CrossoverBasis 0
+NormAdjust 2
+NumericFocus 0
+PreDual 0
+PrePasses 8
+Presolve 1
+ScaleFlag 0

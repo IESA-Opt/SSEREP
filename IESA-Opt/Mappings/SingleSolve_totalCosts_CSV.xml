@@ -1,5 +1,0 @@
-<AimmsCSVMapping>
-    <RowMapping name="table1">
-        <ColumnMapping name="totalCosts" maps-to="Ptotal_costs"/>
-    </RowMapping>
-</AimmsCSVMapping>

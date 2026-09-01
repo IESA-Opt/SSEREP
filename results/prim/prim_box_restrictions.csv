@@ -1,0 +1,19 @@
+panel,kind,target,parameter,unit,retained_lo,retained_hi,sampled_lo,sampled_hi,quasi_p
+a,seek,at least 10% cheaper and 25% lower CO₂ price than the reference case,Chemical Production,× base,0.5,0.9501,0.5,1.1999,0.0
+a,seek,at least 10% cheaper and 25% lower CO₂ price than the reference case,Nuclear Costs,M€/GW,3000.6945,9848.6128,3000.6945,13999.8864,0.0086
+a,seek,at least 10% cheaper and 25% lower CO₂ price than the reference case,Biomass Import Price,M€/PJ,4.0017,12.1546,4.0017,23.9993,0.0
+a,seek,at least 10% cheaper and 25% lower CO₂ price than the reference case,Ammonia Import Price,M€/PJ,15.0022,34.3688,15.0022,44.9999,0.0004
+a,seek,at least 10% cheaper and 25% lower CO₂ price than the reference case,CCS potential,Mt CO₂-eq,30.7362,49.9992,20.0017,49.9992,0.0
+a,seek,at least 10% cheaper and 25% lower CO₂ price than the reference case,Electricity Trade Volume,PJ,83.9209,199.9975,20.0149,199.9975,0.0001
+a,seek,at least 10% cheaper and 25% lower CO₂ price than the reference case,WACC,%,3.0005,5.5548,3.0005,8.9999,0.0
+b,seek,CO₂ stored below 30 Mt with a CO₂ price below 190 €/t,Biomass Import Potential,PJ,543.828,799.9724,400.0151,799.9724,0.0002
+b,seek,CO₂ stored below 30 Mt with a CO₂ price below 190 €/t,Biomass Import Price,M€/PJ,4.0017,17.0751,4.0017,23.9993,0.0
+b,seek,CO₂ stored below 30 Mt with a CO₂ price below 190 €/t,Ammonia Import Potential,PJ,144.1204,399.9777,0.013,399.9777,0.0
+b,seek,CO₂ stored below 30 Mt with a CO₂ price below 190 €/t,Ammonia Import Price,M€/PJ,15.0022,34.5,15.0022,44.9999,0.0
+b,seek,CO₂ stored below 30 Mt with a CO₂ price below 190 €/t,CCS potential,Mt CO₂-eq,20.0017,28.3281,20.0017,49.9992,0.0
+b,seek,CO₂ stored below 30 Mt with a CO₂ price below 190 €/t,Electricity Trade Ratio,-,-9.9981,3.0148,-9.9981,9.9999,0.0038
+b,seek,CO₂ stored below 30 Mt with a CO₂ price below 190 €/t,End-of-Life Emission Reduction,%,0.0052,63.7064,0.0052,99.9926,0.004
+c,avoid,"fossil imports 20% above the reference or supplier concentration above 0.5, the level of two equal suppliers",CO₂ Cap,Mt CO₂-eq,3.4096,9.9993,0.0002,9.9993,0.0
+c,avoid,"fossil imports 20% above the reference or supplier concentration above 0.5, the level of two equal suppliers",Chemical Production,× base,0.9105,1.1999,0.5,1.1999,0.0
+c,avoid,"fossil imports 20% above the reference or supplier concentration above 0.5, the level of two equal suppliers",CCS potential,Mt CO₂-eq,44.6669,49.9992,20.0017,49.9992,0.0
+c,avoid,"fossil imports 20% above the reference or supplier concentration above 0.5, the level of two equal suppliers",End-of-Life Emission Reduction,%,0.0052,42.2864,0.0052,99.9926,0.0
