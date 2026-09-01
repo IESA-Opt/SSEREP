@@ -103,6 +103,8 @@ uses the complete design. The analysis frame therefore has 9,974 rows.
 
 ## The model
 
+[![IESA-Opt.jl](assets/iesa-opt-logo.png)](https://github.com/IESA-Opt/IESA-Opt.jl)
+
 `model/` holds IESA-Opt, a linear whole-system optimisation model of the Dutch
 energy system, written in Julia, together with the two input workbooks it reads.
 Running it needs Julia and Gurobi; an academic Gurobi licence is free.
@@ -119,6 +121,11 @@ ensemble is embarrassingly parallel and was run on a single 128-core workstation
 The per-run solver artefacts, roughly 140,000 files, are not shipped. They are
 the unconsolidated form of the panels in `results/ensemble/`, which carry the
 same numbers keyed by `variant_id`.
+
+`model/` is a frozen snapshot matching the ensemble reported in the paper. The
+actively maintained package, with documentation, newer features and ongoing
+fixes, lives at [github.com/IESA-Opt/IESA-Opt.jl](https://github.com/IESA-Opt/IESA-Opt.jl),
+with docs at [iesa-opt.github.io/IESA-Opt.jl/v0.1](https://iesa-opt.github.io/IESA-Opt.jl/v0.1/).
 
 ## How to read the figures
 
