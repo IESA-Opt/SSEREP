@@ -1,6 +1,6 @@
 # Scenario-space exploration for energy-system optimisation models
 
-![Workflow Diagram](Workflow_diagram.png)
+![Figure 1](figures/Fig%201.png)
 
 Data, figures and model accompanying the paper *Scenario Space Exploration for
 Robust Energy Planning*, applied to the Dutch net-zero energy system in 2050.
