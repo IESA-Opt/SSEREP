@@ -575,44 +575,6 @@ function drawOverview(host) {
       <figcaption>Each point is a possible future. The method finds which pathways stay robust and where risks concentrate.</figcaption>
     </figure>`;
   host.appendChild(hero);
-
-  const story = el("section", "story-strip");
-  story.innerHTML = `<div class="story-head">
-      <h2>What the paper shows</h2>
-      <p>A quick visual path through the analysis.</p>
-    </div>
-    <div class="story-track">
-      <a href="#fig2" class="story-card">
-        <img src="assets/linkedin-fig2-delta.png" alt="Sensitivity heatmap across uncertain inputs and model outcomes">
-        <span>Find the drivers</span>
-      </a>
-      <a href="#fig3" class="story-card">
-        <img src="assets/linkedin-fig3-responses.png" alt="Response panels showing smooth, threshold and switching behaviour">
-        <span>Diagnose responses</span>
-      </a>
-      <a href="#fig6" class="story-card">
-        <img src="assets/linkedin-fig6-regime.png" alt="Regime map showing interaction effects in the scenario space">
-        <span>Map regime shifts</span>
-      </a>
-      <a href="#fig7" class="story-card">
-        <img src="assets/linkedin-fig7-discovery.png" alt="Scenario-discovery plot and restrictions for robust planning insights">
-        <span>Extract robust insights</span>
-      </a>
-    </div>`;
-  host.appendChild(story);
-
-  host.appendChild(el("div", "section-head",
-    `<h2>Interactive paper figures</h2><p>Zoom, hover and download the published panels and their source data.</p>`));
-  const g = el("div", "overview");
-  host.appendChild(g);
-  window.FIGS.filter(f => f.kind === "plot").forEach(f => {
-    const c = el("button", "card");
-    c.type = "button";
-    c.innerHTML = `<img loading="lazy" src="figures/${f.num.replace("Figure ", "Fig ")}.png" alt="">
-      <div class="cap"><div class="n">${f.num}</div><div class="t">${f.title}</div></div>`;
-    c.onclick = () => setTab(f.id);
-    g.appendChild(c);
-  });
 }
 
 function drawData(host) {
