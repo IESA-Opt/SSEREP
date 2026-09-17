@@ -655,4 +655,8 @@ window.FIGS.forEach(f => {
   TABS.appendChild(b);
 });
 
+window.addEventListener("hashchange", () => {
+  setTab((location.hash || "").replace("#", "") || "overview");
+});
+
 setTab((location.hash || "").replace("#", "") || "overview");
