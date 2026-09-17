@@ -62,18 +62,18 @@ main { padding: 22px 0 60px; min-height: 70vh; }
   background: #fff; box-shadow: 0 20px 60px rgba(22, 32, 42, .08);
 }
 .hero::before {
-  content: ""; position: absolute; inset: 0 auto 0 0; z-index: 1; width: min(56rem, 58%);
+  content: ""; position: absolute; inset: 0 auto 0 0; z-index: 1; width: min(80rem, 80%);
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, .86) 0%, rgba(255, 255, 255, .52) 56%, rgba(255, 255, 255, 0) 100%),
+    linear-gradient(90deg, rgba(255, 255, 255, .86) 0%, rgba(255, 255, 255, .56) 42%, rgba(255, 255, 255, .18) 74%, rgba(255, 255, 255, 0) 100%),
     linear-gradient(0deg, rgba(255, 255, 255, .10), rgba(255, 255, 255, 0) 42%);
 }
-.hero-copy { position: relative; z-index: 2; max-width: 570px; padding: clamp(28px, 4vw, 54px); }
+.hero-copy { position: relative; z-index: 2; max-width: min(80%, 980px); padding: clamp(28px, 4vw, 54px); }
 .eyebrow {
   color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: .08em;
   text-transform: uppercase; margin-bottom: 12px;
 }
 .hero h2 { margin: 0; font-size: clamp(32px, 4.1vw, 56px); line-height: 1.02; letter-spacing: -0.03em; }
-.hero p { margin: 16px 0 0; color: var(--muted); font-size: 16px; max-width: 560px; }
+.hero p { margin: 16px 0 0; color: var(--muted); font-size: 16px; max-width: 700px; }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
 .hero-actions a {
   color: var(--ink); background: #fff; text-decoration: none; border: 1px solid var(--line);
@@ -82,7 +82,7 @@ main { padding: 22px 0 60px; min-height: 70vh; }
 .hero-actions a:hover { border-color: var(--accent); color: var(--accent); }
 .hero-actions a.primary { color: #fff; background: var(--accent); border-color: var(--accent); }
 .hero-actions a.primary:hover { color: #fff; background: #9f4e18; border-color: #9f4e18; }
-.hero-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; max-width: 620px; margin-top: 28px; }
+.hero-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; max-width: 760px; margin-top: 28px; }
 .hero-stats div { border-top: 1px solid rgba(22, 32, 42, .18); padding-top: 10px; }
 .hero-stats strong { display: block; font-size: 21px; line-height: 1.1; }
 .hero-stats span { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
