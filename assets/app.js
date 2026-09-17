@@ -554,10 +554,60 @@ function drawFigA3(d, host) {
 
 /* --------------------------------------------------------------- overview */
 function drawOverview(host) {
+  const hero = el("section", "hero");
+  hero.innerHTML = `<div class="hero-copy">
+      <div class="eyebrow">Published paper and interactive results</div>
+      <h2>Explore thousands of net-zero energy futures without losing the story.</h2>
+      <p>Scenario-space exploration samples uncertain inputs, diagnoses model responses and highlights where robust planning conclusions hold or break.</p>
+      <div class="hero-actions">
+        <a class="primary" href="https://doi.org/10.1016/j.adapen.2026.100308" target="_blank" rel="noreferrer">Read the paper</a>
+        <a href="#fig2">Start with the figures</a>
+        <a href="#data">Get the data</a>
+      </div>
+      <div class="hero-stats" aria-label="Study scale">
+        <div><strong>13,200</strong><span>model runs</span></div>
+        <div><strong>31</strong><span>uncertain inputs</span></div>
+        <div><strong>2050</strong><span>Dutch net-zero system</span></div>
+      </div>
+    </div>
+    <figure class="hero-figure">
+      <img src="assets/hero-scenario-space.png" alt="Energy-system scenario space with many possible pathways and highlighted risk regions">
+      <figcaption>Each point is a possible future. The method finds which pathways stay robust and where risks concentrate.</figcaption>
+    </figure>`;
+  host.appendChild(hero);
+
+  const story = el("section", "story-strip");
+  story.innerHTML = `<div class="story-head">
+      <h2>What the paper shows</h2>
+      <p>A quick visual path through the analysis.</p>
+    </div>
+    <div class="story-track">
+      <a href="#fig2" class="story-card">
+        <img src="assets/linkedin-fig2-delta.png" alt="Sensitivity heatmap across uncertain inputs and model outcomes">
+        <span>Find the drivers</span>
+      </a>
+      <a href="#fig3" class="story-card">
+        <img src="assets/linkedin-fig3-responses.png" alt="Response panels showing smooth, threshold and switching behaviour">
+        <span>Diagnose responses</span>
+      </a>
+      <a href="#fig6" class="story-card">
+        <img src="assets/linkedin-fig6-regime.png" alt="Regime map showing interaction effects in the scenario space">
+        <span>Map regime shifts</span>
+      </a>
+      <a href="#fig7" class="story-card">
+        <img src="assets/linkedin-fig7-discovery.png" alt="Scenario-discovery plot and restrictions for robust planning insights">
+        <span>Extract robust insights</span>
+      </a>
+    </div>`;
+  host.appendChild(story);
+
+  host.appendChild(el("div", "section-head",
+    `<h2>Interactive paper figures</h2><p>Zoom, hover and download the published panels and their source data.</p>`));
   const g = el("div", "overview");
   host.appendChild(g);
   window.FIGS.filter(f => f.kind === "plot").forEach(f => {
-    const c = el("div", "card");
+    const c = el("button", "card");
+    c.type = "button";
     c.innerHTML = `<img loading="lazy" src="figures/${f.num.replace("Figure ", "Fig ")}.png" alt="">
       <div class="cap"><div class="n">${f.num}</div><div class="t">${f.title}</div></div>`;
     c.onclick = () => setTab(f.id);
