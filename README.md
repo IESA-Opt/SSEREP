@@ -5,6 +5,8 @@
 Data, figures and model accompanying the paper *Scenario Space Exploration for
 Robust Energy Planning*, applied to the Dutch net-zero energy system in 2050.
 
+Published article: <https://doi.org/10.1016/j.adapen.2026.100308>
+
 Open **`index.html`** for the interactive figure browser (also served live via
 Netlify, since this repo is connected to a Netlify site). Every figure printed
 in the article is redrawn there from the same numbers, so it can be zoomed,
@@ -155,5 +157,5 @@ live site automatically.
 ## Licence
 
 The repo overall is under the [MIT License](LICENSE). The Julia model in
-`model/` carries its own licence, in `model/LICENSE`. Please cite the paper if
-you use this material.
+`model/` carries its own licence, in `model/LICENSE`. Please cite the published
+paper if you use this material: <https://doi.org/10.1016/j.adapen.2026.100308>.
